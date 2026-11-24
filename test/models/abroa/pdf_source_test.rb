@@ -1,6 +1,26 @@
 require "test_helper"
 
 class Abroa::PdfSourceTest < ActiveSupport::TestCase
+  test "staged PDF evidence cannot also be published through the legacy PDF importer" do
+    user = users(:family_admin)
+    account = Account.create!(family: user.family, owner: user, accountable: Depository.new,
+      name: "PDF workflow", currency: "USD", balance: 1000)
+    bytes = file_fixture("imports/sample_bank_statement.pdf").binread
+    upload = AccountStatement::PreparedUpload.new(content: bytes, filename: "sample.pdf",
+      content_type: "application/pdf", byte_size: bytes.bytesize, checksum: Digest::MD5.base64digest(bytes),
+      content_sha256: Digest::SHA256.hexdigest(bytes))
+    statement = AccountStatement.create_from_prepared_upload!(family: user.family, account: account, prepared_upload: upload)
+    import = imports(:pdf_with_rows)
+    import.update!(account: account, account_statement: statement)
+    config = { source_kind: "generic_pdf", pdf_import_id: import.id }
+    preview = Abroa::StatementIntake.preview_for!(user, statement_id: statement.id, **config)
+    Abroa::StatementIntake.publish_for!(user, statement_id: statement.id, preview_digest: preview.fetch(:preview_digest), **config)
+    assert_no_difference "Entry.count" do
+      assert_raises(Abroa::StatementIntake::Conflict) { import.import! }
+    end
+    assert_not import.reload.publishable?
+  end
+
   test "normalized PDF extraction rows are evidence rather than ledger postings" do
     user = users(:family_admin)
     account = accounts(:depository)
