@@ -822,6 +822,12 @@ Rails.application.routes.draw do
   namespace :api do
     namespace :v1 do
       namespace :abroa do
+        get "regions/:country_code", to: "currency#region"
+        get "accounts/:account_id/profile", to: "currency#account_profile"
+        patch "accounts/:account_id/profile", to: "currency#update_account_profile"
+        get "fx/rates", to: "currency#rates"
+        post "fx/exchanges", to: "currency#create_exchange"
+        get "fx/exchanges/:id", to: "currency#exchange"
         resource :profile, only: [ :show, :update ]
         resource :onboarding, only: [ :show, :update ] do
           post :complete

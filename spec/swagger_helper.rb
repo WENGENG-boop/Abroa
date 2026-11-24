@@ -64,6 +64,45 @@ RSpec.configure do |config|
           }
         },
         schemas: {
+          AbroaRateResponse: {
+            type: :object, required: %w[data],
+            properties: { data: { type: :object, required: %w[from_currency to_currency rate rate_date as_of source quality incomplete],
+              properties: {
+                from_currency: { type: :string }, to_currency: { type: :string }, rate: { type: :string, nullable: true },
+                rate_date: { type: :string, format: :date, nullable: true }, as_of: { type: :string, format: :date },
+                source: { type: :string, nullable: true }, quality: { type: :string }, incomplete: { type: :boolean },
+                original_amount: { type: :string }, converted_amount: { type: :string, nullable: true }, display_amount: { type: :string, nullable: true }
+              } } }
+          },
+          AbroaRegionResponse: {
+            type: :object, required: %w[data],
+            properties: { data: { type: :object, required: %w[country_code currency locale connection_kinds configured],
+              properties: {
+                country_code: { type: :string }, currency: { type: :string, nullable: true }, locale: { type: :string, nullable: true },
+                connection_kinds: { type: :array, items: { type: :string } }, configured: { type: :boolean }
+              } } }
+          },
+          AbroaAccountProfileResponse: {
+            type: :object, required: %w[data],
+            properties: { data: { type: :object, required: %w[account_id country wallet_kind lock_version],
+              properties: {
+                account_id: { type: :string, format: :uuid }, country: { type: :string, nullable: true },
+                wallet_kind: { type: :string, nullable: true }, lock_version: { type: :integer }
+              } } }
+          },
+          AbroaExchangeResponse: {
+            type: :object, required: %w[data],
+            properties: { data: { type: :object, required: %w[id transfer_id debit_entry_id credit_entry_id fee_entry_id debit_amount credit_amount debit_currency credit_currency fee_amount fee_currency actual_rate exchanged_on consistent],
+              properties: {
+                id: { type: :string, format: :uuid }, transfer_id: { type: :string, format: :uuid },
+                debit_entry_id: { type: :string, format: :uuid }, credit_entry_id: { type: :string, format: :uuid },
+                fee_entry_id: { type: :string, format: :uuid, nullable: true },
+                debit_amount: { type: :string }, credit_amount: { type: :string },
+                debit_currency: { type: :string }, credit_currency: { type: :string },
+                fee_amount: { type: :string }, fee_currency: { type: :string, nullable: true },
+                actual_rate: { type: :string }, exchanged_on: { type: :string, format: :date }, consistent: { type: :boolean }
+              } } }
+          },
           AbroaProfileResponse: {
             type: :object,
             required: %w[data],
