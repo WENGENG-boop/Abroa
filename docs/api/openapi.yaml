@@ -32,6 +32,281 @@ components:
             read: Read access
             read_write: Read and write access
   schemas:
+    AbroaBudgetNode:
+      type: object
+      required:
+      - id
+      - project_id
+      - name
+      - start_on
+      - end_on
+      - currency
+      - limit_amount
+      - rollover_amount
+      - rollover_enabled
+      - warning_threshold
+      - status
+      - lock_version
+      properties:
+        id:
+          type: string
+          format: uuid
+        project_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        start_on:
+          type: string
+          format: date
+        end_on:
+          type: string
+          format: date
+        currency:
+          type: string
+        limit_amount:
+          type: string
+        rollover_amount:
+          type: string
+        rollover_enabled:
+          type: boolean
+        warning_threshold:
+          type: string
+        status:
+          type: string
+          enum:
+          - active
+          - closed
+          - archived
+        parent_id:
+          type: string
+          format: uuid
+          nullable: true
+        period_id:
+          type: string
+          format: uuid
+          nullable: true
+        category_id:
+          type: string
+          format: uuid
+          nullable: true
+        sure_budget_id:
+          type: string
+          format: uuid
+          nullable: true
+        lock_version:
+          type: integer
+    AbroaBudgetResponse:
+      type: object
+      required:
+      - data
+      properties:
+        data:
+          "$ref": "#/components/schemas/AbroaBudgetNode"
+    AbroaBudgetListResponse:
+      type: object
+      required:
+      - data
+      - meta
+      properties:
+        data:
+          type: array
+          items:
+            "$ref": "#/components/schemas/AbroaBudgetNode"
+        meta:
+          type: object
+          required:
+          - next_cursor
+          properties:
+            next_cursor:
+              type: string
+              nullable: true
+    AbroaBudgetCreate:
+      type: object
+      required:
+      - name
+      - start_on
+      - end_on
+      - currency
+      - limit_amount
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+        start_on:
+          type: string
+          format: date
+        end_on:
+          type: string
+          format: date
+        currency:
+          type: string
+        limit_amount:
+          type: string
+        rollover_enabled:
+          type: boolean
+        warning_threshold:
+          type: string
+        status:
+          type: string
+          enum:
+          - active
+          - closed
+          - archived
+        parent_id:
+          type: string
+          format: uuid
+          nullable: true
+        period_id:
+          type: string
+          format: uuid
+          nullable: true
+        category_id:
+          type: string
+          format: uuid
+          nullable: true
+        sure_budget_id:
+          type: string
+          format: uuid
+          nullable: true
+    AbroaBudgetUpdate:
+      type: object
+      required:
+      - lock_version
+      additionalProperties: false
+      properties:
+        lock_version:
+          type: integer
+          minimum: 0
+        name:
+          type: string
+        start_on:
+          type: string
+          format: date
+        end_on:
+          type: string
+          format: date
+        currency:
+          type: string
+        limit_amount:
+          type: string
+        rollover_enabled:
+          type: boolean
+        warning_threshold:
+          type: string
+        status:
+          type: string
+          enum:
+          - active
+          - closed
+          - archived
+        parent_id:
+          type: string
+          format: uuid
+          nullable: true
+        period_id:
+          type: string
+          format: uuid
+          nullable: true
+        category_id:
+          type: string
+          format: uuid
+          nullable: true
+        sure_budget_id:
+          type: string
+          format: uuid
+          nullable: true
+    AbroaBudgetExecutionResponse:
+      type: object
+      required:
+      - data
+      properties:
+        data:
+          type: object
+          required:
+          - budget_id
+          - currency
+          - limit
+          - rollover
+          - limit_effective
+          - actual
+          - committed
+          - remaining
+          - uncommitted_remaining
+          - incomplete
+          - issues
+          properties:
+            budget_id:
+              type: string
+              format: uuid
+            currency:
+              type: string
+            limit:
+              type: string
+            rollover:
+              type: string
+            limit_effective:
+              type: string
+            actual:
+              type: string
+              nullable: true
+            committed:
+              type: string
+            reserved_for_same_obligation:
+              type: string
+              nullable: true
+            remaining:
+              type: string
+              nullable: true
+            uncommitted_remaining:
+              type: string
+              nullable: true
+            incomplete:
+              type: boolean
+            issues:
+              type: array
+              items:
+                type: object
+    AbroaBudgetVersionsResponse:
+      type: object
+      required:
+      - data
+      - meta
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+            required:
+            - id
+            - kind
+            - from_data
+            - to_data
+            - created_at
+            properties:
+              id:
+                type: string
+                format: uuid
+              kind:
+                type: string
+              operation_key:
+                type: string
+                nullable: true
+              from_data:
+                type: object
+              to_data:
+                type: object
+              created_at:
+                type: string
+                format: date-time
+        meta:
+          type: object
+          required:
+          - next_cursor
+          properties:
+            next_cursor:
+              type: string
+              nullable: true
     AbroaStudyProject:
       type: object
       required:
@@ -6173,6 +6448,230 @@ components:
         error:
           type: string
 paths:
+  "/api/v1/abroa/projects/{project_id}/budgets":
+    parameters:
+    - name: project_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    get:
+      summary: List project budget nodes with pagination
+      tags:
+      - Abroa planning
+      security:
+      - apiKeyAuth: []
+      parameters:
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+      - name: cursor
+        in: query
+        required: false
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Project budgets
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AbroaBudgetListResponse"
+    post:
+      summary: Create a budget node without writing to Sure's ledger
+      tags:
+      - Abroa planning
+      security:
+      - apiKeyAuth: []
+      parameters:
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AbroaBudgetResponse"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/AbroaBudgetCreate"
+        required: true
+  "/api/v1/abroa/projects/{project_id}/budgets/{id}":
+    parameters:
+    - name: project_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    get:
+      summary: Read an authorized budget node
+      tags:
+      - Abroa planning
+      security:
+      - apiKeyAuth: []
+      responses:
+        '200':
+          description: Budget
+    patch:
+      summary: Update budget attributes with optimistic version control
+      tags:
+      - Abroa planning
+      security:
+      - apiKeyAuth: []
+      parameters: []
+      responses:
+        '200':
+          description: Updated
+      requestBody:
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/AbroaBudgetUpdate"
+        required: true
+  "/api/v1/abroa/projects/{project_id}/budgets/{id}/execution":
+    parameters:
+    - name: project_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    get:
+      summary: Read layered budget actual, committed and remaining amounts
+      tags:
+      - Abroa planning
+      security:
+      - apiKeyAuth: []
+      responses:
+        '200':
+          description: Budget execution
+  "/api/v1/abroa/projects/{project_id}/budgets/{id}/versions":
+    parameters:
+    - name: project_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    get:
+      summary: Read immutable budget change history
+      tags:
+      - Abroa planning
+      security:
+      - apiKeyAuth: []
+      responses:
+        '200':
+          description: Budget versions
+  "/api/v1/abroa/projects/{project_id}/budgets/{id}/adjust":
+    parameters:
+    - name: project_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    post:
+      summary: Adjust a budget without changing past transactions
+      tags:
+      - Abroa planning
+      security:
+      - apiKeyAuth: []
+      parameters: []
+      responses:
+        '200':
+          description: Adjusted
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - lock_version
+              additionalProperties: false
+              properties:
+                limit_amount:
+                  type: string
+                warning_threshold:
+                  type: string
+                lock_version:
+                  type: integer
+        required: true
+  "/api/v1/abroa/projects/{project_id}/budgets/{id}/rollover":
+    parameters:
+    - name: project_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    post:
+      summary: Apply remaining closed budget once to a compatible future period
+      tags:
+      - Abroa planning
+      security:
+      - apiKeyAuth: []
+      parameters:
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Rolled over
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - target_id
+              additionalProperties: false
+              properties:
+                target_id:
+                  type: string
+                  format: uuid
+        required: true
   "/api/v1/abroa/projects":
     get:
       summary: List own study projects

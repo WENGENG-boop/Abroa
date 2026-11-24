@@ -212,6 +212,96 @@ RSpec.configure do |config|
                 actual_rate: { type: :string }, exchanged_on: { type: :string, format: :date }, consistent: { type: :boolean }
               } } }
           },
+          AbroaBudgetNode: {
+            type: :object, required: %w[id project_id name start_on end_on currency limit_amount rollover_amount
+              rollover_enabled warning_threshold status lock_version],
+            properties: {
+              id: { type: :string, format: :uuid }, project_id: { type: :string, format: :uuid },
+              name: { type: :string }, start_on: { type: :string, format: :date },
+              end_on: { type: :string, format: :date }, currency: { type: :string },
+              limit_amount: { type: :string }, rollover_amount: { type: :string },
+              rollover_enabled: { type: :boolean }, warning_threshold: { type: :string },
+              status: { type: :string, enum: %w[active closed archived] },
+              parent_id: { type: :string, format: :uuid, nullable: true },
+              period_id: { type: :string, format: :uuid, nullable: true },
+              category_id: { type: :string, format: :uuid, nullable: true },
+              sure_budget_id: { type: :string, format: :uuid, nullable: true },
+              lock_version: { type: :integer }
+            }
+          },
+          AbroaBudgetResponse: {
+            type: :object, required: %w[data],
+            properties: { data: { '$ref' => '#/components/schemas/AbroaBudgetNode' } }
+          },
+          AbroaBudgetListResponse: {
+            type: :object, required: %w[data meta],
+            properties: {
+              data: { type: :array, items: { '$ref' => '#/components/schemas/AbroaBudgetNode' } },
+              meta: { type: :object, required: %w[next_cursor],
+                properties: { next_cursor: { type: :string, nullable: true } } }
+            }
+          },
+          AbroaBudgetCreate: {
+            type: :object, required: %w[name start_on end_on currency limit_amount], additionalProperties: false,
+            properties: {
+              name: { type: :string }, start_on: { type: :string, format: :date },
+              end_on: { type: :string, format: :date }, currency: { type: :string },
+              limit_amount: { type: :string }, rollover_enabled: { type: :boolean },
+              warning_threshold: { type: :string }, status: { type: :string, enum: %w[active closed archived] },
+              parent_id: { type: :string, format: :uuid, nullable: true },
+              period_id: { type: :string, format: :uuid, nullable: true },
+              category_id: { type: :string, format: :uuid, nullable: true },
+              sure_budget_id: { type: :string, format: :uuid, nullable: true }
+            }
+          },
+          AbroaBudgetUpdate: {
+            type: :object, required: %w[lock_version], additionalProperties: false,
+            properties: {
+              lock_version: { type: :integer, minimum: 0 },
+              name: { type: :string }, start_on: { type: :string, format: :date },
+              end_on: { type: :string, format: :date }, currency: { type: :string },
+              limit_amount: { type: :string }, rollover_enabled: { type: :boolean },
+              warning_threshold: { type: :string }, status: { type: :string, enum: %w[active closed archived] },
+              parent_id: { type: :string, format: :uuid, nullable: true },
+              period_id: { type: :string, format: :uuid, nullable: true },
+              category_id: { type: :string, format: :uuid, nullable: true },
+              sure_budget_id: { type: :string, format: :uuid, nullable: true }
+            }
+          },
+          AbroaBudgetExecutionResponse: {
+            type: :object, required: %w[data],
+            properties: {
+              data: {
+                type: :object, required: %w[budget_id currency limit rollover limit_effective
+                  actual committed remaining uncommitted_remaining incomplete issues],
+                properties: {
+                  budget_id: { type: :string, format: :uuid }, currency: { type: :string },
+                  limit: { type: :string }, rollover: { type: :string },
+                  limit_effective: { type: :string }, actual: { type: :string, nullable: true },
+                  committed: { type: :string }, reserved_for_same_obligation: { type: :string, nullable: true },
+                  remaining: { type: :string, nullable: true },
+                  uncommitted_remaining: { type: :string, nullable: true },
+                  incomplete: { type: :boolean },
+                  issues: { type: :array, items: { type: :object } }
+                }
+              }
+            }
+          },
+          AbroaBudgetVersionsResponse: {
+            type: :object, required: %w[data meta],
+            properties: {
+              data: { type: :array, items: { type: :object,
+                required: %w[id kind from_data to_data created_at],
+                properties: {
+                  id: { type: :string, format: :uuid }, kind: { type: :string },
+                  operation_key: { type: :string, nullable: true },
+                  from_data: { type: :object }, to_data: { type: :object },
+                  created_at: { type: :string, format: :"date-time" }
+                } } },
+              meta: { type: :object, required: %w[next_cursor],
+                properties: { next_cursor: { type: :string, nullable: true } } }
+            }
+          },
           AbroaStudyProject: {
             type: :object, required: %w[id name country timezone start_on currency status lock_version],
             properties: {

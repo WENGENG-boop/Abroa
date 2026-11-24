@@ -829,6 +829,14 @@ Rails.application.routes.draw do
             get :summary
           end
           resources :periods, controller: "study_periods", only: %i[index show create update destroy]
+          resources :budgets, controller: "budget_nodes", only: %i[index show create update] do
+            member do
+              get :execution
+              get :versions
+              post :adjust
+              post :rollover
+            end
+          end
           resources :accounts, controller: "project_accounts", only: %i[index create] do
             delete ":account_id", to: "project_accounts#destroy", on: :collection
           end
