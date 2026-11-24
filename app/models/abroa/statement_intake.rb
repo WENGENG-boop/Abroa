@@ -124,7 +124,8 @@ module Abroa
         sources = SourceRecord.where(family: family, statement: statement, id: ids).order(:id).lock.to_a
         raise Conflict, "Batch source ownership changed" unless sources.size == ids.size
         target_ids = sources.map(&:account_id).uniq
-        targets = family.accounts.writable_by(user).where(id: target_ids).order(:id).lock.to_a
+        writable_ids = family.accounts.writable_by(user).select(:id)
+        targets = family.accounts.where(id: target_ids).where(id: writable_ids).order(:id).lock.to_a
         unless targets.size == target_ids.size && targets.all? { |target| target.owner_id == account.owner_id &&
             AccountPolicy.new(user, target).permits?(:write) }
           raise ActiveRecord::RecordNotFound

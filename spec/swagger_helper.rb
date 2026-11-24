@@ -127,7 +127,8 @@ RSpec.configure do |config|
               id: { type: :string, format: :uuid }, source_record_id: { type: :string, format: :uuid },
               reason_code: { type: :string }, candidate_ids: { type: :array, items: { type: :string, format: :uuid } },
               status: { type: :string, enum: %w[pending resolved dismissed] },
-              lock_version: { type: :integer }, proposed_action: { type: :string }
+              lock_version: { type: :integer }, proposed_action: { type: :string },
+              account_id: { type: :string, format: :uuid, nullable: true }, funding_kind: { type: :string, nullable: true }
             }
           },
           AbroaSourceActionResponse: {
