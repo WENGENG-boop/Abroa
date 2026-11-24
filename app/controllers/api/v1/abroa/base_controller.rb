@@ -11,6 +11,14 @@ class Api::V1::Abroa::BaseController < Api::V1::BaseController
       authorize_scope!(:write) && reject_guest_writes!
     end
 
+    def require_idempotency_key!
+      key = request.headers["Idempotency-Key"]
+      unless key.is_a?(String) && key.present? && key.bytesize <= 128
+        raise ::Abroa::Profile::InvalidInput, "Idempotency-Key must contain 1 to 128 bytes"
+      end
+      key
+    end
+
     def body_fields!(*allowed)
       body = request.request_parameters
       unknown = body.keys.map(&:to_s) - allowed.map(&:to_s)

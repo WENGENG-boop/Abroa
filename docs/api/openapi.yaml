@@ -635,6 +635,410 @@ components:
               format: date
             consistent:
               type: boolean
+    AbroaStudyProject:
+      type: object
+      required:
+      - id
+      - name
+      - country
+      - timezone
+      - start_on
+      - currency
+      - status
+      - lock_version
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        country:
+          type: string
+        origin_country:
+          type: string
+          nullable: true
+        city:
+          type: string
+          nullable: true
+        school:
+          type: string
+          nullable: true
+        timezone:
+          type: string
+        start_on:
+          type: string
+          format: date
+        end_on:
+          type: string
+          format: date
+          nullable: true
+        currency:
+          type: string
+        status:
+          type: string
+          enum:
+          - planning
+          - active
+          - completed
+          - archived
+        archived_at:
+          type: string
+          format: date-time
+          nullable: true
+        lock_version:
+          type: integer
+    AbroaStudyProjectResponse:
+      type: object
+      required:
+      - data
+      properties:
+        data:
+          "$ref": "#/components/schemas/AbroaStudyProject"
+    AbroaStudyProjectListResponse:
+      type: object
+      required:
+      - data
+      properties:
+        data:
+          type: array
+          items:
+            "$ref": "#/components/schemas/AbroaStudyProject"
+    AbroaStudyProjectCreate:
+      type: object
+      required:
+      - name
+      - country
+      - timezone
+      - start_on
+      - currency
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+        country:
+          type: string
+        origin_country:
+          type: string
+          nullable: true
+        city:
+          type: string
+          nullable: true
+        school:
+          type: string
+          nullable: true
+        timezone:
+          type: string
+        start_on:
+          type: string
+          format: date
+        end_on:
+          type: string
+          format: date
+          nullable: true
+        currency:
+          type: string
+    AbroaStudyProjectUpdate:
+      type: object
+      required:
+      - lock_version
+      additionalProperties: false
+      properties:
+        lock_version:
+          type: integer
+          minimum: 0
+        name:
+          type: string
+        country:
+          type: string
+        origin_country:
+          type: string
+          nullable: true
+        city:
+          type: string
+          nullable: true
+        school:
+          type: string
+          nullable: true
+        timezone:
+          type: string
+        start_on:
+          type: string
+          format: date
+        end_on:
+          type: string
+          format: date
+          nullable: true
+        currency:
+          type: string
+        status:
+          type: string
+          enum:
+          - planning
+          - active
+          - completed
+    AbroaStudyPeriod:
+      type: object
+      required:
+      - id
+      - name
+      - kind
+      - start_on
+      - end_on
+      - lock_version
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        kind:
+          type: string
+          enum:
+          - year
+          - term
+          - month
+          - custom
+        start_on:
+          type: string
+          format: date
+        end_on:
+          type: string
+          format: date
+        parent_id:
+          type: string
+          format: uuid
+          nullable: true
+        lock_version:
+          type: integer
+    AbroaStudyPeriodResponse:
+      type: object
+      required:
+      - data
+      properties:
+        data:
+          "$ref": "#/components/schemas/AbroaStudyPeriod"
+    AbroaStudyPeriodListResponse:
+      type: object
+      required:
+      - data
+      properties:
+        data:
+          type: array
+          items:
+            "$ref": "#/components/schemas/AbroaStudyPeriod"
+    AbroaStudyPeriodCreate:
+      type: object
+      required:
+      - name
+      - kind
+      - start_on
+      - end_on
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+        kind:
+          type: string
+          enum:
+          - year
+          - term
+          - month
+          - custom
+        start_on:
+          type: string
+          format: date
+        end_on:
+          type: string
+          format: date
+        parent_id:
+          type: string
+          format: uuid
+          nullable: true
+    AbroaStudyPeriodUpdate:
+      type: object
+      required:
+      - lock_version
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+        kind:
+          type: string
+          enum:
+          - year
+          - term
+          - month
+          - custom
+        start_on:
+          type: string
+          format: date
+        end_on:
+          type: string
+          format: date
+        parent_id:
+          type: string
+          format: uuid
+          nullable: true
+        lock_version:
+          type: integer
+    AbroaStudyAccountResponse:
+      type: object
+      required:
+      - data
+      properties:
+        data:
+          type: object
+          required:
+          - account_id
+          properties:
+            account_id:
+              type: string
+              format: uuid
+    AbroaStudyAccountListResponse:
+      type: object
+      required:
+      - data
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+            required:
+            - account_id
+            properties:
+              account_id:
+                type: string
+                format: uuid
+    AbroaStudyAllocation:
+      type: object
+      required:
+      - id
+      - project_id
+      - entry_id
+      - amount
+      - currency
+      - entry_date
+      - direction
+      - lock_version
+      - consistent
+      properties:
+        id:
+          type: string
+          format: uuid
+        project_id:
+          type: string
+          format: uuid
+        entry_id:
+          type: string
+          format: uuid
+          nullable: true
+        category_id:
+          type: string
+          format: uuid
+          nullable: true
+        amount:
+          type: string
+        currency:
+          type: string
+        entry_date:
+          type: string
+          format: date
+        direction:
+          type: string
+          enum:
+          - expense
+          - income
+        lock_version:
+          type: integer
+        consistent:
+          type: boolean
+    AbroaStudyAllocationResponse:
+      type: object
+      required:
+      - data
+      properties:
+        data:
+          "$ref": "#/components/schemas/AbroaStudyAllocation"
+    AbroaStudyAllocationListResponse:
+      type: object
+      required:
+      - data
+      properties:
+        data:
+          type: array
+          items:
+            "$ref": "#/components/schemas/AbroaStudyAllocation"
+    AbroaStudyAllocationCreate:
+      type: object
+      required:
+      - entry_id
+      - amount
+      additionalProperties: false
+      properties:
+        entry_id:
+          type: string
+          format: uuid
+        amount:
+          type: string
+        currency:
+          type: string
+        category_id:
+          type: string
+          format: uuid
+          nullable: true
+    AbroaStudyAllocationUpdate:
+      type: object
+      required:
+      - lock_version
+      additionalProperties: false
+      properties:
+        amount:
+          type: string
+        category_id:
+          type: string
+          format: uuid
+          nullable: true
+        lock_version:
+          type: integer
+    AbroaStudySummaryResponse:
+      type: object
+      required:
+      - data
+      properties:
+        data:
+          type: object
+          required:
+          - project_id
+          - start_on
+          - end_on
+          - currency
+          - net_consumption
+          - allocated_entry_count
+          - incomplete
+          - missing
+          properties:
+            project_id:
+              type: string
+              format: uuid
+            start_on:
+              type: string
+              format: date
+            end_on:
+              type: string
+              format: date
+            currency:
+              type: string
+            net_consumption:
+              type: string
+              nullable: true
+            allocated_entry_count:
+              type: integer
+            incomplete:
+              type: boolean
+            missing:
+              type: array
+              items:
+                type: object
     AbroaProfileResponse:
       type: object
       required:
@@ -6700,6 +7104,462 @@ paths:
             application/json:
               schema:
                 "$ref": "#/components/schemas/AbroaIntakeReceiptResponse"
+  "/api/v1/abroa/projects":
+    get:
+      summary: List own study projects
+      tags:
+      - Abroa study
+      security:
+      - apiKeyAuth: []
+      responses:
+        '200':
+          description: Own projects
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AbroaStudyProjectListResponse"
+    post:
+      summary: Create a study project with an idempotency key
+      tags:
+      - Abroa study
+      security:
+      - apiKeyAuth: []
+      parameters:
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AbroaStudyProjectResponse"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/AbroaStudyProjectCreate"
+        required: true
+  "/api/v1/abroa/projects/{id}":
+    parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    get:
+      summary: Read an owned study project
+      tags:
+      - Abroa study
+      security:
+      - apiKeyAuth: []
+      responses:
+        '200':
+          description: Project
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AbroaStudyProjectResponse"
+    patch:
+      summary: Change project fields or state
+      tags:
+      - Abroa study
+      security:
+      - apiKeyAuth: []
+      parameters: []
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AbroaStudyProjectResponse"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/AbroaStudyProjectUpdate"
+        required: true
+  "/api/v1/abroa/projects/{id}/archive":
+    parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    post:
+      summary: Archive project without modifying ledger facts
+      tags:
+      - Abroa study
+      security:
+      - apiKeyAuth: []
+      parameters: []
+      responses:
+        '200':
+          description: Archived
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AbroaStudyProjectResponse"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - lock_version
+              properties:
+                lock_version:
+                  type: integer
+        required: true
+  "/api/v1/abroa/projects/{id}/restore":
+    parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    post:
+      summary: Restore archived project state
+      tags:
+      - Abroa study
+      security:
+      - apiKeyAuth: []
+      parameters: []
+      responses:
+        '200':
+          description: Restored
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AbroaStudyProjectResponse"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - lock_version
+              properties:
+                lock_version:
+                  type: integer
+        required: true
+  "/api/v1/abroa/projects/{id}/summary":
+    parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    get:
+      summary: Report project allocations without duplicating the personal ledger
+      tags:
+      - Abroa study
+      security:
+      - apiKeyAuth: []
+      parameters:
+      - name: start_on
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date
+      - name: end_on
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date
+      - name: currency
+        in: query
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Project ledger projection
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AbroaStudySummaryResponse"
+  "/api/v1/abroa/projects/{id}/periods":
+    parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    get:
+      summary: List study periods
+      tags:
+      - Abroa study
+      security:
+      - apiKeyAuth: []
+      responses:
+        '200':
+          description: Study periods
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AbroaStudyPeriodListResponse"
+    post:
+      summary: Add a study period
+      tags:
+      - Abroa study
+      security:
+      - apiKeyAuth: []
+      parameters:
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AbroaStudyPeriodResponse"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/AbroaStudyPeriodCreate"
+        required: true
+  "/api/v1/abroa/projects/{id}/periods/{period_id}":
+    parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    - name: period_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    get:
+      summary: Read study period
+      tags:
+      - Abroa study
+      security:
+      - apiKeyAuth: []
+      responses:
+        '200':
+          description: Period
+    patch:
+      summary: Change study period
+      tags:
+      - Abroa study
+      security:
+      - apiKeyAuth: []
+      parameters: []
+      responses:
+        '200':
+          description: Updated
+      requestBody:
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/AbroaStudyPeriodUpdate"
+        required: true
+    delete:
+      summary: Remove an unreferenced study period
+      tags:
+      - Abroa study
+      security:
+      - apiKeyAuth: []
+      parameters: []
+      responses:
+        '200':
+          description: Deleted
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - lock_version
+              properties:
+                lock_version:
+                  type: integer
+        required: true
+  "/api/v1/abroa/projects/{id}/accounts":
+    parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    get:
+      summary: List project linked accounts
+      tags:
+      - Abroa study
+      security:
+      - apiKeyAuth: []
+      responses:
+        '200':
+          description: Account IDs
+    post:
+      summary: Attach accessible account to project
+      tags:
+      - Abroa study
+      security:
+      - apiKeyAuth: []
+      parameters:
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+      responses:
+        '201':
+          description: Linked
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - account_id
+              properties:
+                account_id:
+                  type: string
+                  format: uuid
+        required: true
+  "/api/v1/abroa/projects/{id}/accounts/{account_id}":
+    parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    - name: account_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    delete:
+      summary: Unlink account without deleting its ledger
+      tags:
+      - Abroa study
+      security:
+      - apiKeyAuth: []
+      responses:
+        '200':
+          description: Unlinked
+  "/api/v1/abroa/projects/{id}/allocations":
+    parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    get:
+      summary: List explicit project ledger allocations
+      tags:
+      - Abroa study
+      security:
+      - apiKeyAuth: []
+      responses:
+        '200':
+          description: Allocations
+    post:
+      summary: Allocate confirmed entry amount to project
+      tags:
+      - Abroa study
+      security:
+      - apiKeyAuth: []
+      parameters:
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+      responses:
+        '201':
+          description: Allocated
+      requestBody:
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/AbroaStudyAllocationCreate"
+        required: true
+  "/api/v1/abroa/projects/{id}/allocations/{allocation_id}":
+    parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    - name: allocation_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    get:
+      summary: Read explicit entry allocation
+      tags:
+      - Abroa study
+      security:
+      - apiKeyAuth: []
+      responses:
+        '200':
+          description: Allocation
+    patch:
+      summary: Change allocated amount with optimistic version
+      tags:
+      - Abroa study
+      security:
+      - apiKeyAuth: []
+      parameters: []
+      responses:
+        '200':
+          description: Updated
+      requestBody:
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/AbroaStudyAllocationUpdate"
+        required: true
+    delete:
+      summary: Release an allocation while retaining original ledger entry
+      tags:
+      - Abroa study
+      security:
+      - apiKeyAuth: []
+      parameters: []
+      responses:
+        '200':
+          description: Released
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - lock_version
+              properties:
+                lock_version:
+                  type: integer
+        required: true
   "/api/v1/account_statements":
     get:
       summary: List statements in the Statement Vault

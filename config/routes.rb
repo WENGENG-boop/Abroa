@@ -822,6 +822,18 @@ Rails.application.routes.draw do
   namespace :api do
     namespace :v1 do
       namespace :abroa do
+        resources :projects, only: %i[index show create update] do
+          member do
+            post :archive
+            post :restore
+            get :summary
+          end
+          resources :periods, controller: "study_periods", only: %i[index show create update destroy]
+          resources :accounts, controller: "project_accounts", only: %i[index create] do
+            delete ":account_id", to: "project_accounts#destroy", on: :collection
+          end
+          resources :allocations, controller: "entry_allocations", only: %i[index show create update destroy]
+        end
         get "imports/:id", to: "statement_intakes#show"
         post "imports/:id/preview", to: "statement_intakes#preview"
         post "imports/:id/publish", to: "statement_intakes#publish"

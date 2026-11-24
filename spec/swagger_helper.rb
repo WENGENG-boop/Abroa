@@ -212,6 +212,131 @@ RSpec.configure do |config|
                 actual_rate: { type: :string }, exchanged_on: { type: :string, format: :date }, consistent: { type: :boolean }
               } } }
           },
+          AbroaStudyProject: {
+            type: :object, required: %w[id name country timezone start_on currency status lock_version],
+            properties: {
+              id: { type: :string, format: :uuid }, name: { type: :string }, country: { type: :string },
+              origin_country: { type: :string, nullable: true }, city: { type: :string, nullable: true },
+              school: { type: :string, nullable: true }, timezone: { type: :string },
+              start_on: { type: :string, format: :date }, end_on: { type: :string, format: :date, nullable: true },
+              currency: { type: :string }, status: { type: :string, enum: %w[planning active completed archived] },
+              archived_at: { type: :string, format: :"date-time", nullable: true },
+              lock_version: { type: :integer }
+            }
+          },
+          AbroaStudyProjectResponse: {
+            type: :object, required: %w[data],
+            properties: { data: { '$ref' => '#/components/schemas/AbroaStudyProject' } }
+          },
+          AbroaStudyProjectListResponse: {
+            type: :object, required: %w[data],
+            properties: { data: { type: :array, items: { '$ref' => '#/components/schemas/AbroaStudyProject' } } }
+          },
+          AbroaStudyProjectCreate: {
+            type: :object, required: %w[name country timezone start_on currency], additionalProperties: false,
+            properties: {
+              name: { type: :string }, country: { type: :string }, origin_country: { type: :string, nullable: true },
+              city: { type: :string, nullable: true }, school: { type: :string, nullable: true },
+              timezone: { type: :string }, start_on: { type: :string, format: :date },
+              end_on: { type: :string, format: :date, nullable: true }, currency: { type: :string }
+            }
+          },
+          AbroaStudyProjectUpdate: {
+            type: :object, required: %w[lock_version], additionalProperties: false,
+            properties: {
+              lock_version: { type: :integer, minimum: 0 },
+              name: { type: :string }, country: { type: :string }, origin_country: { type: :string, nullable: true },
+              city: { type: :string, nullable: true }, school: { type: :string, nullable: true },
+              timezone: { type: :string }, start_on: { type: :string, format: :date },
+              end_on: { type: :string, format: :date, nullable: true }, currency: { type: :string },
+              status: { type: :string, enum: %w[planning active completed] }
+            }
+          },
+          AbroaStudyPeriod: {
+            type: :object, required: %w[id name kind start_on end_on lock_version],
+            properties: {
+              id: { type: :string, format: :uuid }, name: { type: :string },
+              kind: { type: :string, enum: %w[year term month custom] },
+              start_on: { type: :string, format: :date }, end_on: { type: :string, format: :date },
+              parent_id: { type: :string, format: :uuid, nullable: true }, lock_version: { type: :integer }
+            }
+          },
+          AbroaStudyPeriodResponse: {
+            type: :object, required: %w[data],
+            properties: { data: { '$ref' => '#/components/schemas/AbroaStudyPeriod' } }
+          },
+          AbroaStudyPeriodListResponse: {
+            type: :object, required: %w[data],
+            properties: { data: { type: :array, items: { '$ref' => '#/components/schemas/AbroaStudyPeriod' } } }
+          },
+          AbroaStudyPeriodCreate: {
+            type: :object, required: %w[name kind start_on end_on], additionalProperties: false,
+            properties: {
+              name: { type: :string }, kind: { type: :string, enum: %w[year term month custom] },
+              start_on: { type: :string, format: :date }, end_on: { type: :string, format: :date },
+              parent_id: { type: :string, format: :uuid, nullable: true }
+            }
+          },
+          AbroaStudyPeriodUpdate: {
+            type: :object, required: %w[lock_version], additionalProperties: false,
+            properties: {
+              name: { type: :string }, kind: { type: :string, enum: %w[year term month custom] },
+              start_on: { type: :string, format: :date }, end_on: { type: :string, format: :date },
+              parent_id: { type: :string, format: :uuid, nullable: true }, lock_version: { type: :integer }
+            }
+          },
+          AbroaStudyAccountResponse: {
+            type: :object, required: %w[data],
+            properties: { data: { type: :object, required: %w[account_id],
+              properties: { account_id: { type: :string, format: :uuid } } } }
+          },
+          AbroaStudyAccountListResponse: {
+            type: :object, required: %w[data],
+            properties: { data: { type: :array, items: { type: :object, required: %w[account_id],
+              properties: { account_id: { type: :string, format: :uuid } } } } }
+          },
+          AbroaStudyAllocation: {
+            type: :object, required: %w[id project_id entry_id amount currency entry_date direction lock_version consistent],
+            properties: {
+              id: { type: :string, format: :uuid }, project_id: { type: :string, format: :uuid },
+              entry_id: { type: :string, format: :uuid, nullable: true },
+              category_id: { type: :string, format: :uuid, nullable: true },
+              amount: { type: :string }, currency: { type: :string }, entry_date: { type: :string, format: :date },
+              direction: { type: :string, enum: %w[expense income] },
+              lock_version: { type: :integer }, consistent: { type: :boolean }
+            }
+          },
+          AbroaStudyAllocationResponse: {
+            type: :object, required: %w[data],
+            properties: { data: { '$ref' => '#/components/schemas/AbroaStudyAllocation' } }
+          },
+          AbroaStudyAllocationListResponse: {
+            type: :object, required: %w[data],
+            properties: { data: { type: :array, items: { '$ref' => '#/components/schemas/AbroaStudyAllocation' } } }
+          },
+          AbroaStudyAllocationCreate: {
+            type: :object, required: %w[entry_id amount], additionalProperties: false,
+            properties: {
+              entry_id: { type: :string, format: :uuid }, amount: { type: :string },
+              currency: { type: :string }, category_id: { type: :string, format: :uuid, nullable: true }
+            }
+          },
+          AbroaStudyAllocationUpdate: {
+            type: :object, required: %w[lock_version], additionalProperties: false,
+            properties: { amount: { type: :string }, category_id: { type: :string, format: :uuid, nullable: true }, lock_version: { type: :integer } }
+          },
+          AbroaStudySummaryResponse: {
+            type: :object, required: %w[data],
+            properties: { data: { type: :object,
+              required: %w[project_id start_on end_on currency net_consumption allocated_entry_count incomplete missing],
+              properties: {
+                project_id: { type: :string, format: :uuid },
+                start_on: { type: :string, format: :date }, end_on: { type: :string, format: :date },
+                currency: { type: :string }, net_consumption: { type: :string, nullable: true },
+                allocated_entry_count: { type: :integer }, incomplete: { type: :boolean },
+                missing: { type: :array, items: { type: :object } }
+              } } }
+          },
           AbroaProfileResponse: {
             type: :object,
             required: %w[data],
