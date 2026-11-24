@@ -805,6 +805,9 @@ class Api::V1::AuthControllerTest < ActionDispatch::IntegrationTest
     Rails.cache.write("mobile_sso_link:#{linking_code}", {
       provider: "google_oauth2",
       uid: "google-uid-123",
+      issuer: "https://accounts.google.com",
+      subject: "google-uid-123",
+      email_verified: true,
       email: "google@example.com",
       first_name: "Google",
       last_name: "User",
@@ -831,6 +834,26 @@ class Api::V1::AuthControllerTest < ActionDispatch::IntegrationTest
     assert_nil Rails.cache.read("mobile_sso_link:#{linking_code}")
   end
 
+  test "mobile Google linking rejects missing or unverified identity proof" do
+    user = users(:family_admin)
+    [ {}, { issuer: "https://accounts.google.com", subject: "unverified-google", email_verified: false },
+      { issuer: "https://example.invalid", subject: "unverified-google", email_verified: true } ].each do |proof|
+      linking_code = SecureRandom.urlsafe_base64(32)
+      Rails.cache.write("mobile_sso_link:#{linking_code}", {
+        provider: "google_oauth2", uid: "unverified-google", email: "google@example.com",
+        device_info: @device_info.stringify_keys, allow_account_creation: true
+      }.merge(proof), expires_in: 10.minutes)
+      assert_no_difference [ "OidcIdentity.count", "User.count" ] do
+        post "/api/v1/auth/sso_link", params: {
+          linking_code: linking_code, email: user.email, password: user_password_test
+        }
+      end
+      assert_response :unauthorized
+      assert_equal "Invalid SSO identity claims", response.parsed_body["error"]
+      assert_nil Rails.cache.read("mobile_sso_link:#{linking_code}")
+    end
+  end
+
   test "should link SSO for a user whose email row is still legacy plaintext" do
     user = users(:family_admin)
     email = store_legacy_plaintext_email(user)
@@ -839,6 +862,9 @@ class Api::V1::AuthControllerTest < ActionDispatch::IntegrationTest
     Rails.cache.write("mobile_sso_link:#{linking_code}", {
       provider: "google_oauth2",
       uid: "google-uid-legacy",
+      issuer: "https://accounts.google.com",
+      subject: "google-uid-legacy",
+      email_verified: true,
       email: "google@example.com",
       first_name: "Google",
       last_name: "User",
@@ -867,6 +893,9 @@ class Api::V1::AuthControllerTest < ActionDispatch::IntegrationTest
     Rails.cache.write("mobile_sso_link:#{linking_code}", {
       provider: "google_oauth2",
       uid: "google-uid-deactivated",
+      issuer: "https://accounts.google.com",
+      subject: "google-uid-deactivated",
+      email_verified: true,
       email: "google-deactivated@example.com",
       device_info: @device_info.stringify_keys,
       allow_account_creation: true
@@ -895,6 +924,9 @@ class Api::V1::AuthControllerTest < ActionDispatch::IntegrationTest
     Rails.cache.write("mobile_sso_link:#{linking_code}", {
       provider: "google_oauth2",
       uid: "google-uid-race",
+      issuer: "https://accounts.google.com",
+      subject: "google-uid-race",
+      email_verified: true,
       email: "google-race@example.com",
       device_info: @device_info.stringify_keys,
       allow_account_creation: true
@@ -938,6 +970,9 @@ class Api::V1::AuthControllerTest < ActionDispatch::IntegrationTest
     Rails.cache.write("mobile_sso_link:#{linking_code}", {
       provider: "google_oauth2",
       uid: "google-uid-device-failure",
+      issuer: "https://accounts.google.com",
+      subject: "google-uid-device-failure",
+      email_verified: true,
       email: "google-device-failure@example.com",
       device_info: invalid_device_info.stringify_keys,
       allow_account_creation: true
@@ -984,6 +1019,9 @@ class Api::V1::AuthControllerTest < ActionDispatch::IntegrationTest
     Rails.cache.write("mobile_sso_link:#{linking_code}", {
       provider: "google_oauth2",
       uid: "google-uid-123",
+      issuer: "https://accounts.google.com",
+      subject: "google-uid-123",
+      email_verified: true,
       email: "google@example.com",
       device_info: @device_info.stringify_keys,
       allow_account_creation: true
@@ -1013,6 +1051,9 @@ class Api::V1::AuthControllerTest < ActionDispatch::IntegrationTest
     Rails.cache.write("mobile_sso_link:#{linking_code}", {
       provider: "google_oauth2",
       uid: "google-uid-mfa",
+      issuer: "https://accounts.google.com",
+      subject: "google-uid-mfa",
+      email_verified: true,
       email: "mfa@example.com",
       first_name: "MFA",
       last_name: "User",
@@ -1068,6 +1109,9 @@ class Api::V1::AuthControllerTest < ActionDispatch::IntegrationTest
     Rails.cache.write("mobile_sso_link:#{linking_code}", {
       provider: "google_oauth2",
       uid: "google-uid-race-test",
+      issuer: "https://accounts.google.com",
+      subject: "google-uid-race-test",
+      email_verified: true,
       email: "race@example.com",
       first_name: "Race",
       last_name: "Test",
@@ -1105,6 +1149,9 @@ class Api::V1::AuthControllerTest < ActionDispatch::IntegrationTest
     Rails.cache.write("mobile_sso_link:#{linking_code}", {
       provider: "google_oauth2",
       uid: "google-uid-456",
+      issuer: "https://accounts.google.com",
+      subject: "google-uid-456",
+      email_verified: true,
       email: "newgoogleuser@example.com",
       first_name: "New",
       last_name: "GoogleUser",
@@ -1141,6 +1188,9 @@ class Api::V1::AuthControllerTest < ActionDispatch::IntegrationTest
     Rails.cache.write("mobile_sso_link:#{linking_code}", {
       provider: "google_oauth2",
       uid: "google-uid-member-default",
+      issuer: "https://accounts.google.com",
+      subject: "google-uid-member-default",
+      email_verified: true,
       email: "member-default@example.com",
       first_name: "Member",
       last_name: "Default",
@@ -1171,6 +1221,9 @@ class Api::V1::AuthControllerTest < ActionDispatch::IntegrationTest
     Rails.cache.write("mobile_sso_link:#{linking_code}", {
       provider: "google_oauth2",
       uid: "google-uid-super-admin-default",
+      issuer: "https://accounts.google.com",
+      subject: "google-uid-super-admin-default",
+      email_verified: true,
       email: "super-admin-default@example.com",
       first_name: "Super",
       last_name: "Default",
@@ -1198,6 +1251,9 @@ class Api::V1::AuthControllerTest < ActionDispatch::IntegrationTest
     Rails.cache.write("mobile_sso_link:#{linking_code}", {
       provider: "google_oauth2",
       uid: "google-uid-789",
+      issuer: "https://accounts.google.com",
+      subject: "google-uid-789",
+      email_verified: true,
       email: "blocked@example.com",
       first_name: "Blocked",
       last_name: "User",
@@ -1251,6 +1307,9 @@ class Api::V1::AuthControllerTest < ActionDispatch::IntegrationTest
     Rails.cache.write("mobile_sso_link:#{linking_code}", {
       provider: "google_oauth2",
       uid: "google-uid-dup-email",
+      issuer: "https://accounts.google.com",
+      subject: "google-uid-dup-email",
+      email_verified: true,
       email: existing_user.email,
       first_name: "Duplicate",
       last_name: "Email",
@@ -1278,6 +1337,9 @@ class Api::V1::AuthControllerTest < ActionDispatch::IntegrationTest
     Rails.cache.write("mobile_sso_link:#{linking_code}", {
       provider: "google_oauth2",
       uid: "google-uid-rollback",
+      issuer: "https://accounts.google.com",
+      subject: "google-uid-rollback",
+      email_verified: true,
       email: email,
       first_name: "Mobile",
       last_name: "Rollback",
@@ -1314,6 +1376,9 @@ class Api::V1::AuthControllerTest < ActionDispatch::IntegrationTest
     Rails.cache.write("mobile_sso_link:#{linking_code}", {
       provider: "google_oauth2",
       uid: "google-uid-race-create",
+      issuer: "https://accounts.google.com",
+      subject: "google-uid-race-create",
+      email_verified: true,
       email: "raceuser@example.com",
       first_name: "Race",
       last_name: "CreateUser",
