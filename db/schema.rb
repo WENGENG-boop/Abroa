@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_24_142000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_24_143000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -101,6 +101,84 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_24_142000) do
     t.index ["project_id", "entry_key", "category_id"], name: "idx_abroa_allocation_scope", unique: true, nulls_not_distinct: true
     t.index ["project_id"], name: "index_abroa_entry_allocations_on_project_id"
     t.check_constraint "amount > 0::numeric AND amount <> 'NaN'::numeric AND (direction::text = ANY (ARRAY['expense'::character varying::text, 'income'::character varying::text]))", name: "abroa_allocation_positive"
+  end
+
+  create_table "abroa_fee_installments", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "family_id", null: false
+    t.uuid "fee_plan_id", null: false
+    t.string "name", null: false
+    t.date "due_on", null: false
+    t.decimal "gross_amount", precision: 19, scale: 4, null: false
+    t.decimal "discount_amount", precision: 19, scale: 4, default: "0.0", null: false
+    t.string "state", default: "confirmed", null: false
+    t.integer "lock_version", default: 0, null: false
+    t.string "creation_key_digest"
+    t.string "creation_request_digest"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["family_id"], name: "index_abroa_fee_installments_on_family_id"
+    t.index ["fee_plan_id", "creation_key_digest"], name: "idx_abroa_installment_create_key", unique: true, where: "(creation_key_digest IS NOT NULL)"
+    t.index ["fee_plan_id", "due_on"], name: "index_abroa_fee_installments_on_fee_plan_id_and_due_on"
+    t.index ["fee_plan_id"], name: "index_abroa_fee_installments_on_fee_plan_id"
+    t.check_constraint "gross_amount >= 0::numeric AND discount_amount >= 0::numeric AND discount_amount <= gross_amount AND gross_amount <> 'NaN'::numeric AND discount_amount <> 'NaN'::numeric AND (state::text = ANY (ARRAY['draft'::character varying::text, 'confirmed'::character varying::text, 'cancelled'::character varying::text]))", name: "abroa_installment_valid"
+  end
+
+  create_table "abroa_fee_plans", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "family_id", null: false
+    t.uuid "project_id", null: false
+    t.uuid "budget_node_id"
+    t.uuid "fund_pool_id"
+    t.uuid "recurring_transaction_id"
+    t.uuid "category_id"
+    t.string "name", null: false
+    t.string "kind", null: false
+    t.string "currency", null: false
+    t.decimal "gross_amount", precision: 19, scale: 4, null: false
+    t.decimal "discount_amount", precision: 19, scale: 4, default: "0.0", null: false
+    t.string "status", default: "active", null: false
+    t.integer "lock_version", default: 0, null: false
+    t.string "creation_key_digest"
+    t.string "creation_request_digest"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["budget_node_id"], name: "index_abroa_fee_plans_on_budget_node_id"
+    t.index ["category_id"], name: "index_abroa_fee_plans_on_category_id"
+    t.index ["family_id"], name: "index_abroa_fee_plans_on_family_id"
+    t.index ["fund_pool_id"], name: "index_abroa_fee_plans_on_fund_pool_id"
+    t.index ["project_id", "creation_key_digest"], name: "idx_abroa_fee_create_key", unique: true, where: "(creation_key_digest IS NOT NULL)"
+    t.index ["project_id", "status", "kind"], name: "idx_abroa_fee_scope"
+    t.index ["project_id"], name: "index_abroa_fee_plans_on_project_id"
+    t.index ["recurring_transaction_id"], name: "index_abroa_fee_plans_on_recurring_transaction_id"
+    t.check_constraint "gross_amount >= 0::numeric AND discount_amount >= 0::numeric AND discount_amount <= gross_amount AND gross_amount <> 'NaN'::numeric AND discount_amount <> 'NaN'::numeric AND (status::text = ANY (ARRAY['active'::character varying::text, 'cancelled'::character varying::text]))", name: "abroa_fee_plan_valid"
+  end
+
+  create_table "abroa_fee_settlements", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "family_id", null: false
+    t.uuid "actor_id", null: false
+    t.uuid "fee_installment_id", null: false
+    t.uuid "allocation_id"
+    t.uuid "refund_link_id"
+    t.uuid "rate_snapshot_id"
+    t.string "kind", null: false
+    t.decimal "amount", precision: 19, scale: 4, null: false
+    t.string "currency", null: false
+    t.decimal "fee_amount", precision: 19, scale: 4, null: false
+    t.string "fee_currency", null: false
+    t.date "source_date", null: false
+    t.string "operation_key", null: false
+    t.string "request_digest", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["actor_id"], name: "index_abroa_fee_settlements_on_actor_id"
+    t.index ["allocation_id", "kind"], name: "idx_abroa_settlement_allocation"
+    t.index ["allocation_id"], name: "index_abroa_fee_settlements_on_allocation_id"
+    t.index ["family_id", "operation_key"], name: "idx_abroa_settlement_key", unique: true
+    t.index ["family_id"], name: "index_abroa_fee_settlements_on_family_id"
+    t.index ["fee_installment_id"], name: "index_abroa_fee_settlements_on_fee_installment_id"
+    t.index ["rate_snapshot_id"], name: "index_abroa_fee_settlements_on_rate_snapshot_id"
+    t.index ["refund_link_id", "kind"], name: "idx_abroa_settlement_refund"
+    t.index ["refund_link_id"], name: "index_abroa_fee_settlements_on_refund_link_id"
+    t.check_constraint "(kind::text = ANY (ARRAY['payment'::character varying::text, 'refund'::character varying::text])) AND amount > 0::numeric AND fee_amount > 0::numeric AND amount <> 'NaN'::numeric AND fee_amount <> 'NaN'::numeric AND (kind::text = 'payment'::text AND allocation_id IS NOT NULL AND refund_link_id IS NULL OR kind::text = 'refund'::text AND refund_link_id IS NOT NULL AND allocation_id IS NULL)", name: "abroa_settlement_source"
   end
 
   create_table "abroa_fund_pools", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -3647,6 +3725,20 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_24_142000) do
   add_foreign_key "abroa_entry_allocations", "categories", on_delete: :nullify
   add_foreign_key "abroa_entry_allocations", "entries", on_delete: :nullify
   add_foreign_key "abroa_entry_allocations", "families", on_delete: :cascade
+  add_foreign_key "abroa_fee_installments", "abroa_fee_plans", column: "fee_plan_id"
+  add_foreign_key "abroa_fee_installments", "families", on_delete: :cascade
+  add_foreign_key "abroa_fee_plans", "abroa_budget_nodes", column: "budget_node_id"
+  add_foreign_key "abroa_fee_plans", "abroa_fund_pools", column: "fund_pool_id"
+  add_foreign_key "abroa_fee_plans", "abroa_study_projects", column: "project_id"
+  add_foreign_key "abroa_fee_plans", "categories"
+  add_foreign_key "abroa_fee_plans", "families", on_delete: :cascade
+  add_foreign_key "abroa_fee_plans", "recurring_transactions"
+  add_foreign_key "abroa_fee_settlements", "abroa_entry_allocations", column: "allocation_id"
+  add_foreign_key "abroa_fee_settlements", "abroa_fee_installments", column: "fee_installment_id"
+  add_foreign_key "abroa_fee_settlements", "abroa_rate_snapshots", column: "rate_snapshot_id"
+  add_foreign_key "abroa_fee_settlements", "abroa_refund_links", column: "refund_link_id"
+  add_foreign_key "abroa_fee_settlements", "families", on_delete: :cascade
+  add_foreign_key "abroa_fee_settlements", "users", column: "actor_id"
   add_foreign_key "abroa_fund_pools", "abroa_study_projects", column: "project_id"
   add_foreign_key "abroa_fund_pools", "families", on_delete: :cascade
   add_foreign_key "abroa_fund_pools", "goals"

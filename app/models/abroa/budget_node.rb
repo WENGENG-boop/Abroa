@@ -100,7 +100,9 @@ module Abroa
     def execution_for!(user, committed_amount: nil, reserved_for_same_obligation: nil)
       raise ActiveRecord::RecordNotFound unless self.class.for_user(user).where(id: id).exists?
       actual, incomplete, issues = actual_amount(user)
-      committed = committed_amount.nil? ? pending_fees_amount : Decimal.money!(committed_amount, nonnegative: true)
+      committed, fee_issues = committed_amount.nil? ? pending_fees_amount(user) : [ Decimal.money!(committed_amount, nonnegative: true), [] ]
+      issues.concat(fee_issues)
+      incomplete ||= fee_issues.any?
       effective = limit_amount + rollover_amount
       remaining = actual.nil? ? nil : effective - actual
       warnings = []
@@ -121,7 +123,7 @@ module Abroa
         budget_id: id, currency: currency, limit: limit_amount, rollover: rollover_amount,
         limit_effective: effective, actual: actual, committed: committed,
         reserved_for_same_obligation: reserved_for_same_obligation.nil? ? nil : Decimal.money!(reserved_for_same_obligation, nonnegative: true),
-        remaining: remaining, uncommitted_remaining: remaining && remaining - committed,
+        remaining: remaining, uncommitted_remaining: remaining && committed && remaining - committed,
         child_limits_total: children_total, warnings: warnings,
         incomplete: incomplete, issues: issues
       }
@@ -201,6 +203,7 @@ module Abroa
         raise ArgumentError, "Budget calculation row limit exceeded" if rows.size > 10_000
         total = BigDecimal("0")
         issues = []
+        deposits = refundable_deposit_amounts(rows.map(&:id))
         rows.each do |allocation|
           next unless category_id.nil? || allocation.category_id == category_id ||
             (allocation.category_id.nil? && allocation.entry&.transaction&.category_id == category_id)
@@ -213,7 +216,8 @@ module Abroa
           if quote.missing?
             issues << { allocation_id: allocation.id, reason: "missing_rate" }
           else
-            total += quote.convert(allocation.amount)
+            chargeable = allocation.amount - deposits.fetch(allocation.id, BigDecimal("0"))
+            total += quote.convert(chargeable)
           end
         end
         # P1 refund links are authoritative; do not treat unrelated incoming
@@ -222,6 +226,7 @@ module Abroa
           .includes(:entry).limit(10_001).to_a
         raise ArgumentError, "Budget refund row limit exceeded" if original_rows.size > 10_000
         originals = original_rows.group_by(&:entry_id)
+        original_deposits = refundable_deposit_amounts(original_rows.map(&:id))
         if originals.any?
           RefundLink.active.where(family_id: family_id, original_entry_id: originals.keys, refund_date: start_on..end_on)
             .includes(:original_entry).limit(10_001).each do |link|
@@ -232,7 +237,8 @@ module Abroa
                 issues << { allocation_id: allocation.id, reason: "refund_changed" }
                 next
               end
-              share = allocation.amount / allocation.entry.amount.abs
+              chargeable = allocation.amount - original_deposits.fetch(allocation.id, BigDecimal("0"))
+              share = chargeable / allocation.entry.amount.abs
               credited = link.applied_amount * share
               quote = RateSnapshot.quote(from: link.currency, to: currency, date: link.refund_date)
               if quote.missing?
@@ -246,9 +252,41 @@ module Abroa
         [ issues.any? ? nil : total, issues.any?, issues ]
       end
 
-      def pending_fees_amount
-        return BigDecimal("0") unless defined?(Abroa::FeeInstallment)
-        BigDecimal("0")
+      def refundable_deposit_amounts(allocation_ids)
+        return {} if allocation_ids.empty? || !defined?(Abroa::FeeSettlement)
+        FeeSettlement.where(kind: "payment", allocation_id: allocation_ids)
+          .joins(fee_installment: :fee_plan).where(abroa_fee_plans: { kind: "deposit" })
+          .group(:allocation_id).sum(:amount)
+      end
+
+      def pending_fees_amount(user)
+        return [ BigDecimal("0"), [] ] unless defined?(Abroa::FeeInstallment)
+        scope = FeeInstallment.joins(:fee_plan).where(due_on: start_on..end_on, state: "confirmed",
+          abroa_fee_plans: { project_id: project_id, status: "active" })
+        scope = scope.where(abroa_fee_plans: { category_id: category_id }) if category_id
+        rows = scope.limit(10_001).to_a
+        raise ArgumentError, "Budget fee row limit exceeded" if rows.size > 10_000
+        total = BigDecimal("0")
+        issues = []
+        rows.each do |installment|
+          next if installment.fee_plan.refundable_deposit?
+          unless installment.readable_for?(user)
+            issues << { fee_installment_id: installment.id, reason: "fee_source_not_visible" }
+            next
+          end
+          if installment.settlements.any? { |payment| !payment.consistent? }
+            issues << { fee_installment_id: installment.id, reason: "fee_ledger_changed" }
+            next
+          end
+          quote = RateSnapshot.quote(from: installment.fee_plan.currency, to: currency,
+            date: [ installment.due_on, Date.current ].min)
+          if quote.missing?
+            issues << { fee_installment_id: installment.id, reason: "missing_fee_rate" }
+            next
+          end
+          total += quote.convert(installment.outstanding_amount)
+        end
+        [ issues.any? ? nil : total, issues ]
       end
   end
 end

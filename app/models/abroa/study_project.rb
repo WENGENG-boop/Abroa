@@ -9,6 +9,7 @@ module Abroa
     has_many :periods, class_name: "Abroa::StudyPeriod", foreign_key: :project_id
     has_many :budget_nodes, class_name: "Abroa::BudgetNode", foreign_key: :project_id
     has_many :fund_pools, class_name: "Abroa::FundPool", foreign_key: :project_id
+    has_many :fee_plans, class_name: "Abroa::FeePlan", foreign_key: :project_id
     has_many :project_accounts, class_name: "Abroa::ProjectAccount", foreign_key: :project_id
     has_many :allocations, class_name: "Abroa::EntryAllocation", foreign_key: :project_id
 
