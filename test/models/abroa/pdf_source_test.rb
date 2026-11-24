@@ -11,7 +11,9 @@ class Abroa::PdfSourceTest < ActiveSupport::TestCase
       content_sha256: Digest::SHA256.hexdigest(bytes))
     statement = AccountStatement.create_from_prepared_upload!(family: user.family, account: account, prepared_upload: upload)
     import = imports(:pdf_with_rows)
-    import.update!(account: account, account_statement: statement)
+    import.update!(account: account, account_statement: statement, date_format: "%Y-%m-%d", signage_convention: "inflows_positive", amount_type_strategy: "signed_amount")
+    import.rows.destroy_all
+    import.rows.create!(source_row_number: 1, date: "2025-01-10", amount: "-12.50", currency: "USD", name: "Cafe")
     config = { source_kind: "generic_pdf", pdf_import_id: import.id }
     preview = Abroa::StatementIntake.preview_for!(user, statement_id: statement.id, **config)
     Abroa::StatementIntake.publish_for!(user, statement_id: statement.id, preview_digest: preview.fetch(:preview_digest), **config)
