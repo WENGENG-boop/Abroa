@@ -17,8 +17,14 @@ module Abroa
         raise Conflict, "Source already has a final resolution" unless source.status.in?(%w[parsed review])
         raise Conflict, "Source already has a ledger entry" if source.entry_id.present?
         existing = find_by(source_record: source, review_type: "source_resolution", status: "pending")
-        next existing if existing
         decision = SourceMatcher.call(user: user, source: source)
+        if existing
+          if existing.evidence["source_version"] != source.lock_version
+            existing.update!(reason_code: decision.reason, candidate_ids: decision.candidate_ids,
+              evidence: { "source_version" => source.lock_version, "proposed_action" => decision.action })
+          end
+          next existing
+        end
         create!(family: family, source_record: source, reason_code: decision.reason,
           candidate_ids: decision.candidate_ids,
           evidence: { "source_version" => source.lock_version, "proposed_action" => decision.action })
