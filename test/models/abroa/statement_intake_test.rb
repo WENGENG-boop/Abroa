@@ -118,6 +118,64 @@ class Abroa::StatementIntakeTest < ActiveSupport::TestCase
     assert_nil entry.reload.transaction.extra.dig("abroa", "payment_channel")
   end
 
+  test "batch rollback removes only its unchanged created entries and closes pending reviews" do
+    preview = Abroa::StatementIntake.preview_for!(@user, statement_id: @statement.id, **@config)
+    receipt = publish(preview)
+    sources = Abroa::SourceRecord.where(statement: @statement).order(:id).to_a
+    review = Abroa::SourceReview.find_by!(source_record: sources.first)
+    action = Abroa::SourceReview.resolve_for!(@user, review_id: review.id, resolution: "create",
+      expected_version: review.lock_version, key: "batch-create")
+    assert_difference "Entry.count", -1 do
+      assert_no_difference ["Abroa::SourceRecord.count", "Abroa::SourceObservation.count"] do
+        result = Abroa::StatementIntake.rollback_for!(@user, statement_id: @statement.id)
+        assert_equal receipt.id, result.id
+        assert_equal "reversed", result.payload.fetch(:status)
+      end
+    end
+    assert action.reload.reversed_at.present?
+    assert_equal ["reversed"], sources.map { |source| source.reload.status }.uniq
+    assert_not Abroa::SourceReview.where(source_record: sources, status: "pending").exists?
+    assert_no_difference "Entry.count" do
+      assert_equal receipt.id, Abroa::StatementIntake.rollback_for!(@user, statement_id: @statement.id).id
+      assert_raises(Abroa::StatementIntake::Conflict) { publish(preview) }
+    end
+  end
+
+  test "batch rollback is atomic if an entry was later modified" do
+    preview = Abroa::StatementIntake.preview_for!(@user, statement_id: @statement.id, **@config)
+    receipt = publish(preview)
+    sources = Abroa::SourceRecord.where(statement: @statement).order(:id).to_a
+    actions = sources.map do |source|
+      review = Abroa::SourceReview.find_by!(source_record: source)
+      Abroa::SourceReview.resolve_for!(@user, review_id: review.id, resolution: "create",
+        expected_version: review.lock_version, key: "batch-#{source.id}")
+    end
+    actions.last.entry.update!(name: "Later edit")
+    assert_no_difference "Entry.count" do
+      assert_raises(Abroa::StatementIntake::Conflict, Abroa::SourceReview::Conflict) do
+        Abroa::StatementIntake.rollback_for!(@user, statement_id: @statement.id)
+      end
+    end
+    assert actions.none? { |action| action.reload.reversed_at.present? }
+    assert_equal ["posted"], sources.map { |source| source.reload.status }.uniq
+    assert_equal "staged", receipt.reload.payload.fetch(:status)
+  end
+
+  test "batch rollback of automatic link preserves existing bank transaction" do
+    account, entry = bank_payment("match-one")
+    statement = personal_statement(account, ["wallet-order"])
+    config = { source_kind: "alipay_statement" }
+    preview = Abroa::StatementIntake.preview_for!(@user, statement_id: statement.id, **config)
+    Abroa::StatementIntake.publish_for!(@user, statement_id: statement.id,
+      preview_digest: preview.fetch(:preview_digest), **config)
+    assert_no_difference "Entry.count" do
+      Abroa::StatementIntake.rollback_for!(@user, statement_id: statement.id)
+    end
+    assert_nil entry.reload.transaction.extra.dig("abroa", "payment_channel")
+    assert_equal "Bank charge", entry.name
+    assert_equal "linked", Abroa::SourceRecord.find_by!(entry: entry, source_kind: "bank_provider").status
+  end
+
   private
     def bank_payment(reference)
       account = Account.create!(family: @user.family, owner: @user, accountable: Depository.new,

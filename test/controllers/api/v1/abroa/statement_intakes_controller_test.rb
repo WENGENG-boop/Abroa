@@ -50,6 +50,22 @@ class Api::V1::Abroa::StatementIntakesControllerTest < ActionDispatch::Integrati
     assert_equal "staged", response.parsed_body.dig("data", "status")
   end
 
+  test "batch rollback is write scoped, audited and idempotent" do
+    post "#{@path}/preview", params: @body, as: :json, headers: api_headers(@key)
+    digest = response.parsed_body.dig("data", "preview_digest")
+    post "#{@path}/publish", params: @body.merge(preview_digest: digest), as: :json, headers: api_headers(@key)
+    assert_response :created
+    post "#{@path}/rollback", headers: api_headers(@read_key)
+    assert_response :forbidden
+    assert_no_difference "Entry.count" do
+      2.times do
+        post "#{@path}/rollback", headers: api_headers(@key)
+        assert_response :ok
+        assert_equal "reversed", response.parsed_body.dig("data", "status")
+      end
+    end
+  end
+
   test "other tenant cannot read or stage private statement" do
     other = users(:empty)
     key = ApiKey.create!(user: other, name: "Other", key: ApiKey.generate_secure_key, scopes: %w[read_write], source: "web")
