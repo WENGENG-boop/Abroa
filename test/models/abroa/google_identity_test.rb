@@ -50,6 +50,13 @@ class Abroa::GoogleIdentityTest < ActiveSupport::TestCase
     assert Abroa::GoogleIdentity.matches?(identity, Abroa::GoogleIdentity.claims!(auth))
   end
 
+  test "an existing Google identity cannot authenticate after provider is repointed" do
+    identity = OidcIdentity.new(provider: "campus_google", uid: "subject-1", issuer: "https://accounts.google.com")
+    AuthConfig.stubs(:sso_providers).returns([{ name: "campus_google", strategy: "openid_connect", issuer: "https://other.example" }])
+    assert_nil Abroa::GoogleIdentity.claims!(auth)
+    assert_not Abroa::GoogleIdentity.matches?(identity, nil)
+  end
+
   private
     def auth(overrides = {}, provider: "campus_google")
       raw = { iss: "https://accounts.google.com", sub: "subject-1", email: "student@example.com", email_verified: true }.merge(overrides)

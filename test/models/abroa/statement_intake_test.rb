@@ -378,6 +378,43 @@ class Abroa::StatementIntakeTest < ActiveSupport::TestCase
     end
   end
 
+  test "manual resolution cannot attach distinct payment orders to the same bank entry" do
+    account, entry = bank_payment("match-one")
+    statement = personal_statement(account, ["wallet-one", "wallet-two"])
+    config = { source_kind: "alipay_statement" }
+    preview = Abroa::StatementIntake.preview_for!(@user, statement_id: statement.id, **config)
+    Abroa::StatementIntake.publish_for!(@user, statement_id: statement.id,
+      preview_digest: preview.fetch(:preview_digest), **config)
+    sources = Abroa::SourceRecord.where(statement: statement).order(:id).to_a
+    reviews = sources.map { |source| Abroa::SourceReview.find_by!(source_record: source, status: "pending") }
+    Abroa::SourceReview.resolve_for!(@user, review_id: reviews.first.id, resolution: "link",
+      expected_version: reviews.first.lock_version, key: "manual-first", target_entry_id: entry.id)
+    assert_no_difference ["Entry.count", "Abroa::SourceAction.count"] do
+      assert_raises(Abroa::SourceReview::Conflict) do
+        Abroa::SourceReview.resolve_for!(@user, review_id: reviews.last.id, resolution: "link",
+          expected_version: reviews.last.lock_version, key: "manual-second", target_entry_id: entry.id)
+      end
+    end
+    assert_nil sources.last.reload.entry_id
+    assert_equal entry.id, sources.first.reload.entry_id
+  end
+
+  test "undo reconciliation then roll back unchanged imported entries" do
+    receipt, rows = reconcilable_statement
+    travel 1.second do
+      preview = Abroa::StatementReconciliation.preview_for!(@user, statement_id: @statement.id)
+      Abroa::StatementReconciliation.confirm_for!(@user, statement_id: @statement.id, digest: preview.fetch(:digest))
+    end
+    travel 2.seconds do
+      Abroa::StatementReconciliation.undo_for!(@user, statement_id: @statement.id)
+    end
+    assert_difference "Entry.count", -2 do
+      Abroa::StatementIntake.rollback_for!(@user, statement_id: @statement.id)
+    end
+    assert_equal "reversed", receipt.reload.payload.fetch(:status)
+    assert_not Entry.where(id: rows.map(&:id)).exists?
+  end
+
   private
     def reconcilable_statement
       @config[:source_kind] = "bank_statement"

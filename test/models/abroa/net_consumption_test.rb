@@ -73,6 +73,16 @@ class Abroa::NetConsumptionTest < ActiveSupport::TestCase
     end
   end
 
+  test "deleted original purchase does not silently become unallocated income" do
+    @purchase.destroy!
+    assert_nil @link.reload.original_entry_id
+    result = report(Date.new(2025, 1, 1), Date.new(2025, 2, 28))
+    assert result[:incomplete]
+    assert_equal 1, result[:inconsistent_refund_count]
+    assert_nil result.dig(:totals, :net_consumption)
+    assert_nil result.dig(:totals, :unallocated_inflows)
+  end
+
   private
     def movement(account, amount, date)
       account.entries.create!(entryable: Transaction.new, name: "Movement", amount: amount,
