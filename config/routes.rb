@@ -832,6 +832,7 @@ Rails.application.routes.draw do
         get "reviews", to: "source_reviews#index"
         post "reviews", to: "source_reviews#create"
         post "reviews/:id/resolve", to: "source_reviews#resolve"
+        post "reviews/:id/assign-account", to: "source_reviews#assign_account"
         post "source-actions/:id/reverse", to: "source_reviews#reverse"
         post "refund-links", to: "refund_links#create"
         get "refund-links/:id", to: "refund_links#show"

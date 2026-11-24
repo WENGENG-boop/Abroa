@@ -5,8 +5,10 @@ class Api::V1::Abroa::SourceReviewsController < Api::V1::Abroa::BaseController
 
   def index
     account_ids = Current.user.family.accounts.accessible_by(Current.user).select(:id)
-    scope = ::Abroa::SourceReview.where(family: Current.user.family)
-      .joins(:source_record).where(abroa_source_records: { account_id: account_ids })
+    sources = ::Abroa::SourceRecord.where(family: Current.user.family, account_id: account_ids)
+    visible_statements = Current.user.family.account_statements.where(account_id: account_ids).select(:id)
+    sources = sources.where(statement_id: nil).or(sources.where(statement_id: visible_statements))
+    scope = ::Abroa::SourceReview.where(family: Current.user.family, source_record_id: sources.select(:id))
     status = params[:status]
     if status.present?
       raise ArgumentError, "Unknown review status" unless %w[pending resolved dismissed].include?(status)
@@ -23,6 +25,15 @@ class Api::V1::Abroa::SourceReviewsController < Api::V1::Abroa::BaseController
     require_uuid!(fields[:source_record_id])
     review = ::Abroa::SourceReview.open_for!(Current.user, fields[:source_record_id])
     render_json({ data: review.payload }, status: :created)
+  end
+
+  def assign_account
+    require_uuid!(params[:id])
+    fields = body_fields!(:account_id, :funding_kind, :expected_version)
+    require_uuid!(fields[:account_id])
+    review = ::Abroa::SourceReview.assign_account_for!(Current.user, review_id: params[:id],
+      account_id: fields[:account_id], funding_kind: fields[:funding_kind], expected_version: fields[:expected_version])
+    render_json({ data: review.payload })
   end
 
   def resolve

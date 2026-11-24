@@ -72,11 +72,12 @@ module Abroa
         seen = {}
         preexisting = SourceRecord.where(family: family, statement: statement).pluck(:id).to_set
         result.records.each do |record|
-          canonical = SourceRecord.ingest!(family: family, record: record, account: account,
+          funding_account = confirmed_account_for!(user, family, account, record)
+          canonical = SourceRecord.ingest!(family: family, record: record, account: funding_account,
             statement: statement, import: pdf_import)
           # A reused personal order assigned to another account must not leak
           # that account's id or silently move its provenance.
-          raise Conflict, "Source identity belongs to another account" unless canonical.account_id == account.id
+          raise Conflict, "Source identity belongs to another account" unless canonical.account_id == funding_account.id
           counts["existing_count"] += 1 if seen.key?(canonical.id)
           seen[canonical.id] = canonical
         end
@@ -120,8 +121,14 @@ module Abroa
         unless ids.is_a?(Array) && ids.any? && ids == owned
           raise Conflict, "Batch contains shared or untracked provenance; review its actions individually"
         end
-        sources = SourceRecord.where(family: family, account: account, statement: statement, id: ids).order(:id).lock.to_a
+        sources = SourceRecord.where(family: family, statement: statement, id: ids).order(:id).lock.to_a
         raise Conflict, "Batch source ownership changed" unless sources.size == ids.size
+        target_ids = sources.map(&:account_id).uniq
+        targets = family.accounts.writable_by(user).where(id: target_ids).order(:id).lock.to_a
+        unless targets.size == target_ids.size && targets.all? { |target| target.owner_id == account.owner_id &&
+            AccountPolicy.new(user, target).permits?(:write) }
+          raise ActiveRecord::RecordNotFound
+        end
         sources.each do |source|
           if source.observations.where.not(statement_id: statement.id).exists? ||
               source.observations.where(statement_id: nil).exists? ||
@@ -184,6 +191,25 @@ module Abroa
               yield family, statement, account
             end
           end
+        end
+
+        # A later statement may repeat an order already attributed by the
+        # user. Respect its confirmed account, never silently reassign it.
+        def confirmed_account_for!(user, family, account, record)
+          return account unless StatementParser::PERSONAL_KINDS.include?(record.source_kind) && record.external_id
+          existing = SourceRecord.find_by(family: family, source_kind: record.source_kind,
+            source_instance_key: record.source_instance_key, external_id: record.external_id)
+          return account unless existing && existing.account_id != account.id
+          confirmed = SourceReview.where(family: family, source_record: existing)
+            .where("evidence -> 'funding_assignment' ->> 'to_account_id' = ?", existing.account_id).exists?
+          raise Conflict, "Source identity belongs to another account" unless confirmed
+          target = family.accounts.writable_by(user).find(existing.account_id)
+          target.lock!
+          unless target.owner_id == account.owner_id && AccountPolicy.new(user, target).permits?(:write) &&
+              existing.statement&.manageable_by?(user)
+            raise ActiveRecord::RecordNotFound
+          end
+          target
         end
 
         def config_for!(family, statement, account, kind, mapping, separator, pdf_import_id)

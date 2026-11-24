@@ -21,13 +21,60 @@ module Abroa
         if existing
           if existing.evidence["source_version"] != source.lock_version
             existing.update!(reason_code: decision.reason, candidate_ids: decision.candidate_ids,
-              evidence: { "source_version" => source.lock_version, "proposed_action" => decision.action })
+              evidence: existing.evidence.merge("source_version" => source.lock_version, "proposed_action" => decision.action))
           end
           next existing
         end
         create!(family: family, source_record: source, reason_code: decision.reason,
           candidate_ids: decision.candidate_ids,
           evidence: { "source_version" => source.lock_version, "proposed_action" => decision.action })
+      end
+    end
+
+    # Reattribute an unresolved personal statement row without touching the
+    # ledger or rewriting original evidence. Both account scopes are checked.
+    def self.assign_account_for!(user, review_id:, account_id:, funding_kind:, expected_version:)
+      unless expected_version.is_a?(Integer) && expected_version >= 0 &&
+          %w[wallet bank_account].include?(funding_kind)
+        raise ArgumentError, "Invalid funding assignment or version"
+      end
+      with_actor(user) do |family|
+        review = where(family: family).find(review_id)
+        source, current = lock_source!(user, family, review.source_record_id)
+        review.lock!
+        unless review.status == "pending" && review.lock_version == expected_version &&
+            review.evidence["source_version"] == source.lock_version &&
+            source.status.in?(%w[parsed review]) && source.entry_id.nil? &&
+            !SourceAction.where(source_record: source).exists?
+          raise Conflict, "Source or review changed"
+        end
+        statement = source.statement
+        unless SourceMatcher::PAYMENT_KINDS.include?(source.source_kind) && statement &&
+            statement.manageable_by?(user) && statement.account
+          raise ArgumentError, "Expected a personal payment statement"
+        end
+        target = family.accounts.writable_by(user).find(account_id)
+        target.lock!
+        unless target.owner_id == statement.account.owner_id &&
+            current.owner_id == statement.account.owner_id && AccountPolicy.new(user, target).permits?(:write)
+          raise ActiveRecord::RecordNotFound
+        end
+        original_kind = source.normalized["funding_kind"]
+        if original_kind != "unknown" && original_kind != funding_kind
+          raise ArgumentError, "Funding classification contradicts source evidence"
+        end
+        validate_funding_account!(source, target, funding_kind)
+        history = Array(review.evidence["funding_assignments"])
+        raise Conflict, "Too many funding assignments" if history.size >= 50
+        assignment = { "from_account_id" => current.id, "to_account_id" => target.id,
+          "funding_kind" => funding_kind, "actor_id" => user.id, "confirmed_at" => Time.current.iso8601(6) }
+        source.update!(account: target) if source.account_id != target.id
+        decision = SourceMatcher.call(user: user, source: source)
+        review.update!(reason_code: decision.reason, candidate_ids: decision.candidate_ids,
+          evidence: review.evidence.merge("source_version" => source.lock_version,
+            "proposed_action" => decision.action, "funding_assignment" => assignment,
+            "funding_assignments" => history + [assignment]))
+        review
       end
     end
 
@@ -92,9 +139,10 @@ module Abroa
         resolved_kind = nil
         case resolution
         when "create", "link"
-          resolved_kind = validate_financial_source!(source, account, movement_kind)
+          funding_kind = review.effective_funding_kind
+          resolved_kind = validate_financial_source!(source, account, movement_kind, funding_kind)
           if resolution == "create"
-            validate_creation!(source, account)
+            validate_creation!(source, account, funding_kind)
             entry = account.entries.create!(entryable: Transaction.new(kind: "standard",
               extra: source.payment_channel.present? ? { "abroa" => { "payment_channel" => source.payment_channel } } : {}),
               amount: source.signed_amount, currency: source.currency, date: source.local_date,
@@ -195,10 +243,22 @@ module Abroa
       end
     end
 
+    def effective_funding_kind
+      kind = source_record.normalized["funding_kind"]
+      assignment = evidence["funding_assignment"]
+      if kind == "unknown" && assignment.is_a?(Hash) &&
+          assignment["to_account_id"] == source_record.account_id
+        assignment["funding_kind"]
+      else
+        kind
+      end
+    end
+
     def payload
       { id: id, source_record_id: source_record_id, reason_code: reason_code,
         candidate_ids: candidate_ids, status: status, lock_version: lock_version,
-        proposed_action: evidence["proposed_action"] }
+        proposed_action: evidence["proposed_action"], account_id: source_record.account_id,
+        funding_kind: effective_funding_kind }
     end
 
     class << self
@@ -223,10 +283,14 @@ module Abroa
           unless source.account_id == account.id && AccountPolicy.new(user, account).permits?(:write)
             raise ActiveRecord::RecordNotFound
           end
+          if source.statement && source.statement.account_id != account.id &&
+              !source.statement.manageable_by?(user)
+            raise ActiveRecord::RecordNotFound
+          end
           [ source, account ]
         end
 
-        def validate_financial_source!(source, account, movement_kind)
+        def validate_financial_source!(source, account, movement_kind, funding_kind)
           source_kind = source.normalized["transaction_kind"]
           # Preserve raw evidence. Only the user-confirmed audit action records
           # a classification for an otherwise unknown posted movement.
@@ -241,19 +305,35 @@ module Abroa
               !source.observations.where(status: "conflict").exists?
             raise ArgumentError, "Source is not a confirmed regular account movement"
           end
-          if source.normalized["funding_kind"] == "wallet"
-            profile = AccountProfile.find_by(account: account, family_id: source.family_id)
-            unless profile && profile.wallet_kind == source.payment_channel
-              raise ArgumentError, "A wallet-funded payment requires the matching wallet account"
-            end
+          if SourceMatcher::PAYMENT_KINDS.include?(source.source_kind)
+            validate_funding_account!(source, account, funding_kind)
+          elsif funding_kind == "wallet"
+            validate_funding_account!(source, account, funding_kind)
           end
           kind
         end
 
-        def validate_creation!(source, account)
+        def validate_funding_account!(source, account, funding_kind)
+          raise ArgumentError, "Funding currency differs" unless account.currency == source.currency
+          profile = AccountProfile.find_by(account: account, family_id: source.family_id)
+          case funding_kind
+          when "wallet"
+            unless profile&.wallet_kind == source.payment_channel && account.accountable_type == "Depository"
+              raise ArgumentError, "A wallet-funded payment requires the matching wallet account"
+            end
+          when "bank_account"
+            unless profile&.wallet_kind.nil? && account.accountable_type.in?(%w[Depository CreditCard])
+              raise ArgumentError, "A bank-funded payment requires a bank account"
+            end
+          else
+            raise ArgumentError, "Confirm the actual funding account before posting"
+          end
+        end
+
+        def validate_creation!(source, account, funding_kind)
           if source.source_kind == "bank_provider" ||
               (SourceMatcher::PAYMENT_KINDS.include?(source.source_kind) &&
-                source.normalized["funding_kind"] != "wallet")
+                funding_kind != "wallet")
             raise ArgumentError, "Bank-funded or unidentified payment requires independent ledger evidence"
           end
           unless account.accountable_type.in?(%w[Depository CreditCard OtherAsset OtherLiability])
