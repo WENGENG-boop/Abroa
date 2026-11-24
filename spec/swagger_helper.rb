@@ -64,6 +64,18 @@ RSpec.configure do |config|
           }
         },
         schemas: {
+          AbroaConsumptionResponse: {
+            type: :object, required: %w[data],
+            properties: { data: { type: :object, required: %w[start_on end_on currency account_ids totals incomplete inconsistent_refund_count rates],
+              properties: {
+                start_on: { type: :string, format: :date }, end_on: { type: :string, format: :date },
+                currency: { type: :string }, account_ids: { type: :array, items: { type: :string, format: :uuid } },
+                totals: { type: :object, required: %w[gross_consumption refunds net_consumption unallocated_inflows],
+                  properties: %i[gross_consumption refunds net_consumption unallocated_inflows].index_with { { type: :string, nullable: true } } },
+                incomplete: { type: :boolean }, inconsistent_refund_count: { type: :integer },
+                rates: { type: :array, items: { type: :object } }
+              } } }
+          },
           AbroaIntakeInput: {
             type: :object, required: %w[source_kind], additionalProperties: false,
             properties: {
