@@ -54,6 +54,16 @@ module Abroa
       raise UnsupportedFormat, "CSV is malformed or has unsupported encoding"
     end
 
+    def self.parse_xlsx(bytes:, source_kind:, source_instance_key:, mapping: nil, default_currency: nil)
+      unless (PERSONAL_KINDS + %w[generic_xlsx bank_statement]).include?(source_kind)
+        raise UnsupportedFormat, "Unsupported XLSX statement type"
+      end
+      rows = XlsxRows.read(bytes)
+      parse_table(rows: rows, file_sha256: Digest::SHA256.hexdigest(bytes),
+        source_kind: source_kind, source_instance_key: source_instance_key,
+        mapping: mapping, default_currency: default_currency)
+    end
+
     def self.parse_table(rows:, file_sha256:, source_kind:, source_instance_key:, mapping: nil, default_currency: nil)
       unless rows.is_a?(Array) && rows.size <= MAX_ROWS + 100 &&
           rows.all? { |row| row.is_a?(Array) && row.size <= MAX_COLUMNS }
@@ -75,6 +85,9 @@ module Abroa
           raise UnsupportedFormat, "Statement exceeds row limit"
         end
         begin
+          if row.any? { |cell| !cell.nil? && !cell.is_a?(String) }
+            raise InvalidRow, "Unsupported spreadsheet cell"
+          end
           if row.any? { |cell| cell.is_a?(String) && cell.bytesize > MAX_FIELD }
             raise InvalidRow, "Field too long"
           end
