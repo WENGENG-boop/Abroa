@@ -5,7 +5,7 @@
 |P0 源码及环境|P0.1–5|A00|审计|IN_PROGRESS|P0.1 静态基线核实完成，见 Abroa_P0_BASELINE.md；P0.2 已核实核心及身份/回滚/AI 方法，见 Abroa_P0_METHOD_AUDIT.md，仍未完成；P0.3 Docker 已恢复；隔离镜像因 Debian HTTP 软件源下载失败，待重试；P0.4 首批 schema/API 已对照，见 Abroa_P0_SCHEMA_API.md；P0.5 四个 golden 测试已编写，未执行|
 |用户/邮箱/Google/初始化|P1.1|A01|复用+扩展|IN_PROGRESS|Profile 模型/迁移及资料、引导 API 已编写；Minitest/rswag 已补；未运行迁移、测试或生成 OpenAPI；Google callback/绑定校验及测试已编写；真实凭证、state/nonce 及完整认证验收待完成|
 |FX 多币种/地区|P1.2|A02|扩展|IN_PROGRESS|历史汇率快照、地区/钱包、实际换汇核心及 6 个 API 已编写；Minitest 与 rswag 已补；修改已记换汇与多币种报告整合待补，未运行迁移/测试|
-|CONNECT-01,02,03|P1.3–5|A03-1–5|reuse+new|IN_PROGRESS|P1.3 source evidence, same-source idempotency and provider wrapper; P1.4 personal CSV, explicit CSV mapping, bounded single-sheet XLSX, existing PDF extraction preview; real statement fixtures and runtime tests pending; P1.5 write path and P1.6 integration pending|
+|CONNECT-01,02,03|P1.3–5|A03-1–5|reuse+new|IN_PROGRESS|P1.3 source evidence, same-source idempotency and provider wrapper; P1.4 personal CSV, mapped CSV, bounded single-sheet XLSX, existing PDF extraction, digest-confirmed staging and 3 APIs using the original Statement Vault upload; real fixtures, unassigned/multi-account mapping, batch rollback and runtime tests pending; P1.5 write path partial and P1.6 integration pending|
 |CONNECT-04,05,06|P1.5|A03-4–8|extension|IN_PROGRESS|Conservative matcher, account-scoped review, create/link/ignore/dismiss, metadata, audited reversal, partial and cross-currency refund allocation, 7 API actions and Minitest/rswag implemented; automated matching dispatch, unresolved account assignment, refund reporting, statement reconciliation, and runtime tests pending|
 |CONNECT-07,08|P1.6|A03-9|扩展|PLANNED|待填|
 |STUDY-01–05|P2.1|A04|新增|PLANNED|待填|

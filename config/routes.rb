@@ -822,6 +822,9 @@ Rails.application.routes.draw do
   namespace :api do
     namespace :v1 do
       namespace :abroa do
+        get "imports/:id", to: "statement_intakes#show"
+        post "imports/:id/preview", to: "statement_intakes#preview"
+        post "imports/:id/publish", to: "statement_intakes#publish"
         get "reviews", to: "source_reviews#index"
         post "reviews", to: "source_reviews#create"
         post "reviews/:id/resolve", to: "source_reviews#resolve"

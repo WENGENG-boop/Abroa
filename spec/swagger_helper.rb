@@ -64,6 +64,48 @@ RSpec.configure do |config|
           }
         },
         schemas: {
+          AbroaIntakeInput: {
+            type: :object, required: %w[source_kind], additionalProperties: false,
+            properties: {
+              source_kind: { type: :string, enum: %w[bank_statement alipay_statement wechat_statement generic_csv generic_xlsx generic_pdf] },
+              mapping: { type: :object, nullable: true, additionalProperties: { type: :string } },
+              separator: { type: :string }, pdf_import_id: { type: :string, format: :uuid, nullable: true }
+            }
+          },
+          AbroaIntakePublish: {
+            type: :object, required: %w[source_kind preview_digest], additionalProperties: false,
+            properties: {
+              source_kind: { type: :string, enum: %w[bank_statement alipay_statement wechat_statement generic_csv generic_xlsx generic_pdf] },
+              mapping: { type: :object, nullable: true, additionalProperties: { type: :string } },
+              separator: { type: :string }, pdf_import_id: { type: :string, format: :uuid, nullable: true },
+              preview_digest: { type: :string, minLength: 64, maxLength: 64 }, accept_invalid_rows: { type: :boolean }
+            }
+          },
+          AbroaIntakePreviewResponse: {
+            type: :object, required: %w[data],
+            properties: { data: { type: :object, required: %w[statement_id account_id source_kind file_sha256 preview_digest record_count issue_count rows issues],
+              properties: {
+                statement_id: { type: :string, format: :uuid }, account_id: { type: :string, format: :uuid },
+                source_kind: { type: :string }, file_sha256: { type: :string }, preview_digest: { type: :string },
+                record_count: { type: :integer }, issue_count: { type: :integer },
+                rows: { type: :array, items: { type: :object } },
+                issues: { type: :array, items: { type: :object, required: %w[row_number code message],
+                  properties: { row_number: { type: :integer }, code: { type: :string }, message: { type: :string } } } }
+              } } }
+          },
+          AbroaIntakeReceiptResponse: {
+            type: :object, required: %w[data],
+            properties: { data: { type: :object, required: %w[id statement_id account_id source_kind file_sha256 preview_digest status summary],
+              properties: {
+                id: { type: :string, format: :uuid }, statement_id: { type: :string, format: :uuid },
+                account_id: { type: :string, format: :uuid }, source_kind: { type: :string },
+                file_sha256: { type: :string }, preview_digest: { type: :string }, status: { type: :string, enum: %w[staged] },
+                summary: { type: :object, required: %w[record_count issue_count review_count ignored_count existing_count accepted_invalid_rows],
+                  properties: { record_count: { type: :integer }, issue_count: { type: :integer },
+                    review_count: { type: :integer }, ignored_count: { type: :integer }, existing_count: { type: :integer },
+                    accepted_invalid_rows: { type: :boolean } } }
+              } } }
+          },
           AbroaSourceReview: {
             type: :object, required: %w[id source_record_id reason_code candidate_ids status lock_version proposed_action],
             properties: {
