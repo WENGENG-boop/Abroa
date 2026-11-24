@@ -77,6 +77,89 @@ class Abroa::FundPoolTest < ActiveSupport::TestCase
     assert_equal BigDecimal("3000"), pool.native_reserved_for(@account)
   end
 
+  test "goal-linked pool consumes the same real posted transaction through Sure Goal" do
+    goal = @user.family.goals.create!(name: "Savings for tuition", target_amount: 5000, currency: "GBP",
+      goal_accounts: [ GoalAccount.new(account: @account, allocated_amount: 5000) ])
+    pool = Abroa::FundPool.create_for!(@user, @project.id, attributes: {
+      name: "Goal tuition", kind: "tuition", currency: "GBP", goal_id: goal.id })
+    purchase = @account.entries.create!(entryable: Transaction.new, name: "Term payment",
+      amount: 2000, currency: "GBP", date: Date.current)
+    @account.update!(balance: 98_000)
+    movement = nil
+    assert_no_difference "Entry.count" do
+      movement = Abroa::PoolMovement.apply_for!(@user, pool.id, account_id: @account.id,
+        kind: "consume", amount: "2000", entry_id: purchase.id, key: "goal-payment")
+    end
+    assert_equal BigDecimal("2000"), goal.reload.consumed_amount
+    assert_equal BigDecimal("3000"), goal.goal_accounts.first.reload.allocated_amount
+    assert_equal BigDecimal("3000"), pool.reload.native_allocated_for(@account)
+    assert_equal BigDecimal("3000"), Abroa::AllocationGuard.summary_for!(@user, @account.id)[:goal_reserved]
+    assert_equal goal.id, purchase.transaction.reload.extra.dig("goal", "consumed_goal_id")
+    assert_equal movement.id, Abroa::PoolMovement.apply_for!(@user, pool.id,
+      account_id: @account.id, kind: "consume", amount: "2000", entry_id: purchase.id,
+      key: "goal-payment").id
+    assert_equal BigDecimal("2000"), goal.reload.consumed_amount
+    assert_raises(ArgumentError) do
+      Abroa::PoolMovement.apply_for!(@user, pool.id, account_id: @account.id,
+        kind: "consume", amount: "2000", entry_id: purchase.id, key: "double-consumption")
+    end
+    assert_equal 1, pool.movements.where(kind: "consume").count
+  end
+
+  test "goal-linked refund restores original earmark only for an authoritative refund" do
+    goal = @user.family.goals.create!(name: "One off tuition", target_amount: 5000, currency: "GBP",
+      goal_accounts: [ GoalAccount.new(account: @account, allocated_amount: 5000) ])
+    pool = Abroa::FundPool.create_for!(@user, @project.id, attributes: {
+      name: "Linked tuition", kind: "tuition", currency: "GBP", goal_id: goal.id })
+    expense = @account.entries.create!(entryable: Transaction.new, name: "School fee",
+      amount: 2000, currency: "GBP", date: Date.current)
+    @account.update!(balance: 98_000)
+    Abroa::PoolMovement.apply_for!(@user, pool.id, account_id: @account.id,
+      kind: "consume", amount: "2000", entry_id: expense.id, key: "goal-fee")
+    assert_equal BigDecimal("3000"), goal.goal_accounts.first.reload.allocated_amount
+    refund = @account.entries.create!(entryable: Transaction.new, name: "School adjustment",
+      amount: -700, currency: "GBP", date: Date.current)
+    Abroa::RefundLink.link_for!(@user, original_entry_id: expense.id, refund_entry_id: refund.id,
+      applied_amount: "700", refund_amount: "700")
+    @account.update!(balance: 98_700)
+    assert_no_difference "Entry.count" do
+      first = Abroa::PoolMovement.apply_for!(@user, pool.id, account_id: @account.id,
+        kind: "refund", amount: "700", entry_id: refund.id, key: "goal-refund")
+      assert_equal first.id, Abroa::PoolMovement.apply_for!(@user, pool.id,
+        account_id: @account.id, kind: "refund", amount: "700",
+        entry_id: refund.id, key: "goal-refund").id
+    end
+    assert_equal BigDecimal("1300"), goal.reload.consumed_amount
+    account_link = goal.goal_accounts.first
+    account_link.reload
+    assert_equal BigDecimal("3700"), account_link.allocated_amount
+    assert_equal BigDecimal("3700"), Abroa::AllocationGuard.summary_for!(@user, @account.id)[:reserved_total]
+    assert_raises(ArgumentError) do
+      Abroa::PoolMovement.apply_for!(@user, pool.id, account_id: @account.id,
+        kind: "refund", amount: "1", entry_id: refund.id, key: "refund-over")
+    end
+    assert_equal BigDecimal("1300"), goal.reload.consumed_amount
+  end
+
+  test "maintained Sure Goal consumption is refused without creating phantom pool movement" do
+    goal = @user.family.goals.create!(name: "Emergency reserve", kind: "maintained",
+      target_amount: 5000, currency: "GBP",
+      goal_accounts: [ GoalAccount.new(account: @account, allocated_amount: 5000) ])
+    pool = Abroa::FundPool.create_for!(@user, @project.id, attributes: {
+      name: "Emergency", kind: "emergency", currency: "GBP", goal_id: goal.id })
+    expense = @account.entries.create!(entryable: Transaction.new, name: "Emergency invoice",
+      amount: 200, currency: "GBP", date: Date.current)
+    assert_no_difference "Abroa::PoolMovement.count" do
+      assert_raises(Goal::ConsumptionRefused) do
+        Abroa::PoolMovement.apply_for!(@user, pool.id, account_id: @account.id,
+          kind: "consume", amount: "200", entry_id: expense.id, key: "not-allowed")
+      end
+    end
+    assert_nil expense.transaction.reload.extra&.dig("goal", "consumed_goal_id")
+    assert_equal BigDecimal("0"), goal.reload.consumed_amount
+    assert_equal BigDecimal("5000"), pool.native_allocated_for(@account)
+  end
+
   test "restoring an archived Sure Goal must not overclaim active fund pools" do
     goal = @user.family.goals.create!(name: "Released goal", target_amount: 40_000, currency: "GBP",
       goal_accounts: [ GoalAccount.new(account: @account, allocated_amount: 40_000) ])

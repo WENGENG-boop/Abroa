@@ -176,6 +176,33 @@ class Abroa::FeePlanTest < ActiveSupport::TestCase
     assert_equal 1, pool.movements.where(kind: "unreserve", fee_installment_id: due.id).count
   end
 
+  test "fee settlement can use one Sure Goal-backed pool without double reservation or posting" do
+    goal = @user.family.goals.create!(name: "Tuition savings", target_amount: 5000, currency: "GBP",
+      goal_accounts: [ GoalAccount.new(account: @account, allocated_amount: 5000) ])
+    pool = Abroa::FundPool.create_for!(@user, @project.id, attributes: {
+      name: "Goal-backed tuition", kind: "tuition", currency: "GBP", goal_id: goal.id })
+    plan = create_plan(kind: "tuition", gross: "1000", discount: "0", pool_id: pool.id)
+    due = create_installment(plan, gross: "1000", discount: "0")
+    Abroa::PoolMovement.apply_for!(@user, pool.id, account_id: @account.id,
+      kind: "reserve", amount: "1000", fee_installment_id: due.id, key: "goal-fee-reserve")
+    entry, allocation = posted_allocation(1000)
+    @account.update!(balance: 19_000)
+    assert_no_difference "Entry.count" do
+      first = Abroa::FeeSettlement.pay_for!(@user, due.id,
+        allocation_id: allocation.id, amount: "1000", key: "goal-fee-pay")
+      assert_equal first.id, Abroa::FeeSettlement.pay_for!(@user, due.id,
+        allocation_id: allocation.id, amount: "1000", key: "goal-fee-pay").id
+    end
+    assert_equal BigDecimal("1000"), goal.reload.consumed_amount
+    assert_equal BigDecimal("4000"), pool.native_allocated_for(@account)
+    assert_equal BigDecimal("0"), pool.native_reserved_for(@account)
+    summary = Abroa::AllocationGuard.summary_for!(@user, @account.id)
+    assert_equal BigDecimal("4000"), summary[:reserved_total]
+    assert_equal BigDecimal("0"), summary[:pool_reserved]
+    assert_equal BigDecimal("1000"), due.reload.paid_amount
+    assert_equal BigDecimal("1000"), entry.reload.amount
+  end
+
   test "fees cannot accept unposted transactions or unmatched cross-currency parity" do
     plan = create_plan(kind: "transport", gross: "100", discount: "0")
     due = create_installment(plan, gross: "100", discount: "0")

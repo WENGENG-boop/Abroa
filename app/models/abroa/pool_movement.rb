@@ -18,8 +18,12 @@ module Abroa
     before_update { raise ActiveRecord::ReadOnlyError, "Pool movements are immutable" }
 
     def self.native_allocated_for(account)
-      where(account_id: account.id, family_id: account.family_id)
-        .sum("CASE WHEN kind IN ('allocate','refund') THEN amount WHEN kind IN ('release','consume') THEN -amount ELSE 0 END").to_d
+      # Goal-linked pool movements are provenance only: Sure GoalAccount has
+      # already changed its own earmark. Including those movements again
+      # would subtract Goal consumption twice from usable account cash.
+      joins(:pool).where(account_id: account.id, family_id: account.family_id,
+        abroa_fund_pools: { goal_id: nil })
+        .sum("CASE WHEN abroa_pool_movements.kind IN ('allocate','refund') THEN abroa_pool_movements.amount WHEN abroa_pool_movements.kind IN ('release','consume') THEN -abroa_pool_movements.amount ELSE 0 END").to_d
     end
 
     def self.apply_for!(user, pool_id, account_id:, kind:, amount:, entry_id: nil, fee_installment_id: nil, key:)
@@ -57,7 +61,7 @@ module Abroa
               existing.request_digest == request_digest && existing.pool_id == pool.id
             next existing
           end
-          if pool.goal_id && !%w[reserve unreserve].include?(kind)
+          if pool.goal_id && %w[allocate release].include?(kind)
             raise ArgumentError, "Goal-linked pools are funded by Sure Goal; do not fund twice"
           end
           raise ArgumentError, "Missing or invalid source account currency" unless account.currency == guarded[:currency]
@@ -84,8 +88,10 @@ module Abroa
             raise ArgumentError, "Expense would consume another obligation's funds" if value - reserved_released > allocated - reserved
             raise ArgumentError, "Expense already allocated to other pools" if
               where(kind: "consume", entry_key: entry.id).sum(:amount) + value > entry_native_amount!(entry, account)
+            GoalFundBridge.consume!(pool: pool, account: account, entry: entry, native_amount: value) if pool.goal_id
           when "refund"
             verify_linked_refund!(user, pool, account, entry, value)
+            GoalFundBridge.refund!(pool: pool, account: account, entry: entry, native_amount: value) if pool.goal_id
           end
 
           record = create!(family: user.family, actor: user, pool: pool, account: account,
