@@ -2,7 +2,7 @@
 状态定义：PLANNED 尚未实现；IN_PROGRESS 正在实施；IMPLEMENTED 未验；VERIFIED 有实际通过证据；BLOCKED_EXTERNAL 缺凭证/真实样例；FAILED 测试未通过；DEFERRED 后续。原 Sure 功能静态存在不代表 Abroa 已验。此版本仅文档与初步静态审计，不修改代码、不运行测试。
 |需求/范围|任务|验收|复用/新增|状态|实现路径/测试证据|
 |---|---|---|---|---|---|
-|P0 源码及环境|P0.1–5|A00|审计|IN_PROGRESS|P0.1 静态基线核实完成，见 Abroa_P0_BASELINE.md；P0.2 方法体审计未完成；P0.3 Docker Engine 未运行、Ruby/Bundler 不在 PATH，测试未执行|
+|P0 源码及环境|P0.1–5|A00|审计|IN_PROGRESS|P0.1 静态基线核实完成，见 Abroa_P0_BASELINE.md；P0.2 部分方法体已核实，见 Abroa_P0_METHOD_AUDIT.md，仍未完成；P0.3 Docker Engine 未运行、Ruby/Bundler 不在 PATH，测试未执行|
 |用户/邮箱/Google/初始化|P1.1|A01|复用+扩展|PLANNED|待填|
 |FX 多币种/地区|P1.2|A02|扩展|PLANNED|待填|
 |CONNECT-01,02,03|P1.3–5|A03-1–5|复用+新增|PLANNED|待填|
