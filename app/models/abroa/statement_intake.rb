@@ -48,6 +48,7 @@ module Abroa
         config_digest = digest(config)
         existing = find_by(statement: statement)
         if existing
+          raise Conflict, "Statement has been rolled back" if existing.summary["reversed_at"].present?
           unless existing.account_id == account.id && existing.config_digest == config_digest &&
               existing.preview_digest == preview_digest &&
               existing.summary["accepted_invalid_rows"] == accept_invalid_rows
@@ -69,6 +70,7 @@ module Abroa
           "review_count" => 0, "ignored_count" => 0, "existing_count" => 0,
           "auto_linked_count" => 0, "accepted_invalid_rows" => accept_invalid_rows }
         seen = {}
+        preexisting = SourceRecord.where(family: family, statement: statement).pluck(:id).to_set
         result.records.each do |record|
           canonical = SourceRecord.ingest!(family: family, record: record, account: account,
             statement: statement, import: pdf_import)
@@ -93,9 +95,57 @@ module Abroa
             counts["existing_count"] += 1
           end
         end
+        # Keep the ownership manifest private; a receipt may contain observations
+        # of sources that existed before this particular statement was published.
+        counts["source_ids"] = seen.keys.sort
+        counts["owned_source_ids"] = seen.values.select { |source| source.statement_id == statement.id &&
+          !preexisting.include?(source.id) }.map(&:id).sort
         create!(family: family, actor: user, account: account, statement: statement, pdf_import: pdf_import,
           source_kind: source_kind, config_digest: config_digest, preview_digest: preview_digest,
           file_digest: result.file_sha256, summary: counts)
+      end
+    end
+
+    # A batch rollback is atomic. Reuse the existing per-action dependency
+    # checks; never erase evidence or an unrelated ledger movement.
+    def self.rollback_for!(user, statement_id:)
+      with_statement(user, statement_id) do |family, statement, account|
+        receipt = find_by!(family: family, statement: statement)
+        receipt.lock!
+        raise ActiveRecord::RecordNotFound unless receipt.account_id == account.id && receipt.actor_id == user.id
+        next receipt if receipt.summary["reversed_at"].present?
+
+        ids = receipt.summary["source_ids"]
+        owned = receipt.summary["owned_source_ids"]
+        unless ids.is_a?(Array) && ids.any? && ids == owned
+          raise Conflict, "Batch contains shared or untracked provenance; review its actions individually"
+        end
+        sources = SourceRecord.where(family: family, account: account, statement: statement, id: ids).order(:id).lock.to_a
+        raise Conflict, "Batch source ownership changed" unless sources.size == ids.size
+        sources.each do |source|
+          if source.observations.where.not(statement_id: statement.id).exists? ||
+              source.observations.where(statement_id: nil).exists? ||
+              where(family: family).where.not(id: receipt.id).where("summary -> 'source_ids' @> ?::jsonb", [source.id].to_json).exists? ||
+              source.observations.where(status: "conflict").exists?
+            raise Conflict, "Source has later or shared evidence"
+          end
+          actions = SourceAction.where(family: family, source_record: source, reversed_at: nil).order(:id).lock.to_a
+          raise Conflict, "Source has multiple resolution actions" if actions.size > 1
+          if actions.one?
+            SourceReview.reverse_for!(user, action_id: actions.first.id)
+          elsif source.entry_id.present? || !source.status.in?(%w[parsed review ignored reversed])
+            raise Conflict, "Source has an untracked ledger dependency"
+          elsif source.status != "reversed"
+            source.update!(status: "reversed")
+          end
+          SourceReview.where(family: family, source_record: source, status: "pending").find_each do |review|
+            review.update!(status: "dismissed", resolved_by: user, resolved_at: Time.current,
+              evidence: review.evidence.merge("batch_rollback_id" => receipt.id))
+          end
+        end
+        receipt.update!(summary: receipt.summary.merge("reversed_at" => Time.current.iso8601(6),
+          "reversed_by_id" => user.id, "reversed_source_count" => sources.size))
+        receipt
       end
     end
 
@@ -109,7 +159,9 @@ module Abroa
 
     def payload
       { id: id, statement_id: statement_id, account_id: account_id, source_kind: source_kind,
-        file_sha256: file_digest, preview_digest: preview_digest, status: "staged", summary: summary }
+        file_sha256: file_digest, preview_digest: preview_digest,
+        status: summary["reversed_at"].present? ? "reversed" : "staged",
+        summary: summary.except("source_ids", "owned_source_ids", "reversed_by_id") }
     end
 
     class << self

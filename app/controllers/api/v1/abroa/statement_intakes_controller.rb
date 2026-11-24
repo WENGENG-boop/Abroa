@@ -23,6 +23,12 @@ class Api::V1::Abroa::StatementIntakesController < Api::V1::Abroa::BaseControlle
     render_json({ data: receipt.payload }, status: :created)
   end
 
+  def rollback
+    body_fields!
+    receipt = ::Abroa::StatementIntake.rollback_for!(Current.user, statement_id: statement_id!)
+    render_json({ data: receipt.payload })
+  end
+
   private
     def statement_id!
       raise ActiveRecord::RecordNotFound unless valid_uuid?(params[:id])

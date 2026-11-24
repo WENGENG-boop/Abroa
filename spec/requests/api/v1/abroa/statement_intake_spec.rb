@@ -56,6 +56,20 @@ RSpec.describe 'API V1 Abroa statement intake', type: :request do
     end
   end
 
+  path '/api/v1/abroa/imports/{id}/rollback' do
+    parameter name: :id, in: :path, required: true, schema: { type: :string, format: :uuid }
+    post 'Atomically reverse the batch without deleting shared or edited ledger entries' do
+      tags 'Abroa imports'
+      security [ { apiKeyAuth: [] } ]
+      produces 'application/json'
+      response '200', 'Reversed receipt' do
+        schema '$ref' => '#/components/schemas/AbroaIntakeReceiptResponse'
+        let!(:receipt) { Abroa::StatementIntake.publish_for!(user, statement_id: statement.id, **publish_input) }
+        run_test!
+      end
+    end
+  end
+
   path '/api/v1/abroa/imports/{id}' do
     parameter name: :id, in: :path, required: true, schema: { type: :string, format: :uuid }
     get 'Read the staging receipt by Statement Vault id' do

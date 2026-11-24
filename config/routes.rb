@@ -825,6 +825,7 @@ Rails.application.routes.draw do
         get "imports/:id", to: "statement_intakes#show"
         post "imports/:id/preview", to: "statement_intakes#preview"
         post "imports/:id/publish", to: "statement_intakes#publish"
+        post "imports/:id/rollback", to: "statement_intakes#rollback"
         post "accounts/:account_id/sources/capture", to: "provider_captures#capture"
         get "accounts/:account_id/sources/diagnostics", to: "provider_captures#diagnostics"
         get "reviews", to: "source_reviews#index"

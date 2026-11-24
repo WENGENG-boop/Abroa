@@ -99,11 +99,13 @@ RSpec.configure do |config|
               properties: {
                 id: { type: :string, format: :uuid }, statement_id: { type: :string, format: :uuid },
                 account_id: { type: :string, format: :uuid }, source_kind: { type: :string },
-                file_sha256: { type: :string }, preview_digest: { type: :string }, status: { type: :string, enum: %w[staged] },
+                file_sha256: { type: :string }, preview_digest: { type: :string }, status: { type: :string, enum: %w[staged reversed] },
                 summary: { type: :object, required: %w[record_count issue_count review_count ignored_count existing_count accepted_invalid_rows],
                   properties: { record_count: { type: :integer }, issue_count: { type: :integer },
                     review_count: { type: :integer }, ignored_count: { type: :integer }, existing_count: { type: :integer },
                     auto_linked_count: { type: :integer, minimum: 0 },
+                    reversed_source_count: { type: :integer, minimum: 0 },
+                    reversed_at: { type: :string, format: "date-time" },
                     accepted_invalid_rows: { type: :boolean } } }
               } } }
           },
