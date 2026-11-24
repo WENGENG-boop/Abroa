@@ -92,6 +92,70 @@ class Abroa::SourceRecordTest < ActiveSupport::TestCase
     end
   end
 
+  test "same stable pending order becomes posted without duplicate or conflict" do
+    pending = normalized(row_key: "pending:1", external_id: "order-1", provider_status: "pending")
+    posted = normalized(row_key: "posted:1", external_id: "order-1", provider_status: "posted")
+    record = Abroa::SourceRecord.ingest!(family: @family, record: pending, account: @account)
+    assert_not record.postable?
+    assert_no_difference [ "Entry.count", "Abroa::SourceRecord.count" ] do
+      updated = Abroa::SourceRecord.ingest!(family: @family, record: posted, account: @account)
+      assert_equal record.id, updated.id
+      assert_equal "parsed", updated.status
+      assert_equal "posted", updated.normalized.fetch("provider_status")
+      assert updated.postable?
+      assert_equal 2, updated.observations.count
+      assert_equal "pending", updated.observations.find_by!(source_row_key: "pending:1").normalized.fetch("provider_status")
+      assert_equal "observed", updated.observations.find_by!(source_row_key: "posted:1").status
+
+      stale = normalized(row_key: "pending:2", external_id: "order-1", provider_status: "pending")
+      assert_equal updated.id, Abroa::SourceRecord.ingest!(family: @family, record: stale, account: @account).id
+      assert_equal "posted", updated.reload.normalized.fetch("provider_status")
+      assert_equal "parsed", updated.status
+      assert_equal 3, updated.observations.count
+    end
+  end
+
+  test "closing a still-unposted pending order preserves evidence and prevents posting" do
+    pending = normalized(row_key: "pending:1", external_id: "order-1", provider_status: "pending")
+    closed = normalized(row_key: "closed:1", external_id: "order-1", provider_status: "closed")
+    record = Abroa::SourceRecord.ingest!(family: @family, record: pending, account: @account)
+    assert_no_difference "Entry.count" do
+      assert_equal record.id, Abroa::SourceRecord.ingest!(family: @family, record: closed, account: @account).id
+      assert_equal "ignored", record.reload.status
+      assert_not record.postable?
+      assert_equal "closed", record.normalized.fetch("provider_status")
+      assert_equal 2, record.observations.count
+    end
+  end
+
+  test "changed pending amount is not silently accepted as posted" do
+    pending = normalized(row_key: "pending:1", external_id: "order-1", provider_status: "pending")
+    posted = normalized(row_key: "posted:1", external_id: "order-1", provider_status: "posted", amount: "110")
+    record = Abroa::SourceRecord.ingest!(family: @family, record: pending, account: @account)
+    assert_equal record.id, Abroa::SourceRecord.ingest!(family: @family, record: posted, account: @account).id
+    assert_equal "review", record.reload.status
+    assert_equal BigDecimal("100"), record.amount
+    assert_equal "conflict", record.observations.find_by!(source_row_key: "posted:1").status
+  end
+
+  test "provider pending flag may clear without writing or duplicating the ledger" do
+    entry = @account.entries.create!(entryable: Transaction.new(extra: { "simplefin" => { "pending" => true } }),
+      name: "Pending charge", amount: 100, currency: "CNY", date: Date.new(2025, 1, 10),
+      external_id: "bank-id-1", source: "simplefin")
+    record = Abroa::ProviderSource.capture_existing!(entry)
+    assert_equal "parsed", record.status
+    assert_nil record.entry_id
+    entry.transaction.update!(extra: { "simplefin" => { "pending" => false } })
+    assert_no_difference [ "Entry.count", "Abroa::SourceRecord.count" ] do
+      updated = Abroa::ProviderSource.capture_existing!(entry.reload)
+      assert_equal record.id, updated.id
+      assert_equal "linked", updated.status
+      assert_equal entry.id, updated.entry_id
+      assert_equal 2, updated.observations.count
+      assert_equal "Pending charge", entry.reload.name
+    end
+  end
+
   private
     def normalized(row_key:, **overrides)
       attributes = {
