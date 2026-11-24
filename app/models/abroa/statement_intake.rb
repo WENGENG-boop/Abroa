@@ -16,7 +16,8 @@ module Abroa
     validate :initial_provenance, on: :create
 
     # Upload remains in the existing Statement Vault. Preview is a read-only
-    # operation; publishing stages evidence and review work, not ledger writes.
+    # operation; publishing stages evidence and reviews, and can attach
+    # uniquely matched evidence to an existing movement without adding entries.
     def self.preview_for!(user, statement_id:, source_kind:, mapping: nil, separator: ",", pdf_import_id: nil)
       with_statement(user, statement_id) do |family, statement, account|
         config, pdf_import = config_for!(family, statement, account, source_kind, mapping, separator, pdf_import_id)
@@ -66,21 +67,28 @@ module Abroa
 
         counts = { "record_count" => result.records.size, "issue_count" => result.issues.size,
           "review_count" => 0, "ignored_count" => 0, "existing_count" => 0,
-          "accepted_invalid_rows" => accept_invalid_rows }
-        seen = Set.new
+          "auto_linked_count" => 0, "accepted_invalid_rows" => accept_invalid_rows }
+        seen = {}
         result.records.each do |record|
           canonical = SourceRecord.ingest!(family: family, record: record, account: account,
             statement: statement, import: pdf_import)
           # A reused personal order assigned to another account must not leak
           # that account's id or silently move its provenance.
           raise Conflict, "Source identity belongs to another account" unless canonical.account_id == account.id
-          if !seen.add?(canonical.id)
-            counts["existing_count"] += 1
-          elsif canonical.status == "ignored"
+          counts["existing_count"] += 1 if seen.key?(canonical.id)
+          seen[canonical.id] = canonical
+        end
+
+        # Stage all evidence before making decisions so competing orders in the
+        # same file cannot cause the first row to be linked arbitrarily.
+        seen.each_value do |canonical|
+          canonical.reload
+          if canonical.status == "ignored"
             counts["ignored_count"] += 1
           elsif canonical.status.in?(%w[parsed review]) && canonical.entry_id.nil?
-            SourceReview.open_for!(user, canonical.id)
-            counts["review_count"] += 1
+            review = SourceReview.open_for!(user, canonical.id)
+            action = SourceReview.try_auto_link_for!(user, review_id: review.id)
+            counts[action ? "auto_linked_count" : "review_count"] += 1
           else
             counts["existing_count"] += 1
           end

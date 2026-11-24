@@ -47,6 +47,21 @@ module Abroa
       unless bank_evidence.one? && !bank_evidence.first.observations.where(status: "conflict").exists?
         return review("unconfirmed_shared_reference", ids)
       end
+      # Distinct wallet orders claiming the same bank movement are ambiguous,
+      # even when the first order was previously linked.
+      competing_orders = SourceRecord.where(
+        family_id: source.family_id, account_id: account.id, source_kind: PAYMENT_KINDS,
+        currency: source.currency, direction: source.direction, amount: source.amount, local_date: dates
+      ).where.not(id: source.id).where.not(status: %w[ignored reversed])
+        .where("normalized ->> 'provider_status' = ?", "posted")
+        .where("normalized ->> 'reference' = ?", reference)
+      if competing_orders.exists? || SourceRecord.where(entry_id: entry.id, source_kind: PAYMENT_KINDS).where.not(id: source.id).exists?
+        return review("competing_payment_orders", ids)
+      end
+      if AccountProfile.where(account_id: account.id).where.not(wallet_kind: nil).exists?
+        return review("not_bank_account", ids)
+      end
+
       Result.new(action: "link", reason: "unique_explicit_reference", candidate_ids: ids.freeze, entry_id: entry.id)
     end
 

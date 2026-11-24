@@ -103,6 +103,7 @@ RSpec.configure do |config|
                 summary: { type: :object, required: %w[record_count issue_count review_count ignored_count existing_count accepted_invalid_rows],
                   properties: { record_count: { type: :integer }, issue_count: { type: :integer },
                     review_count: { type: :integer }, ignored_count: { type: :integer }, existing_count: { type: :integer },
+                    auto_linked_count: { type: :integer, minimum: 0 },
                     accepted_invalid_rows: { type: :boolean } } }
               } } }
           },

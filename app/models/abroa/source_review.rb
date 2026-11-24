@@ -31,7 +31,27 @@ module Abroa
       end
     end
 
-    def self.resolve_for!(user, review_id:, resolution:, expected_version:, key:, target_entry_id: nil, movement_kind: nil)
+    # Invoked only while publishing a user-confirmed statement. A savepoint
+    # ensures a failed automatic link leaves the original review available.
+    def self.try_auto_link_for!(user, review_id:)
+      transaction(requires_new: true) do
+        with_actor(user) do |family|
+          review = where(family: family).find(review_id)
+          source, _account = lock_source!(user, family, review.source_record_id)
+          review.lock!
+          next unless source.status == "parsed" && review.status == "pending"
+          decision = SourceMatcher.call(user: user, source: source)
+          next unless decision.action == "link"
+          resolve_for!(user, review_id: review.id, resolution: "link",
+            expected_version: review.lock_version, key: "abroa-auto-link-#{review.id}",
+            target_entry_id: decision.entry_id, automatic: true)
+        end
+      end
+    rescue Conflict, ArgumentError, ActiveRecord::RecordInvalid, ActiveRecord::RecordNotFound
+      nil
+    end
+
+    def self.resolve_for!(user, review_id:, resolution:, expected_version:, key:, target_entry_id: nil, movement_kind: nil, automatic: false)
       raise ArgumentError, "Unknown review resolution" unless %w[create link ignore dismiss].include?(resolution)
       raise ArgumentError, "Invalid expected_version" unless expected_version.is_a?(Integer) && expected_version >= 0
       raise ArgumentError, "Invalid Idempotency-Key" unless key.is_a?(String) && key.present? && key.bytesize <= 128
@@ -41,8 +61,13 @@ module Abroa
       if movement_kind && (!movement_kind.in?(%w[payment income refund]) || !resolution.in?(%w[create link]))
         raise ArgumentError, "Movement classification only applies to financial resolutions"
       end
+      if automatic && resolution != "link"
+        raise ArgumentError, "Automatic resolution can only link existing entries"
+      end
       operation_key = Digest::SHA256.hexdigest("#{user.id}:#{key}")
-      request_digest = Digest::SHA256.hexdigest(JSON.generate([ review_id, resolution, expected_version, target_entry_id, movement_kind ]))
+      request_data = [ review_id, resolution, expected_version, target_entry_id, movement_kind ]
+      request_data << "automatic" if automatic
+      request_digest = Digest::SHA256.hexdigest(JSON.generate(request_data))
 
       with_actor(user) do |family|
         review = where(family: family).find(review_id)
@@ -81,6 +106,12 @@ module Abroa
             transaction = entry.transaction if entry.transaction?
             transaction&.lock!
             validate_link!(source, entry)
+            if automatic
+              decision = SourceMatcher.call(user: user, source: source)
+              unless source.status == "parsed" && decision.action == "link" && decision.entry_id == entry.id
+                raise Conflict, "Automatic match is no longer unique"
+              end
+            end
             if source.payment_channel.present?
               extra = transaction.extra.deep_dup
               abroa = extra["abroa"] || {}
@@ -105,6 +136,7 @@ module Abroa
         after = { "status" => source.status, "source_version" => source.lock_version,
           "entry_id" => entry&.id, "channel_added" => channel_added, "movement_kind" => resolved_kind,
           "fingerprint" => entry && SourceAction.fingerprint(entry.reload) }
+        after["automatic"] = true if automatic
         action = SourceAction.create!(family: family, source_record: source, source_review: review,
           actor: user, entry: entry, operation: resolution, operation_key: operation_key,
           request_digest: request_digest, before_data: before, after_data: after)
