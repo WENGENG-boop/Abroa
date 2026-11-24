@@ -228,6 +228,7 @@ module Abroa
               !entry.recurring_allocations.exists? && !entry.transaction.attachments.attached? &&
               entry.reconciled_at.nil? && entry.unreconciled? &&
               !SourceRecord.where(entry: entry).where.not(id: source.id).exists? &&
+              !RefundLink.active.where("original_entry_id = ? OR refund_entry_id = ?", entry.id, entry.id).exists? &&
               SourceAction.fingerprint(entry) == action.after_data["fingerprint"]
             raise Conflict, "Created entry changed or has later dependencies"
           end
