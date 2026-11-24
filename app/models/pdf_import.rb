@@ -103,7 +103,11 @@ class PdfImport < Import
   def import!
     raise "Account required for PDF import" unless account.present?
 
-    transaction do
+    # Serialize with Abroa's statement staging under the same family lock.
+    family.with_lock do
+      lock!
+      raise Abroa::StatementIntake::Conflict, "Statement is managed by Abroa intake" if abroa_staged?
+
       mappings.each(&:create_mappable!)
 
       # Rows were already filtered against existing records when they were
@@ -360,8 +364,13 @@ class PdfImport < Import
     configured? && rows.all?(&:valid?)
   end
 
+  def abroa_staged?
+    account_statement_id.present? &&
+      Abroa::StatementIntake.exists?(family_id: family_id, statement_id: account_statement_id)
+  end
+
   def publishable?
-    account.present? && statement_with_transactions? && cleaned? && mappings.all?(&:valid?)
+    !abroa_staged? && account.present? && statement_with_transactions? && cleaned? && mappings.all?(&:valid?)
   end
 
   def cleaned_from_validation_stats?(invalid_rows_count:)
@@ -369,7 +378,7 @@ class PdfImport < Import
   end
 
   def publishable_from_validation_stats?(invalid_rows_count:)
-    account.present? && statement_with_transactions? && super
+    !abroa_staged? && account.present? && statement_with_transactions? && super
   end
 
   def column_keys

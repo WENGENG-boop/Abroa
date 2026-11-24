@@ -236,7 +236,9 @@ module Abroa
             raise ArgumentError, "PDF extraction id is required" unless pdf_import_id.present? && mapping.nil?
             pdf_import = PdfImport.where(family: family, account_statement: statement, account: account).find(pdf_import_id)
             pdf_import.lock!
-            if pdf_import.data_committed? || pdf_import.importing? || pdf_import.reverting?
+            if PdfImport.where(family: family, account_statement: statement).any? do |candidate|
+              candidate.data_committed? || candidate.importing? || candidate.reverting? || candidate.complete?
+            end
               raise Conflict, "PDF extraction is busy or already committed"
             end
           elsif pdf_import_id.present?
