@@ -77,6 +77,36 @@ RSpec.describe "API V1 Abroa study fees", type: :request do
     end
   end
 
+  path "/api/v1/abroa/projects/{project_id}/fees/{fee_id}/import_recurring" do
+    parameter name: :project_id, in: :path, required: true, schema: { type: :string, format: :uuid }
+    parameter name: :fee_id, in: :path, required: true, schema: { type: :string, format: :uuid }
+    post "Import matching Sure bill occurrences once, without creating any bank transaction" do
+      tags "Abroa study fees"
+      security [{ apiKeyAuth: [] }]
+      consumes "application/json"
+      produces "application/json"
+      parameter name: :body, in: :body, required: true, schema: {
+        type: :object, required: %w[from_on through_on], additionalProperties: false,
+        properties: {
+          from_on: { type: :string, format: :date }, through_on: { type: :string, format: :date }
+        }
+      }
+      response "200", "Bill occurrences linked as unique fee installments" do
+        schema '$ref' => '#/components/schemas/AbroaFeeInstallmentImportResponse'
+        let(:source) do
+          RecurringTransaction.create!(family: family, account: account, name: "Recurring tuition",
+            amount: 100, currency: "GBP", expected_day_of_month: 1,
+            last_occurrence_date: Date.new(2025, 7, 1),
+            next_expected_date: Date.new(2025, 8, 1), status: "inactive", occurrence_count: 0)
+        end
+        let(:fee) { Abroa::FeePlan.create_for!(user, project.id,
+          attributes: fields.merge(recurring_transaction_id: source.id), key: "docs-fee-series") }
+        let(:body) { { from_on: "2025-09-01", through_on: "2025-10-31" } }
+        run_test!
+      end
+    end
+  end
+
   path "/api/v1/abroa/projects/{project_id}/fees/{fee_id}/cancel" do
     parameter name: :project_id, in: :path, required: true, schema: { type: :string, format: :uuid }
     parameter name: :fee_id, in: :path, required: true, schema: { type: :string, format: :uuid }

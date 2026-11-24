@@ -278,6 +278,7 @@ RSpec.configure do |config|
             properties: {
               id: { type: :string, format: :uuid },
               fee_plan_id: { type: :string, format: :uuid },
+              recurring_occurrence_id: { type: :string, format: :uuid, nullable: true },
               name: { type: :string }, due_on: { type: :string, format: :date },
               state: { type: :string, enum: %w[draft confirmed cancelled] },
               gross_amount: { type: :string }, discount_amount: { type: :string },
@@ -290,6 +291,10 @@ RSpec.configure do |config|
           AbroaFeeInstallmentResponse: {
             type: :object, required: %w[data],
             properties: { data: { '$ref' => '#/components/schemas/AbroaFeeInstallment' } }
+          },
+          AbroaFeeInstallmentImportResponse: {
+            type: :object, required: %w[data],
+            properties: { data: { type: :array, items: { '$ref' => '#/components/schemas/AbroaFeeInstallment' } } }
           },
           AbroaFeeInstallmentListResponse: {
             type: :object, required: %w[data meta],

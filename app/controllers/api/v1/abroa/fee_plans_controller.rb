@@ -1,5 +1,5 @@
 class Api::V1::Abroa::FeePlansController < Api::V1::Abroa::BaseController
-  before_action :ensure_write_access, only: %i[create update cancel]
+  before_action :ensure_write_access, only: %i[create update cancel import_recurring]
   rescue_from ::Abroa::FeePlan::Conflict, with: :render_conflict
   rescue_from ArgumentError, with: :render_invalid_input
 
@@ -24,6 +24,13 @@ class Api::V1::Abroa::FeePlansController < Api::V1::Abroa::BaseController
     record = ::Abroa::FeePlan.change_for!(Current.user, fee.id,
       version: fields.delete(:lock_version), attributes: fields)
     render_json({ data: record.payload_for(Current.user) })
+  end
+
+  def import_recurring
+    fields = body_fields!(:from_on, :through_on)
+    records = ::Abroa::FeeInstallment.import_recurring_for!(Current.user, fee.id,
+      from_on: fields[:from_on], through_on: fields[:through_on])
+    render_json({ data: records.map { |record| record.payload_for(Current.user) } })
   end
 
   def cancel

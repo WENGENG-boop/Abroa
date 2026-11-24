@@ -32,6 +32,15 @@ components:
             read: Read access
             read_write: Read and write access
   schemas:
+    AbroaFeeInstallmentImportResponse:
+      type: object
+      required:
+      - data
+      properties:
+        data:
+          type: array
+          items:
+            "$ref": "#/components/schemas/AbroaFeeInstallment"
     AbroaFeePlan:
       type: object
       required:
@@ -253,6 +262,10 @@ components:
         fee_plan_id:
           type: string
           format: uuid
+        recurring_occurrence_id:
+          type: string
+          format: uuid
+          nullable: true
         name:
           type: string
         due_on:
@@ -7158,6 +7171,52 @@ components:
         error:
           type: string
 paths:
+  "/api/v1/abroa/projects/{project_id}/fees/{fee_id}/import_recurring":
+    parameters:
+    - name: project_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    - name: fee_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    post:
+      summary: Import matching Sure bill occurrences once, without creating any bank
+        transaction
+      tags:
+      - Abroa study fees
+      security:
+      - apiKeyAuth: []
+      parameters: []
+      responses:
+        '200':
+          description: Bill occurrences linked as unique fee installments
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AbroaFeeInstallmentImportResponse"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - from_on
+              - through_on
+              additionalProperties: false
+              properties:
+                from_on:
+                  type: string
+                  format: date
+                through_on:
+                  type: string
+                  format: date
+        required: true
   "/api/v1/abroa/projects/{project_id}/fees":
     parameters:
     - name: project_id

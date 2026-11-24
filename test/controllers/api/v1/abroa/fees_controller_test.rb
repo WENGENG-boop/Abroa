@@ -113,6 +113,33 @@ class Api::V1::Abroa::FeesControllerTest < ActionDispatch::IntegrationTest
     assert_includes projection[:issues].map { |issue| issue[:reason] }, "fee_source_not_visible"
   end
 
+  test "Sure recurring occurrence imports are idempotent, permission scoped and ledger-free" do
+    series = recurring_transactions(:netflix_subscription)
+    plan = Abroa::FeePlan.create_for!(@user, @project.id, attributes: {
+      name: "Recurring housing", kind: "rent", currency: "USD",
+      gross_amount: "4000", discount_amount: "0", recurring_transaction_id: series.id
+    }, key: "housing-series")
+    occurrence = RecurringOccurrence.create!(family: @user.family, recurring_transaction: series,
+      original_due_on: Date.new(2025, 9, 1), due_on: Date.new(2025, 9, 1),
+      currency: "USD", expected_amount: 1000, status: "scheduled")
+    path = "#{@path}/#{plan.id}/import_recurring"
+    query = { from_on: "2025-09-01", through_on: "2025-10-01" }
+    post path, params: query, as: :json, headers: api_headers(@read)
+    assert_response :forbidden
+    assert_no_difference "Entry.count" do
+      post path, params: query, as: :json, headers: api_headers(@write)
+      assert_response :ok
+      assert_equal [ occurrence.id ], response.parsed_body.fetch("data").pluck("recurring_occurrence_id")
+      assert_equal "1000.0", response.parsed_body.dig("data", 0, "gross_amount")
+    end
+    assert_no_difference "Abroa::FeeInstallment.count" do
+      post path, params: query, as: :json, headers: api_headers(@write)
+      assert_response :ok
+    end
+    post path, params: query, as: :json, headers: api_headers(@foreign)
+    assert_response :not_found
+  end
+
   test "stale writes and cancelled fees cannot be charged" do
     plan = Abroa::FeePlan.create_for!(@user, @project.id, attributes: @fields, key: "fee-cancel")
     post "#{@path}/#{plan.id}/cancel", params: { lock_version: plan.lock_version },
