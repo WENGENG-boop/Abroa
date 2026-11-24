@@ -1,13 +1,13 @@
 # Abroa 需求与实施追踪 v1.0
-状态定义：PLANNED 尚未实现；IN_PROGRESS 正在实施；IMPLEMENTED 未验；VERIFIED 有实际通过证据；BLOCKED_EXTERNAL 缺凭证/真实样例；FAILED 测试未通过；DEFERRED 后续。原 Sure 功能静态存在不代表 Abroa 已验。此版本仅文档与初步静态审计，不修改代码、不运行测试。
+状态定义：PLANNED 尚未实现；IN_PROGRESS 正在实施；IMPLEMENTED 未验；VERIFIED 有实际通过证据；BLOCKED_EXTERNAL 缺凭证/真实样例；FAILED 测试未通过；DEFERRED 后续。原 Sure 功能静态存在不代表 Abroa 已验。本矩阵持续记录实施及实际验收结果；代码存在或局部测试通过不代表整个阶段 VERIFIED。
 |需求/范围|任务|验收|复用/新增|状态|实现路径/测试证据|
 |---|---|---|---|---|---|
-|P0 源码及环境|P0.1–5|A00|审计|IN_PROGRESS|P0.1 静态基线核实完成，见 Abroa_P0_BASELINE.md；P0.2 已核实核心及身份/回滚/AI 方法，见 Abroa_P0_METHOD_AUDIT.md，仍未完成；P0.3 Docker 已恢复；隔离镜像因 Debian HTTP 软件源下载失败，待重试；P0.4 首批 schema/API 已对照，见 Abroa_P0_SCHEMA_API.md；P0.5 四个 golden 测试已编写，未执行|
-|用户/邮箱/Google/初始化|P1.1|A01|复用+扩展|IN_PROGRESS|Profile 模型/迁移及资料、引导 API 已编写；Minitest/rswag 已补；未运行迁移、测试或生成 OpenAPI；Google callback/绑定校验及测试已编写；真实凭证、state/nonce 及完整认证验收待完成；9009b061c：P1 99/99、相关回归 964/964、请求规格 23/23、迁移 6/6；功能覆盖及外部验收未完成，见 Abroa_P1_ACCEPTANCE.md|
-|FX 多币种/地区|P1.2|A02|扩展|IN_PROGRESS|历史汇率快照、地区/钱包、实际换汇核心及 6 个 API 已编写；Minitest 与 rswag 已补；修改已记换汇与多币种报告整合待补，未运行迁移/测试；9009b061c：P1 99/99、相关回归 964/964、请求规格 23/23、迁移 6/6；功能覆盖及外部验收未完成，见 Abroa_P1_ACCEPTANCE.md|
-|CONNECT-01,02,03|P1.3–5|A03-1–5|reuse+new|IN_PROGRESS|P1.3 source evidence, same-source idempotency and provider wrapper; P1.4 personal CSV, mapped CSV, bounded single-sheet XLSX, existing PDF extraction, digest-confirmed staging and 3 APIs using the original Statement Vault upload; explicit funding account assignment and atomic batch rollback verified; real statement fixtures and broader multi-account routing pending; P1.5 review/write path and P1.6 sync integration implemented in part; runtime acceptance pending；9009b061c：P1 99/99、相关回归 964/964、请求规格 23/23、迁移 6/6；功能覆盖及外部验收未完成，见 Abroa_P1_ACCEPTANCE.md|
-|CONNECT-04,05,06|P1.5|A03-4–8|extension|IN_PROGRESS|Conservative matcher, account-scoped review, create/link/ignore/dismiss, metadata, audited reversal, partial and cross-currency refund allocation, status transition fix (884d636aa), 7 API actions and Minitest/rswag implemented; automatic high-confidence statement linking verified; latest 114/114 Minitest, 26/26 API specs; funding account confirmation, net consumption projection and atomic batch rollback verified; statement reconciliation pending；9009b061c：P1 99/99、相关回归 964/964、请求规格 23/23、迁移 6/6；功能覆盖及外部验收未完成，见 Abroa_P1_ACCEPTANCE.md|
-|CONNECT-07,08|P1.6|A03-9|extension|IN_PROGRESS|Provider capture and diagnostics API, completed-sync background capture, typed error codes implemented; actual runtime tests, classification/user locks, real bank credentials and reconciliation pending；9009b061c：P1 99/99、相关回归 964/964、请求规格 23/23、迁移 6/6；功能覆盖及外部验收未完成，见 Abroa_P1_ACCEPTANCE.md|
+|P0 源码及环境|P0.1–5|A00|审计|IN_PROGRESS|源码与方法/Schema/API 基线审计已记录；D 盘独立 WSL 测试环境已实际运行 Ruby/Rails/PostgreSQL/Redis；P0.5 四个账本兼容用例已通过；全量 lint/Brakeman、Docker 最终部署验收留待独立执行。|
+|用户/邮箱/Google/初始化|P1.1|A01|复用+扩展|IN_PROGRESS|Profile、引导、Google 已验证邮箱/issuer/subject 及改配后身份拒绝；相关行为与原认证回归已通过，真实 Google 凭证和端到端回调另验。|
+|FX 多币种/地区|P1.2|A02|扩展|IN_PROGRESS|历史汇率快照、缺失处理、地区/钱包、真实换汇本金费用、跨币退款及净消费报表已通过合成数据测试；历史报表/实际外部数据及完整并发验收待完成。|
+|CONNECT-01,02,03|P1.3–5|A03-1–5|reuse+new|IN_PROGRESS|规范化来源/去重、CSV/XLSX/PDF 解析、预览、支付来源与实际账户确认、唯一银行匹配及多候选审核已实现并测试；真实银行/支付宝/微信样本及并发专项待验证。|
+|CONNECT-04,05,06|P1.5|A03-4–8|extension|IN_PROGRESS|人工重复订单保护、审计回滚、整批原子撤销、部分/跨币退款、孤立退款异常、净消费、对账确认/撤销及撤销后回滚全部通过相应回归；真实账单、多来源并发/完整业务边界待验。|
+|CONNECT-07,08|P1.6|A03-9|extension|IN_PROGRESS|同步后采集、脱敏诊断、结构化错误、Wise 真实引用、自动化偏好、原规则自动分类、用户锁、对账已实现；7 个 P1 迁移、130/130 Minitest、29/29 API、964/964 原版相关回归；真实 provider 凭证、实际重试/撤销和专项并发待验。|
 |STUDY-01–05|P2.1|A04|新增|PLANNED|待填|
 |BUDGET-01–04,06|P2.2|A05|扩展|PLANNED|待填|
 |FUND-01,02|P2.3|A06|Goal扩展|PLANNED|待填|

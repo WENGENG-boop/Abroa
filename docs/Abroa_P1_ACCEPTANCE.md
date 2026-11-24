@@ -57,3 +57,27 @@
 代码 SHA: cbb3b68d81dafbaf1109e63902138c87c96e6677
 - Sure 回归: 964 runs, 3287 assertions, 0 failures, 0 errors, 0 skips
 - OpenAPI dry-run: 511 examples, 0 failures, 89 pending（非行为测试）
+
+## 第一轮代码审查整改及复验
+
+审查基线：267b453e0。下列是该轮八项问题的整改结果，不等于真实外部服务已完成验收。
+
+| 问题 | 修复与实际证据 |
+|---|---|
+| 重复人工关联不同支付订单 | e3b175fa6 新增回归；f3af0ef8a 在交易锁内拒绝已有其他支付宝/微信来源的关联，保留原交易和审核状态。 |
+| 对账撤销后回滚失败 | 同上。保留完整交易指纹，确认前、确认后及经验证撤销后记录精确指纹；仅沿已审计的完整状态转换恢复回滚资格，不忽略时间戳或人工修改。 |
+| Google 提供商改配 | 同上。已存 Google issuer 的身份在配置改成非 Google 时不能按旧身份认证；核对已安装的 Google OAuth 1.2.1 和 OIDC 0.8.0 实现，保留服务器端回调验证。真实 Google 凭证另验。 |
+| 银行引用缺失 | ebc8d4ab9 红测；5be73a366 读取 Wise 已有 provider-owned payment_reference，严格检查 statement_id 与 external_id；不从交易描述推断。允许相同事实下补充此前缺失引用，自动关联前再次核验。其他 provider 无可靠结构化字段时保留人工审核。 |
+| 原消费删除后孤立退款 | f3af0ef8a 对可见退款到账记录且原消费已删除的异常分配标记 incomplete，净消费和未分配入账返回 null，不暴露删除的原消费明细。 |
+| schema 未同步 | c03b5b2b5 使用真实生成的 profile schema 更新 import_automation 与版本至 2026_11_24_135100；其他原 schema 不变。独立新数据库 schema:load 成功，7 个 P1 迁移均 up，新库行为 125/125、请求规格 29/29。 |
+| 三个对账接口规格缺失 | edac77276 添加预览、确认、撤销 rswag；c03b5b2b5 合并生成的 24 路径、29 操作、17 Abroa schemas，原路径/schema/security 语义不变。e0aafb40c 新增对账和净消费控制器的行为与授权测试。 |
+| 实施矩阵过期 | 本次同步 P0/P1 的实际测试、完成范围、剩余外部验证。 |
+
+前置自动分类/自动化配置及对账：b4c557f3b、293ac2408、267b453e0；分类使用原 Sure 单一明确规则，尊重用户锁与手工分类；对账复用余额和实际交易，确认、撤销不改变原金额。
+
+红测：124 runs、3 failures、1 error；修复后 124 runs、705 assertions、全绿；Wise 引用红测 125 runs、1 failure，修后 125 runs、712 assertions、全绿。
+最新行为/授权测试 e0aafb40c：130 runs、744 assertions、0 failures、0 errors、0 skips；同一快照 29 request specs、0 failures。业务代码 edac77276 的相关原 Sure 回归：964 runs、3287 assertions、0 failures、0 errors、0 skips。共 1123 个独立测试用例，4031 次 Minitest 断言，均通过。OpenAPI 生成 514 examples、0 failures、89 文档专用 pending（dry-run，不计入行为测试）。独立新库 abroa_p1_fresh_c03b5b2b 的 schema:load 与 125 Minitest、29 request specs 均实际成功（重复执行，不重复计入总数）。
+
+日志：D:\开发\Abroa\.p1-env\logs\p1-review-before.log、p1-review-repair.log、p1-provider-reference-before.log、p1-provider-reference-repair.log、p1-audit-final-minitest.log、p1-audit-final-rspec.log、p1-fresh-migrations.log、p1-fresh-minitest.log、p1-fresh-rspec.log、p1-original-regression.log、p1-openapi-generate.log、p1-round2-minitest.log、p1-rspec-current.log。API consistency 脚本退出码 0；现有上游 FinanceKit OAuth、transactions/transfers rswag 断言警告仍原样保留；Abroa refund-links 行为测试在 source_reviews_controller_test.rb 内，未重复测试。
+
+第一轮列出的八项审查问题均已整改并有代码/运行证据。P1 最终验收仍需真实 Google OAuth、实际银行连接及真实账单样本、并发专项、所有验收场景完整覆盖；未将这些未取得证据的项目标为 VERIFIED。P2 尚未开始业务代码。所有验收数据、下载和运行日志存放在独立 D 盘环境。
