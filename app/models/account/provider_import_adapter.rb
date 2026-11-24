@@ -41,6 +41,10 @@ class Account::ProviderImportAdapter
     raise ArgumentError, "source is required" if source.blank?
 
     Account.transaction do
+      # Serialize lookup and creation for the same account. The unique index
+      # remains the final guard, but concurrent syncs must replay normally.
+      Account.where(id: account.id).lock.pick(:id) || raise(ActiveRecord::RecordNotFound)
+
       # Find or initialize by both external_id AND source
       # This allows multiple providers to sync same account with separate entries
       entry = account.entries.find_or_initialize_by(external_id: external_id, source: source) do |e|
