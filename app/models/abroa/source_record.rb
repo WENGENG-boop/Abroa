@@ -38,13 +38,21 @@ module Abroa
 
         canonical = record.external_id && find_by(**identity, external_id: record.external_id)
         if canonical
-          conflict = canonical.normalized != record.payload || (account && canonical.account_id != account.id)
+          incoming = record.payload
+          transition = canonical.send(:status_transition_for, incoming, account)
+          conflict = transition == :conflict
           canonical.observations.create!(
             **identity, source_row_key: record.source_row_key, raw_digest: record.raw_digest,
-            normalized: record.payload, status: conflict ? "conflict" : "observed",
+            normalized: incoming, status: conflict ? "conflict" : "observed",
             import: import, statement: statement
           )
-          canonical.update!(status: "review") if conflict && !canonical.status.in?(%w[reversed conflict])
+          case transition
+          when :advance
+            status = incoming["provider_status"].in?(%w[closed failed]) ? "ignored" : "parsed"
+            canonical.update!(normalized: incoming, status: status)
+          when :conflict
+            canonical.update!(status: "review") unless canonical.status.in?(%w[reversed conflict])
+          end
           next canonical
         end
 
@@ -120,6 +128,27 @@ module Abroa
     end
 
     private
+      # A stable external order may progress from pending to a terminal state.
+      # Only a change of status alone is safe to accept. Keep each observation,
+      # never downgrade a booked order on a late pending file, and never mutate
+      # an already posted ledger entry here. Other changes require review.
+      def status_transition_for(incoming, incoming_account)
+        return :conflict if incoming_account && account_id != incoming_account.id
+        return :same if normalized == incoming
+        return :conflict unless normalized.except("provider_status") == incoming.except("provider_status")
+
+        previous = normalized["provider_status"]
+        current = incoming["provider_status"]
+        if previous == "pending" && current.in?(%w[posted closed failed]) &&
+            status == "parsed" && entry_id.nil? && !observations.where(status: "conflict").exists?
+          :advance
+        elsif previous.in?(%w[posted closed failed]) && current == "pending"
+          :same
+        else
+          :conflict
+        end
+      end
+
       def same_tenant
         errors.add(:account, :invalid) if account && account.family_id != family_id
         if entry && (entry.account.family_id != family_id || entry.account_id != account_id)
