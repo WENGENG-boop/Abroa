@@ -7,12 +7,13 @@ module Abroa
 
     MODES = %w[simple professional custom].freeze
     STEPS = %w[role region preferences review complete].freeze
-    PREFERENCE_FIELDS = %i[student_enabled parent_enabled origin_country residence_country display_currency timezone mode].freeze
+    PREFERENCE_FIELDS = %i[student_enabled parent_enabled origin_country residence_country display_currency timezone mode import_automation].freeze
 
     belongs_to :user
     validates :user_id, uniqueness: true
     validates :student_enabled, :parent_enabled, inclusion: { in: [ true, false ] }
     validates :mode, inclusion: { in: MODES }
+    validates :import_automation, inclusion: { in: %w[manual high_confidence] }
     validates :onboarding_step, inclusion: { in: STEPS }
     validates :origin_country, :residence_country, length: { is: 2 }, allow_nil: true
     validates :timezone, length: { maximum: 128 }, allow_nil: true

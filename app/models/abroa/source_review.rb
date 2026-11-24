@@ -86,6 +86,7 @@ module Abroa
           review = where(family: family).find(review_id)
           source, _account = lock_source!(user, family, review.source_record_id)
           review.lock!
+          next if Profile.for_user(user).import_automation == "manual"
           next unless source.status == "parsed" && review.status == "pending"
           decision = SourceMatcher.call(user: user, source: source)
           next unless decision.action == "link"
@@ -137,6 +138,7 @@ module Abroa
         entry = nil
         channel_added = false
         resolved_kind = nil
+        classification_status = nil
         case resolution
         when "create", "link"
           funding_kind = review.effective_funding_kind
@@ -148,6 +150,7 @@ module Abroa
               amount: source.signed_amount, currency: source.currency, date: source.local_date,
               name: source.normalized.fetch("description"), import_locked: true,
               idempotency_key: "abroa-source-#{source.id}")
+            classification_status = ImportClassification.apply_for!(user, entry)
           else
             entry = account.entries.find(target_entry_id)
             entry.lock!
@@ -169,6 +172,7 @@ module Abroa
                 raise Conflict, "Existing payment channel differs"
               end
               if existing_channel.nil?
+                raise Conflict, "Payment metadata is user locked" if transaction.locked?(:extra)
                 before["abroa_namespace_present"] = extra.key?("abroa")
                 transaction.update!(extra: extra.merge("abroa" => abroa.merge("payment_channel" => source.payment_channel)))
                 channel_added = true
@@ -185,6 +189,7 @@ module Abroa
           "entry_id" => entry&.id, "channel_added" => channel_added, "movement_kind" => resolved_kind,
           "fingerprint" => entry && SourceAction.fingerprint(entry.reload) }
         after["automatic"] = true if automatic
+        after["classification_status"] = classification_status if classification_status
         action = SourceAction.create!(family: family, source_record: source, source_review: review,
           actor: user, entry: entry, operation: resolution, operation_key: operation_key,
           request_digest: request_digest, before_data: before, after_data: after)

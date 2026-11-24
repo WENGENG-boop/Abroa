@@ -197,7 +197,7 @@ RSpec.configure do |config|
             properties: {
               data: {
                 type: :object,
-                required: %w[student_enabled parent_enabled origin_country residence_country display_currency timezone mode lock_version],
+                required: %w[student_enabled parent_enabled origin_country residence_country display_currency timezone mode import_automation lock_version],
                 properties: {
                   student_enabled: { type: :boolean },
                   parent_enabled: { type: :boolean },
@@ -206,6 +206,7 @@ RSpec.configure do |config|
                   display_currency: { type: :string, nullable: true },
                   timezone: { type: :string, nullable: true },
                   mode: { type: :string, enum: %w[simple professional custom] },
+                  import_automation: { type: :string, enum: %w[manual high_confidence] },
                   lock_version: { type: :integer, minimum: 0 }
                 }
               }
@@ -223,6 +224,7 @@ RSpec.configure do |config|
               display_currency: { type: :string, nullable: true },
               timezone: { type: :string, nullable: true },
               mode: { type: :string, enum: %w[simple professional custom] },
+                  import_automation: { type: :string, enum: %w[manual high_confidence] },
               lock_version: { type: :integer, minimum: 0 }
             }
           },
