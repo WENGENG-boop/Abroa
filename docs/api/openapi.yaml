@@ -32,6 +32,89 @@ components:
             read: Read access
             read_write: Read and write access
   schemas:
+    AbroaReconciliationPreviewResponse:
+      type: object
+      required:
+      - data
+      properties:
+        data:
+          type: object
+          required:
+          - status
+          - digest
+          - entry_count
+          - issues
+          - balance_checks
+          properties:
+            status:
+              type: string
+              enum:
+              - ready
+              - review
+            digest:
+              type: string
+            entry_count:
+              type: integer
+              minimum: 0
+            issues:
+              type: array
+              items:
+                type: string
+            balance_checks:
+              type: array
+              items:
+                type: object
+                required:
+                - key
+                - statement_amount
+                - ledger_amount
+                - difference
+                - status
+                properties:
+                  key:
+                    type: string
+                  statement_amount:
+                    type: string
+                  ledger_amount:
+                    type: string
+                  difference:
+                    type: string
+                  status:
+                    type: string
+                    enum:
+                    - matched
+                    - mismatched
+    AbroaReconciliationResultResponse:
+      type: object
+      required:
+      - data
+      properties:
+        data:
+          type: object
+          required:
+          - status
+          - digest
+          - entry_count
+          - confirmed_at
+          - reversed_at
+          properties:
+            status:
+              type: string
+              enum:
+              - reconciled
+              - reversed
+            digest:
+              type: string
+            entry_count:
+              type: integer
+              minimum: 0
+            confirmed_at:
+              type: string
+              format: date-time
+            reversed_at:
+              type: string
+              format: date-time
+              nullable: true
     AbroaConsumptionResponse:
       type: object
       required:
@@ -567,6 +650,7 @@ components:
           - display_currency
           - timezone
           - mode
+          - import_automation
           - lock_version
           properties:
             student_enabled:
@@ -593,6 +677,11 @@ components:
               - simple
               - professional
               - custom
+            import_automation:
+              type: string
+              enum:
+              - manual
+              - high_confidence
             lock_version:
               type: integer
               minimum: 0
@@ -626,6 +715,11 @@ components:
           - simple
           - professional
           - custom
+        import_automation:
+          type: string
+          enum:
+          - manual
+          - high_confidence
         lock_version:
           type: integer
           minimum: 0
@@ -6430,6 +6524,83 @@ paths:
             application/json:
               schema:
                 "$ref": "#/components/schemas/AbroaRefundResponse"
+  "/api/v1/abroa/imports/{id}/reconciliation/preview":
+    parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    post:
+      summary: Preview statement reconciliation
+      tags:
+      - Abroa imports
+      security:
+      - apiKeyAuth: []
+      responses:
+        '200':
+          description: Reconciliation checks and confirmation digest
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AbroaReconciliationPreviewResponse"
+  "/api/v1/abroa/imports/{id}/reconciliation/confirm":
+    parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    post:
+      summary: Confirm exact reviewed statement and ledger snapshot
+      tags:
+      - Abroa imports
+      security:
+      - apiKeyAuth: []
+      parameters: []
+      responses:
+        '200':
+          description: Confirmed reconciliation
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AbroaReconciliationResultResponse"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - digest
+              additionalProperties: false
+              properties:
+                digest:
+                  type: string
+                  pattern: "^[0-9a-f]{64}$"
+        required: true
+  "/api/v1/abroa/imports/{id}/reconciliation/undo":
+    parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    post:
+      summary: Undo unchanged reconciliation markers
+      tags:
+      - Abroa imports
+      security:
+      - apiKeyAuth: []
+      responses:
+        '200':
+          description: Audited reversal
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AbroaReconciliationResultResponse"
   "/api/v1/abroa/imports/{id}/preview":
     parameters:
     - name: id

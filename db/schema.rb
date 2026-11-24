@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_24_135000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_24_135100) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -82,10 +82,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_24_135000) do
     t.integer "lock_version", default: 0, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "import_automation", default: "high_confidence", null: false
     t.index ["user_id"], name: "index_abroa_profiles_on_user_id", unique: true
     t.check_constraint "(onboarding_step::text = 'complete'::text) = (completed_at IS NOT NULL)", name: "abroa_profiles_completion_valid"
     t.check_constraint "completed_at IS NULL AND completion_key_digest IS NULL AND completion_request_version IS NULL AND completion_version IS NULL OR completed_at IS NOT NULL AND completion_key_digest IS NOT NULL AND completion_request_version IS NOT NULL AND completion_version IS NOT NULL", name: "abroa_profiles_receipt_valid"
     t.check_constraint "completed_at IS NULL OR student_enabled OR parent_enabled", name: "abroa_profiles_completed_role_valid"
+    t.check_constraint "import_automation::text = ANY (ARRAY['manual'::character varying::text, 'high_confidence'::character varying::text])", name: "abroa_profile_import_automation"
     t.check_constraint "lock_version >= 0", name: "abroa_profiles_version_valid"
     t.check_constraint "mode::text = ANY (ARRAY['simple'::character varying::text, 'professional'::character varying::text, 'custom'::character varying::text])", name: "abroa_profiles_mode_valid"
     t.check_constraint "onboarding_step::text = ANY (ARRAY['role'::character varying::text, 'region'::character varying::text, 'preferences'::character varying::text, 'review'::character varying::text, 'complete'::character varying::text])", name: "abroa_profiles_step_valid"
