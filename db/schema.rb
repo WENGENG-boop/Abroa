@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_24_144000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_24_150000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -103,6 +103,30 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_24_144000) do
     t.check_constraint "amount > 0::numeric AND amount <> 'NaN'::numeric AND (direction::text = ANY (ARRAY['expense'::character varying::text, 'income'::character varying::text]))", name: "abroa_allocation_positive"
   end
 
+  create_table "abroa_fee_adjustments", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "family_id", null: false
+    t.uuid "actor_id", null: false
+    t.uuid "fee_plan_id", null: false
+    t.uuid "fee_installment_id"
+    t.string "kind", null: false
+    t.decimal "amount", precision: 19, scale: 4, null: false
+    t.string "currency", null: false
+    t.string "reason", null: false
+    t.string "status", default: "approved", null: false
+    t.string "operation_key", null: false
+    t.string "request_digest", null: false
+    t.datetime "voided_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["actor_id"], name: "index_abroa_fee_adjustments_on_actor_id"
+    t.index ["family_id", "operation_key"], name: "idx_abroa_fee_adjustment_operation", unique: true
+    t.index ["family_id"], name: "index_abroa_fee_adjustments_on_family_id"
+    t.index ["fee_installment_id"], name: "index_abroa_fee_adjustments_on_fee_installment_id"
+    t.index ["fee_plan_id", "status", "kind"], name: "idx_abroa_fee_adjustment_totals"
+    t.index ["fee_plan_id"], name: "index_abroa_fee_adjustments_on_fee_plan_id"
+    t.check_constraint "(kind::text = ANY (ARRAY['waiver'::character varying::text, 'scholarship_offset'::character varying::text, 'surcharge'::character varying::text])) AND (status::text = ANY (ARRAY['approved'::character varying::text, 'void'::character varying::text])) AND amount > 0::numeric AND amount <> 'NaN'::numeric", name: "abroa_fee_adjustment_valid"
+  end
+
   create_table "abroa_fee_installments", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.uuid "family_id", null: false
     t.uuid "fee_plan_id", null: false
@@ -152,6 +176,23 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_24_144000) do
     t.index ["project_id"], name: "index_abroa_fee_plans_on_project_id"
     t.index ["recurring_transaction_id"], name: "index_abroa_fee_plans_on_recurring_transaction_id"
     t.check_constraint "gross_amount >= 0::numeric AND discount_amount >= 0::numeric AND discount_amount <= gross_amount AND gross_amount <> 'NaN'::numeric AND discount_amount <> 'NaN'::numeric AND (status::text = ANY (ARRAY['active'::character varying::text, 'cancelled'::character varying::text]))", name: "abroa_fee_plan_valid"
+  end
+
+  create_table "abroa_fee_reminder_events", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "family_id", null: false
+    t.uuid "recipient_id", null: false
+    t.uuid "fee_installment_id", null: false
+    t.string "kind", null: false
+    t.date "due_on", null: false
+    t.datetime "occurred_at", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["family_id", "recipient_id", "occurred_at"], name: "idx_abroa_fee_reminder_inbox"
+    t.index ["family_id"], name: "index_abroa_fee_reminder_events_on_family_id"
+    t.index ["fee_installment_id", "kind", "due_on"], name: "idx_abroa_unique_fee_reminder", unique: true
+    t.index ["fee_installment_id"], name: "index_abroa_fee_reminder_events_on_fee_installment_id"
+    t.index ["recipient_id"], name: "index_abroa_fee_reminder_events_on_recipient_id"
+    t.check_constraint "kind::text = ANY (ARRAY['due_soon'::character varying::text, 'overdue'::character varying::text])", name: "abroa_fee_reminder_kind"
   end
 
   create_table "abroa_fee_settlements", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -3727,6 +3768,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_24_144000) do
   add_foreign_key "abroa_entry_allocations", "categories", on_delete: :nullify
   add_foreign_key "abroa_entry_allocations", "entries", on_delete: :nullify
   add_foreign_key "abroa_entry_allocations", "families", on_delete: :cascade
+  add_foreign_key "abroa_fee_adjustments", "abroa_fee_installments", column: "fee_installment_id"
+  add_foreign_key "abroa_fee_adjustments", "abroa_fee_plans", column: "fee_plan_id"
+  add_foreign_key "abroa_fee_adjustments", "families", on_delete: :cascade
+  add_foreign_key "abroa_fee_adjustments", "users", column: "actor_id"
   add_foreign_key "abroa_fee_installments", "abroa_fee_plans", column: "fee_plan_id"
   add_foreign_key "abroa_fee_installments", "families", on_delete: :cascade
   add_foreign_key "abroa_fee_installments", "recurring_occurrences", on_delete: :nullify
@@ -3736,6 +3781,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_24_144000) do
   add_foreign_key "abroa_fee_plans", "categories"
   add_foreign_key "abroa_fee_plans", "families", on_delete: :cascade
   add_foreign_key "abroa_fee_plans", "recurring_transactions"
+  add_foreign_key "abroa_fee_reminder_events", "abroa_fee_installments", column: "fee_installment_id"
+  add_foreign_key "abroa_fee_reminder_events", "families", on_delete: :cascade
+  add_foreign_key "abroa_fee_reminder_events", "users", column: "recipient_id"
   add_foreign_key "abroa_fee_settlements", "abroa_entry_allocations", column: "allocation_id"
   add_foreign_key "abroa_fee_settlements", "abroa_fee_installments", column: "fee_installment_id"
   add_foreign_key "abroa_fee_settlements", "abroa_rate_snapshots", column: "rate_snapshot_id"

@@ -32,6 +32,99 @@ components:
             read: Read access
             read_write: Read and write access
   schemas:
+    AbroaFeeAdjustment:
+      type: object
+      required:
+      - id
+      - fee_plan_id
+      - kind
+      - status
+      - amount
+      - currency
+      - reason
+      - occurred_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        fee_plan_id:
+          type: string
+          format: uuid
+        installment_id:
+          type: string
+          format: uuid
+          nullable: true
+        kind:
+          type: string
+          enum:
+          - waiver
+          - scholarship_offset
+          - surcharge
+        status:
+          type: string
+          enum:
+          - approved
+          - void
+        amount:
+          type: string
+        currency:
+          type: string
+        reason:
+          type: string
+        occurred_at:
+          type: string
+          format: date-time
+        voided_at:
+          type: string
+          format: date-time
+          nullable: true
+    AbroaFeeAdjustmentResponse:
+      type: object
+      required:
+      - data
+      properties:
+        data:
+          "$ref": "#/components/schemas/AbroaFeeAdjustment"
+    AbroaFeeAdjustmentListResponse:
+      type: object
+      required:
+      - data
+      - meta
+      properties:
+        data:
+          type: array
+          items:
+            "$ref": "#/components/schemas/AbroaFeeAdjustment"
+        meta:
+          type: object
+          required:
+          - next_cursor
+          properties:
+            next_cursor:
+              type: string
+              nullable: true
+    AbroaFeeAdjustmentCreate:
+      type: object
+      required:
+      - kind
+      - amount
+      - reason
+      additionalProperties: false
+      properties:
+        kind:
+          type: string
+          enum:
+          - waiver
+          - scholarship_offset
+          - surcharge
+        amount:
+          type: string
+        reason:
+          type: string
+        installment_id:
+          type: string
+          format: uuid
+          nullable: true
     AbroaFeeInstallmentImportResponse:
       type: object
       required:
@@ -7171,6 +7264,91 @@ components:
         error:
           type: string
 paths:
+  "/api/v1/abroa/projects/{project_id}/fees/{fee_id}/adjustments":
+    parameters:
+    - name: project_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    - name: fee_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    get:
+      summary: Read durable fee waiver, scholarship offset and surcharge records
+      tags:
+      - Abroa study fees
+      security:
+      - apiKeyAuth: []
+      responses:
+        '200':
+          description: Adjustments
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AbroaFeeAdjustmentListResponse"
+    post:
+      summary: Approve a liability-only adjustment, with no bank entry
+      tags:
+      - Abroa study fees
+      security:
+      - apiKeyAuth: []
+      parameters:
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+      responses:
+        '201':
+          description: Adjustment recorded
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AbroaFeeAdjustmentResponse"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/AbroaFeeAdjustmentCreate"
+        required: true
+  "/api/v1/abroa/projects/{project_id}/fees/{fee_id}/adjustments/{id}/void":
+    parameters:
+    - name: project_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    - name: fee_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    post:
+      summary: Void an approved fee adjustment while keeping the audit record
+      tags:
+      - Abroa study fees
+      security:
+      - apiKeyAuth: []
+      responses:
+        '200':
+          description: Voided
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AbroaFeeAdjustmentResponse"
   "/api/v1/abroa/projects/{project_id}/fees/{fee_id}/import_recurring":
     parameters:
     - name: project_id

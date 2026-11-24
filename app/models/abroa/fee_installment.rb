@@ -7,6 +7,8 @@ module Abroa
     belongs_to :fee_plan, class_name: "Abroa::FeePlan"
     belongs_to :recurring_occurrence, optional: true
     has_many :settlements, class_name: "Abroa::FeeSettlement", foreign_key: :fee_installment_id
+    has_many :reminder_events, class_name: "Abroa::FeeReminderEvent", foreign_key: :fee_installment_id
+    has_many :adjustments, class_name: "Abroa::FeeAdjustment", foreign_key: :fee_installment_id
 
     validates :name, :due_on, presence: true
     validates :state, inclusion: { in: %w[draft confirmed cancelled] }
@@ -116,7 +118,10 @@ module Abroa
     end
 
     def net_amount
-      gross_amount - discount_amount
+      approved = adjustments.where(status: "approved")
+      gross_amount - discount_amount -
+        approved.where(kind: %w[waiver scholarship_offset]).sum(:amount) +
+        approved.where(kind: "surcharge").sum(:amount)
     end
 
     def paid_amount
@@ -180,11 +185,11 @@ module Abroa
           errors.add(:base, "Installment outside study project")
           return
         end
-        net = gross_amount - discount_amount if gross_amount && discount_amount
+        net = net_amount if gross_amount && discount_amount
         scheduled = fee_plan.installments.where.not(state: "cancelled")
         scheduled = scheduled.where.not(id: id) if persisted?
         if net && state != "cancelled" &&
-            scheduled.sum("gross_amount - discount_amount") + net > fee_plan.amount_due
+            scheduled.to_a.sum(BigDecimal("0"), &:net_amount) + net > fee_plan.amount_due
           errors.add(:base, "Scheduled installments exceed fee net amount")
         end
       end

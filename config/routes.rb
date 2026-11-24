@@ -852,6 +852,11 @@ Rails.application.routes.draw do
               post :cancel
               post :import_recurring
             end
+            resources :adjustments, controller: "fee_adjustments", only: %i[index create] do
+              member do
+                post :void
+              end
+            end
             resources :installments, controller: "fee_installments", only: %i[index show create update] do
               resources :settlements, controller: "fee_settlements", only: %i[index create]
             end

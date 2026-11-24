@@ -13,6 +13,7 @@ module Abroa
     belongs_to :recurring_transaction, optional: true
     belongs_to :category, optional: true
     has_many :installments, class_name: "Abroa::FeeInstallment", foreign_key: :fee_plan_id
+    has_many :adjustments, class_name: "Abroa::FeeAdjustment", foreign_key: :fee_plan_id
 
     validates :name, :kind, :currency, presence: true
     validates :kind, inclusion: { in: KINDS }
@@ -51,7 +52,8 @@ module Abroa
         fee.project.ensure_writable!
         raise Conflict, "Fee changed" unless version.is_a?(Integer) && fee.lock_version == version
         raise Conflict, "Cancelled fee" if fee.status == "cancelled"
-        if fee.installments.joins(:settlements).exists? && (values.keys & %i[currency kind fund_pool_id recurring_transaction_id]).any?
+        if (fee.installments.joins(:settlements).exists? || fee.adjustments.exists?) &&
+            (values.keys & %i[currency kind fund_pool_id recurring_transaction_id]).any?
           raise Conflict, "Cannot change settled fee sources"
         end
         fee.update!(values)
@@ -111,7 +113,10 @@ module Abroa
     end
 
     def amount_due
-      gross_amount - discount_amount
+      approved = adjustments.where(status: "approved")
+      gross_amount - discount_amount -
+        approved.where(kind: %w[waiver scholarship_offset]).sum(:amount) +
+        approved.where(kind: "surcharge").sum(:amount)
     end
 
     def paid_amount
@@ -170,7 +175,7 @@ module Abroa
           errors.add(:recurring_transaction, :invalid)
         end
         return unless persisted?
-        if installments.where.not(state: "cancelled").sum("gross_amount - discount_amount") > amount_due
+        if installments.where.not(state: "cancelled").to_a.sum(BigDecimal("0"), &:net_amount) > amount_due
           errors.add(:base, "Installments exceed discounted fee amount")
         end
       end

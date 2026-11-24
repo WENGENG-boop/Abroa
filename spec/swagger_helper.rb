@@ -212,6 +212,40 @@ RSpec.configure do |config|
                 actual_rate: { type: :string }, exchanged_on: { type: :string, format: :date }, consistent: { type: :boolean }
               } } }
           },
+          AbroaFeeAdjustment: {
+            type: :object, required: %w[id fee_plan_id kind status amount currency reason occurred_at],
+            properties: {
+              id: { type: :string, format: :uuid },
+              fee_plan_id: { type: :string, format: :uuid },
+              installment_id: { type: :string, format: :uuid, nullable: true },
+              kind: { type: :string, enum: %w[waiver scholarship_offset surcharge] },
+              status: { type: :string, enum: %w[approved void] },
+              amount: { type: :string }, currency: { type: :string },
+              reason: { type: :string },
+              occurred_at: { type: :string, format: :"date-time" },
+              voided_at: { type: :string, format: :"date-time", nullable: true }
+            }
+          },
+          AbroaFeeAdjustmentResponse: {
+            type: :object, required: %w[data],
+            properties: { data: { '$ref' => '#/components/schemas/AbroaFeeAdjustment' } }
+          },
+          AbroaFeeAdjustmentListResponse: {
+            type: :object, required: %w[data meta],
+            properties: {
+              data: { type: :array, items: { '$ref' => '#/components/schemas/AbroaFeeAdjustment' } },
+              meta: { type: :object, required: %w[next_cursor],
+                properties: { next_cursor: { type: :string, nullable: true } } }
+            }
+          },
+          AbroaFeeAdjustmentCreate: {
+            type: :object, required: %w[kind amount reason], additionalProperties: false,
+            properties: {
+              kind: { type: :string, enum: %w[waiver scholarship_offset surcharge] },
+              amount: { type: :string }, reason: { type: :string },
+              installment_id: { type: :string, format: :uuid, nullable: true }
+            }
+          },
           AbroaFeePlan: {
             type: :object, required: %w[id project_id name kind currency status gross_amount
               discount_amount amount_due paid_amount outstanding_amount refundable_deposit lock_version],
