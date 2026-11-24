@@ -50,6 +50,8 @@ module Abroa
           when :advance
             status = incoming["provider_status"].in?(%w[closed failed]) ? "ignored" : "parsed"
             canonical.update!(normalized: incoming, status: status)
+          when :enrich_reference
+            canonical.update!(normalized: incoming)
           when :conflict
             canonical.update!(status: "review") unless canonical.status.in?(%w[reversed conflict])
           end
@@ -135,6 +137,14 @@ module Abroa
       def status_transition_for(incoming, incoming_account)
         return :conflict if incoming_account && account_id != incoming_account.id
         return :same if normalized == incoming
+        # Backfill a previously missing structured provider reference only
+        # when all other movement facts remain exactly the same.
+        if source_kind == "bank_provider" && normalized["reference"].nil? &&
+            incoming["reference"].present? && status.in?(%w[parsed linked]) &&
+            normalized.except("reference") == incoming.except("reference") &&
+            !observations.where(status: "conflict").exists?
+          return :enrich_reference
+        end
         return :conflict unless normalized.except("provider_status") == incoming.except("provider_status")
 
         previous = normalized["provider_status"]

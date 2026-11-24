@@ -11,6 +11,7 @@ module Abroa
           raise ArgumentError, "Entry is not an externally identified transaction"
         end
         transaction = entry.transaction
+        transaction.lock!
         kind = if transaction.kind.in?(%w[funds_movement cc_payment loan_payment investment_contribution])
           "transfer"
         elsif entry.amount.positive?
@@ -25,6 +26,8 @@ module Abroa
           provider_status: transaction.pending? ? "pending" : "posted",
           transaction_kind: kind, description: entry.name.to_s.truncate(256)
         }
+        reference = payment_reference(entry)
+        evidence[:reference] = reference if reference
         digest = Digest::SHA256.hexdigest(evidence.to_json)
         instance = Digest::SHA256.hexdigest([ entry.account_id, entry.source ].to_json)
         record = NormalizedSource.build(
@@ -38,6 +41,20 @@ module Abroa
           source
         end
       end
+    end
+
+    # Use only the documented provider-owned structured field, never infer
+    # an order number from a user-editable name, note or arbitrary metadata.
+    def self.payment_reference(entry)
+      return unless entry.source == "wise"
+      metadata = entry.transaction.extra["wise"]
+      return unless metadata.is_a?(Hash) &&
+        metadata["statement_id"].present? &&
+        entry.external_id == "wise_statement_#{metadata["statement_id"]}"
+      reference = metadata["payment_reference"]
+      return unless reference.is_a?(String) && reference.present? &&
+        reference.valid_encoding? && reference.length <= 256 && !reference.include?("\0")
+      reference
     end
   end
 end
