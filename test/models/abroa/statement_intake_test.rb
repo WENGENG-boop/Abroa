@@ -272,6 +272,55 @@ class Abroa::StatementIntakeTest < ActiveSupport::TestCase
     assert_equal account.id, source.reload.account_id
   end
 
+  test "manual automation preference stages high confidence match without writing metadata" do
+    Abroa::Profile.change_for!(@user, version: 0, attributes: { import_automation: "manual" })
+    account, entry = bank_payment("match-one")
+    statement = personal_statement(account, ["wallet-order"])
+    preview = Abroa::StatementIntake.preview_for!(@user, statement_id: statement.id, source_kind: "alipay_statement")
+    receipt = Abroa::StatementIntake.publish_for!(@user, statement_id: statement.id,
+      source_kind: "alipay_statement", preview_digest: preview.fetch(:preview_digest))
+    assert_equal 0, receipt.summary.fetch("auto_linked_count")
+    assert_equal 1, receipt.summary.fetch("review_count")
+    assert_nil entry.reload.transaction.extra.dig("abroa", "payment_channel")
+  end
+
+  test "explicit matching category rule classifies newly confirmed movement without changing amount" do
+    category = @user.family.categories.create!(name: "Cafe imports", classification: "expense")
+    @user.family.rules.create!(name: "Exact cafe", resource_type: "transaction", active: true,
+      apply_immediately: true, effective_date: Date.new(2024, 1, 1),
+      conditions_attributes: [{condition_type: "transaction_name", operator: "=", value: "Cafe"}],
+      actions_attributes: [{action_type: "set_transaction_category", value: category.id}])
+    preview = Abroa::StatementIntake.preview_for!(@user, statement_id: @statement.id, **@config)
+    publish(preview)
+    source = Abroa::SourceRecord.where(statement: @statement).first
+    review = Abroa::SourceReview.find_by!(source_record: source)
+    action = Abroa::SourceReview.resolve_for!(@user, review_id: review.id, resolution: "create",
+      expected_version: review.lock_version, key: "classify-cafe")
+    assert_equal category.id, action.entry.transaction.category_id
+    assert_equal BigDecimal("12.5"), action.entry.amount
+    assert_equal "classified", action.after_data.fetch("classification_status")
+    assert_equal "rule", action.entry.transaction.data_enrichments.where(attribute_name: "category_id").last.source
+  end
+
+  test "automatic category never replaces locked uncategorized entry or manually selected category" do
+    category = @user.family.categories.create!(name: "Protected cafe", classification: "expense")
+    @user.family.rules.create!(name: "Cafe protection", resource_type: "transaction", active: true,
+      apply_immediately: true, effective_date: Date.new(2024, 1, 1),
+      conditions_attributes: [{condition_type: "transaction_name", operator: "=", value: "Cafe"}],
+      actions_attributes: [{action_type: "set_transaction_category", value: category.id}])
+    entry = @account.entries.create!(name: "Cafe", amount: 12.5, currency: "GBP", date: Date.new(2025, 1, 10),
+      entryable: Transaction.new)
+    entry.transaction.lock_attr!(:category_id)
+    assert_equal "locked", Abroa::ImportClassification.apply_for!(@user, entry)
+    assert_nil entry.reload.transaction.category_id
+    assert entry.transaction.locked?(:category_id)
+    entry.transaction.unlock_attr!(:category_id)
+    manual = @user.family.categories.create!(name: "Manual cafe", classification: "expense")
+    entry.transaction.update!(category: manual)
+    assert_equal "already_classified", Abroa::ImportClassification.apply_for!(@user, entry)
+    assert_equal manual.id, entry.reload.transaction.category_id
+  end
+
   private
     def bank_payment(reference)
       account = Account.create!(family: @user.family, owner: @user, accountable: Depository.new,
