@@ -33,6 +33,12 @@ class Abroa::RateSnapshotTest < ActiveSupport::TestCase
     assert_raises(Abroa::RateSnapshot::MissingRate) { missing.capture!(family: @user.family) }
   end
 
+  test "three decimal currencies retain exact amounts and round only for presentation" do
+    quote = Abroa::RateSnapshot.quote(from: "KWD", to: "KWD", date: @date)
+    assert_equal BigDecimal("12.3456"), quote.convert("12.3456")
+    assert_equal BigDecimal("12.346"), quote.convert("12.3456", display: true)
+  end
+
   test "same currency is exact parity and rounds only for display" do
     quote = Abroa::RateSnapshot.quote(from: "JPY", to: "JPY", date: @date)
     assert_equal "parity", quote.quality

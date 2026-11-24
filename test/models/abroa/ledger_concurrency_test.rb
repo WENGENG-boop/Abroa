@@ -49,6 +49,16 @@ class Abroa::LedgerConcurrencyTest < ActiveSupport::TestCase
     assert_equal 3, @account.entries.count
   end
 
+  test "parallel provider imports create one entry for an identical external ID" do
+    outcomes = race do |_index|
+      Account::ProviderImportAdapter.new(Account.find(@account.id)).import_transaction(
+        external_id: "parallel-import", amount: 100, currency: "GBP", date: Date.current,
+        name: "Synthetic bank debit", source: "simplefin", allow_heuristic_matching: false).id
+    end
+    assert_equal 1, outcomes.uniq.size
+    assert_equal 1, @account.entries.count
+  end
+
   private
     def movement(amount, **attributes)
       @account.entries.create!(entryable: Transaction.new, name: "Synthetic movement", amount: amount,

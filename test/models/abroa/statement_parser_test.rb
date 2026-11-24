@@ -68,6 +68,21 @@ class Abroa::StatementParserTest < ActiveSupport::TestCase
     end
   end
 
+  test "oversized statement files and row sets are rejected before posting" do
+    arguments = { source_kind: "generic_csv", source_instance_key: "checking",
+      mapping: { date: "Date", amount: "Amount", description: "Description", date_format: "%Y-%m-%d", signage: "inflows_positive" },
+      default_currency: "GBP" }
+    assert_no_difference "Entry.count" do
+      assert_raises(Abroa::StatementParser::UnsupportedFormat) do
+        Abroa::StatementParser.parse_csv(bytes: "x" * (Abroa::StatementParser::MAX_BYTES + 1), **arguments)
+      end
+      rows = Array.new(Abroa::StatementParser::MAX_ROWS + 101) { ["2025-01-10", "-1", "Cafe"] }
+      assert_raises(Abroa::StatementParser::UnsupportedFormat) do
+        Abroa::StatementParser.parse_table(rows: rows, file_sha256: "a" * 64, **arguments)
+      end
+    end
+  end
+
   test "unsupported header cannot become a silently successful empty import" do
     assert_raises(Abroa::StatementParser::UnsupportedFormat) do
       Abroa::StatementParser.parse_csv(bytes: "nonsense\n".b, source_kind: "wechat_statement", source_instance_key: "wx")
