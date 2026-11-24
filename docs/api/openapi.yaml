@@ -200,6 +200,9 @@ components:
                   type: integer
                 existing_count:
                   type: integer
+                auto_linked_count:
+                  type: integer
+                  minimum: 0
                 accepted_invalid_rows:
                   type: boolean
     AbroaSourceReview:
