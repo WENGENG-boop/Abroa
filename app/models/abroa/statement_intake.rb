@@ -115,6 +115,7 @@ module Abroa
         receipt.lock!
         raise ActiveRecord::RecordNotFound unless receipt.account_id == account.id && receipt.actor_id == user.id
         next receipt if receipt.summary["reversed_at"].present?
+        raise Conflict, "Undo statement reconciliation first" if receipt.summary["reconciliation"].present?
 
         ids = receipt.summary["source_ids"]
         owned = receipt.summary["owned_source_ids"]
@@ -169,7 +170,8 @@ module Abroa
       { id: id, statement_id: statement_id, account_id: account_id, source_kind: source_kind,
         file_sha256: file_digest, preview_digest: preview_digest,
         status: summary["reversed_at"].present? ? "reversed" : "staged",
-        summary: summary.except("source_ids", "owned_source_ids", "reversed_by_id") }
+        summary: summary.except("source_ids", "owned_source_ids", "reversed_by_id",
+          "reconciliation", "reconciliation_history") }
     end
 
     class << self

@@ -218,6 +218,10 @@ module Abroa
           raise Conflict, "Ledger entry no longer exists" unless entry
           entry.lock!
           entry.transaction.lock!
+          if entry.statement_reconciled? && StatementIntake.where(family: family)
+              .where("summary -> 'reconciliation' -> 'entries' @> ?::jsonb", [{entry_id: entry.id}].to_json).exists?
+            raise Conflict, "Undo statement reconciliation first"
+          end
           if action.operation == "create"
             validate_reversible_entry!(source, action, entry)
             source.update!(entry: nil, status: "reversed")
