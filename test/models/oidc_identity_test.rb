@@ -188,7 +188,8 @@ class OidcIdentityTest < ActiveSupport::TestCase
         name: "Test User",
         first_name: "Test",
         last_name: "User"
-      }
+      },
+      extra: { raw_info: { sub: "google-123456", email: "test@example.com", email_verified: true } }
     })
 
     identity = OidcIdentity.create_from_omniauth(auth, @user)
@@ -196,6 +197,7 @@ class OidcIdentityTest < ActiveSupport::TestCase
     assert identity.persisted?
     assert_equal "google_oauth2", identity.provider
     assert_equal "google-123456", identity.uid
+    assert_equal "https://accounts.google.com", identity.issuer
     assert_equal "test@example.com", identity.info["email"]
     assert_equal "Test User", identity.info["name"]
     assert_equal @user, identity.user
@@ -206,7 +208,8 @@ class OidcIdentityTest < ActiveSupport::TestCase
     auth = OmniAuth::AuthHash.new({
       provider: "google_oauth2",
       uid: "blocked-google-subject",
-      info: { email: "blocked@example.com" }
+      info: { email: "blocked@example.com" },
+      extra: { raw_info: { sub: "blocked-google-subject", email: "blocked@example.com", email_verified: true } }
     })
     existing = OidcIdentity.create_from_omniauth(auth, @user)
     SsoIdentityBlock.block_all!(OidcIdentity.where(id: existing.id), identity_label: @user.email)
