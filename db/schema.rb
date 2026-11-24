@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_24_140100) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_24_141000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -32,6 +32,54 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_24_140100) do
     t.index ["account_id"], name: "index_abroa_account_profiles_on_account_id", unique: true
     t.index ["family_id"], name: "index_abroa_account_profiles_on_family_id"
     t.check_constraint "wallet_kind IS NULL OR (wallet_kind::text = ANY (ARRAY['alipay'::character varying::text, 'wechat'::character varying::text, 'other'::character varying::text]))", name: "abroa_account_wallet_valid"
+  end
+
+  create_table "abroa_budget_nodes", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "family_id", null: false
+    t.uuid "project_id", null: false
+    t.uuid "parent_id"
+    t.uuid "period_id"
+    t.uuid "category_id"
+    t.uuid "sure_budget_id"
+    t.string "name", null: false
+    t.date "start_on", null: false
+    t.date "end_on", null: false
+    t.string "currency", null: false
+    t.decimal "limit_amount", precision: 19, scale: 4, null: false
+    t.boolean "rollover_enabled", default: false, null: false
+    t.decimal "rollover_amount", precision: 19, scale: 4, default: "0.0", null: false
+    t.uuid "rollover_target_id"
+    t.string "status", default: "active", null: false
+    t.decimal "warning_threshold", precision: 7, scale: 4, default: "0.8", null: false
+    t.integer "lock_version", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["category_id"], name: "index_abroa_budget_nodes_on_category_id"
+    t.index ["family_id"], name: "index_abroa_budget_nodes_on_family_id"
+    t.index ["parent_id"], name: "index_abroa_budget_nodes_on_parent_id"
+    t.index ["period_id"], name: "index_abroa_budget_nodes_on_period_id"
+    t.index ["project_id", "parent_id", "category_id", "start_on", "end_on"], name: "idx_abroa_budget_scope", unique: true, nulls_not_distinct: true
+    t.index ["project_id"], name: "index_abroa_budget_nodes_on_project_id"
+    t.index ["rollover_target_id"], name: "index_abroa_budget_nodes_on_rollover_target_id"
+    t.index ["sure_budget_id"], name: "index_abroa_budget_nodes_on_sure_budget_id"
+    t.check_constraint "(status::text = ANY (ARRAY['active'::character varying::text, 'closed'::character varying::text, 'archived'::character varying::text])) AND warning_threshold >= 0::numeric AND warning_threshold <= 1::numeric AND (parent_id IS NULL OR parent_id <> id)", name: "abroa_budget_lifecycle"
+    t.check_constraint "end_on >= start_on AND limit_amount >= 0::numeric AND limit_amount <> 'NaN'::numeric AND rollover_amount >= 0::numeric AND rollover_amount <> 'NaN'::numeric", name: "abroa_budget_money_dates"
+  end
+
+  create_table "abroa_budget_versions", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "family_id", null: false
+    t.uuid "budget_node_id", null: false
+    t.uuid "actor_id", null: false
+    t.string "kind", null: false
+    t.string "operation_key"
+    t.jsonb "from_data", default: {}, null: false
+    t.jsonb "to_data", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["actor_id"], name: "index_abroa_budget_versions_on_actor_id"
+    t.index ["budget_node_id"], name: "index_abroa_budget_versions_on_budget_node_id"
+    t.index ["family_id", "operation_key"], name: "idx_abroa_budget_operation", unique: true, where: "(operation_key IS NOT NULL)"
+    t.index ["family_id"], name: "index_abroa_budget_versions_on_family_id"
   end
 
   create_table "abroa_entry_allocations", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -3530,6 +3578,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_24_140100) do
 
   add_foreign_key "abroa_account_profiles", "accounts", on_delete: :cascade
   add_foreign_key "abroa_account_profiles", "families"
+  add_foreign_key "abroa_budget_nodes", "abroa_budget_nodes", column: "parent_id"
+  add_foreign_key "abroa_budget_nodes", "abroa_budget_nodes", column: "rollover_target_id"
+  add_foreign_key "abroa_budget_nodes", "abroa_study_periods", column: "period_id"
+  add_foreign_key "abroa_budget_nodes", "abroa_study_projects", column: "project_id"
+  add_foreign_key "abroa_budget_nodes", "budgets", column: "sure_budget_id"
+  add_foreign_key "abroa_budget_nodes", "categories"
+  add_foreign_key "abroa_budget_nodes", "families", on_delete: :cascade
+  add_foreign_key "abroa_budget_versions", "abroa_budget_nodes", column: "budget_node_id"
+  add_foreign_key "abroa_budget_versions", "families", on_delete: :cascade
+  add_foreign_key "abroa_budget_versions", "users", column: "actor_id"
   add_foreign_key "abroa_entry_allocations", "abroa_study_projects", column: "project_id", on_delete: :cascade
   add_foreign_key "abroa_entry_allocations", "categories", on_delete: :nullify
   add_foreign_key "abroa_entry_allocations", "entries", on_delete: :nullify
