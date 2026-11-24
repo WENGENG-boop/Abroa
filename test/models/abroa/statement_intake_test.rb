@@ -321,7 +321,81 @@ class Abroa::StatementIntakeTest < ActiveSupport::TestCase
     assert_equal manual.id, entry.reload.transaction.category_id
   end
 
+  test "bank statement reconciliation requires exact balances and complete ledger evidence" do
+    receipt, rows = reconcilable_statement
+    preview = Abroa::StatementReconciliation.preview_for!(@user, statement_id: @statement.id)
+    assert_equal "ready", preview.fetch(:status)
+    assert_equal 2, preview.fetch(:entry_count)
+    assert rows.none?(&:statement_reconciled?)
+    assert_no_difference ["Entry.count", "Balance.count"] do
+      result = Abroa::StatementReconciliation.confirm_for!(@user, statement_id: @statement.id,
+        digest: preview.fetch(:digest))
+      assert_equal "reconciled", result.fetch(:status)
+      assert_equal result, Abroa::StatementReconciliation.confirm_for!(@user, statement_id: @statement.id,
+        digest: preview.fetch(:digest))
+      assert rows.all? { |row| row.reload.reconciled_by_statement_id == @statement.id }
+      assert_raises(Abroa::StatementIntake::Conflict) do
+        Abroa::StatementIntake.rollback_for!(@user, statement_id: @statement.id)
+      end
+      result = Abroa::StatementReconciliation.undo_for!(@user, statement_id: @statement.id)
+      assert_equal "reversed", result.fetch(:status)
+      assert_equal result, Abroa::StatementReconciliation.undo_for!(@user, statement_id: @statement.id)
+    end
+    assert rows.none? { |row| row.reload.statement_reconciled? }
+    assert_equal 1, receipt.reload.summary.fetch("reconciliation_history").size
+  end
+
+  test "reconciliation refuses missing movements, stale previews, and changed balance" do
+    _receipt, rows = reconcilable_statement
+    preview = Abroa::StatementReconciliation.preview_for!(@user, statement_id: @statement.id)
+    rows.last.update!(amount: 13)
+    assert_raises(Abroa::StatementIntake::Conflict) do
+      Abroa::StatementReconciliation.confirm_for!(@user, statement_id: @statement.id, digest: preview.fetch(:digest))
+    end
+    assert rows.none? { |row| row.reload.statement_reconciled? }
+    rows.last.update!(amount: 12.5)
+    @account.entries.create!(entryable: Transaction.new, name: "Not in statement", amount: 1,
+      currency: "GBP", date: Date.new(2025, 1, 10))
+    preview = Abroa::StatementReconciliation.preview_for!(@user, statement_id: @statement.id)
+    assert_equal "review", preview.fetch(:status)
+    assert_includes preview.fetch(:issues), "unmatched_ledger_entries"
+    assert_raises(Abroa::StatementIntake::Conflict) do
+      Abroa::StatementReconciliation.confirm_for!(@user, statement_id: @statement.id, digest: preview.fetch(:digest))
+    end
+  end
+
+  test "reconciliation undo protects later manual edits and requires authorized statement access" do
+    _receipt, rows = reconcilable_statement
+    preview = Abroa::StatementReconciliation.preview_for!(@user, statement_id: @statement.id)
+    Abroa::StatementReconciliation.confirm_for!(@user, statement_id: @statement.id, digest: preview.fetch(:digest))
+    rows.last.update!(name: "Edited later")
+    assert_raises(Abroa::StatementIntake::Conflict) do
+      Abroa::StatementReconciliation.undo_for!(@user, statement_id: @statement.id)
+    end
+    assert rows.all? { |row| row.reload.statement_reconciled? }
+    assert_raises(ActiveRecord::RecordNotFound) do
+      Abroa::StatementReconciliation.preview_for!(users(:empty), statement_id: @statement.id)
+    end
+  end
+
   private
+    def reconcilable_statement
+      @config[:source_kind] = "bank_statement"
+      day = Date.new(2025, 1, 10)
+      @statement.update!(period_start_on: day, period_end_on: day, opening_balance: 1000,
+        closing_balance: 975, currency: "GBP")
+      @account.balances.create!(date: day, currency: "GBP", balance: 975, cash_balance: 975,
+        start_cash_balance: 1000, cash_outflows: 25)
+      preview = Abroa::StatementIntake.preview_for!(@user, statement_id: @statement.id, **@config)
+      receipt = publish(preview)
+      entries = Abroa::SourceRecord.where(statement: @statement).order(:id).map do |source|
+        review = Abroa::SourceReview.find_by!(source_record: source)
+        Abroa::SourceReview.resolve_for!(@user, review_id: review.id, resolution: "create",
+          expected_version: review.lock_version, key: "reconcile-#{source.id}").entry
+      end
+      [receipt, entries]
+    end
+
     def bank_payment(reference)
       account = Account.create!(family: @user.family, owner: @user, accountable: Depository.new,
         name: "CNY bank", currency: "CNY", balance: 1000)
