@@ -1,11 +1,11 @@
 # Abroa 测试与验收规范 v1.0
-Minitest 行为，RSpec/rswag 仅 API 文档，遵循现有测试指南及 AGENTS。用合成数据和固定日期、时区、汇率；对真实服务另记验收。以下每组包含最小必须执行用例，代码阶段拆成独立 test 并在实施矩阵填路径、命令、结果。预期均为断言，不是已通过记录。
+Minitest 行为，RSpec/rswag 仅 API 文档，遵循现有测试指南及 AGENTS。用合成数据和固定日期、时区、汇率；真实服务联调不作为阶段开发验收前置条件。以下每组包含最小必须执行用例，代码阶段拆成独立 test 并在实施矩阵填路径、命令、结果。预期均为断言，不是已通过记录。
 |ID|场景/输入|预期|
 |---|---|---|
 |A00-1|记录 SHA、版本、原 Rails tests、lint、Brakeman、OpenAPI|真实基线与失败列表，不伪造|
 |A00-2|原账户/Entry/transfer/split/goal/recurring 读源码与已有测试|记录符号、排除、scope、锁、具体复用方法|
 |A01-1|邮箱注册、验证、登录、退出、密码恢复|原流程保持；独立学生和家长 family|
-|A01-2|Google 模拟合法/错误 issuer、state、重复回调、未验证邮箱|仅合法关联，无重复用户/越权；真实凭证另验|
+|A01-2|Google 模拟合法/错误 issuer、state、重复回调、未验证邮箱|仅合法关联，无重复用户/越权；真实凭证非阶段验收前置条件|
 |A01-3|跳过/中断/重复引导、个人不建项目|可恢复，不重复数据，原账本正常|
 |A02-1|100 USD 按历史 0.8 GBP/USD|80 GBP，原金额不变；当前汇率变化不改历史快照|
 |A02-2|无 rate、过期 rate、JPY/三位小数币种|缺失标明不完整；合法舍入守恒|
@@ -61,4 +61,11 @@ Minitest 行为，RSpec/rswag 仅 API 文档，遵循现有测试指南及 AGENT
 |A19-1|学生注册->导入->项目->预算->家长->缴费->预测->AI|真实端到端且账务准确|
 |A19-2|品牌、AGPL源代码入口、备份恢复、上线文档|保留归属，发布条件及未决外部事项明确|
 ## 命令与证据
-先读 docs/llm-guides/development.md/testing.md/API checklist，按真实命令执行 bin/rails test、适用系统测试、Ruby/ERB lint、Biome、Brakeman；API 更新后 RAILS_ENV=test bundle exec rake rswag:specs:swaggerize。遵守 AGENTS 的环境授权，不能为了验收在生产自动迁移。报告每次 SHA、环境、命令、退出码、测试数/失败数和日志路径；fixture 通过不代表真实银行或 Google 通过。外部缺失标 BLOCKED_EXTERNAL，P6 门槛需注明未达到项，不宣称全功能上线。 
+先读 docs/llm-guides/development.md/testing.md/API checklist，按真实命令执行 bin/rails test、适用系统测试、Ruby/ERB lint、Biome、Brakeman；API 更新后 RAILS_ENV=test bundle exec rake rswag:specs:swaggerize。遵守 AGENTS 的环境授权，不能为了验收在生产自动迁移。报告每次 SHA、环境、命令、退出码、测试数/失败数和日志路径；fixture 通过不代表真实银行或 Google 通过。外部缺失标 BLOCKED_EXTERNAL，P6 门槛需注明未达到项，不宣称全功能上线。
+
+## 阶段验收口径（2026-11-24，用户确认）
+
+1. 可执行的业务、权限、数据完整性、迁移、接口及回归用例，必须实际运行且全部通过；合成数据、fixture、mock/stub、隔离测试数据库和模拟第三方回调均为有效证据。
+2. 真实第三方账号、Google OAuth 凭证、实际银行连接、真实个人账单及真实资金等不再是阶段开发验收前置条件。不要求用户提供真实数据或凭证；真实服务联调可在部署时另行进行，不阻塞当前阶段。
+3. 确实无法自动执行的场景必须做针对性代码审查，列明原因、文件、关键调用路径、权限/数据约束及审查结论；审查不通过仍须修复。不得以审查代替能够执行的失败测试，不得声称模拟结果是真实服务成功。
+4. 阶段只有在要求的自动测试通过、不可执行项代码审查通过且无未修复的审查问题后，才标记 VERIFIED 并进入下一阶段。全程沿用 D 盘隔离开发与测试约束。

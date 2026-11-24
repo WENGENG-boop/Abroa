@@ -81,3 +81,7 @@
 日志：D:\开发\Abroa\.p1-env\logs\p1-review-before.log、p1-review-repair.log、p1-provider-reference-before.log、p1-provider-reference-repair.log、p1-audit-final-minitest.log、p1-audit-final-rspec.log、p1-fresh-migrations.log、p1-fresh-minitest.log、p1-fresh-rspec.log、p1-original-regression.log、p1-openapi-generate.log、p1-round2-minitest.log、p1-rspec-current.log。API consistency 脚本退出码 0；现有上游 FinanceKit OAuth、transactions/transfers rswag 断言警告仍原样保留；Abroa refund-links 行为测试在 source_reviews_controller_test.rb 内，未重复测试。
 
 第一轮列出的八项审查问题均已整改并有代码/运行证据。P1 最终验收仍需真实 Google OAuth、实际银行连接及真实账单样本、并发专项、所有验收场景完整覆盖；未将这些未取得证据的项目标为 VERIFIED。P2 尚未开始业务代码。所有验收数据、下载和运行日志存放在独立 D 盘环境。
+
+## 验收口径更新（2026-11-24）
+
+用户确认不需要真实 Google/银行连接/真实账单联调。现有 1123 个通过用例与 7 个迁移、新库验收继续有效；外部真实数据不再阻塞 P1，无法执行的场景须代码审查通过。本地可运行的并发与重试等场景仍需实际验证，不能仅因旧测试全绿而直接宣布未覆盖项目通过。后续验收以 Abroa_ACCEPTANCE.md 最新口径为准。
