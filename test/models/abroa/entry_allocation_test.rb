@@ -26,6 +26,20 @@ class Abroa::EntryAllocationTest < ActiveSupport::TestCase
     assert_raises(ArgumentError) { allocate(@b, "50", category_id: categories(:food_and_drink).id) }
   end
 
+  test "project-specific category can change without changing the original transaction" do
+    allocation = allocate(@a, "60")
+    category = categories(:food_and_drink)
+    changed = Abroa::EntryAllocation.change_for!(@user, @a.id, allocation.id,
+      version: allocation.lock_version, category_id: category.id)
+    assert_equal category.id, changed.category_id
+    assert_equal BigDecimal("60"), changed.amount
+    assert_nil @entry.reload.transaction.category_id
+    assert_raises(Abroa::StudyProject::Conflict) do
+      Abroa::EntryAllocation.change_for!(@user, @a.id, allocation.id,
+        version: allocation.lock_version, category_id: nil)
+    end
+  end
+
   test "archiving retains allocations and blocks new allocation writes" do
     allocation = allocate(@a, "60")
     archived = Abroa::StudyProject.archive_for!(@user, @a.id, version: @a.reload.lock_version)
