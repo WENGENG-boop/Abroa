@@ -285,7 +285,7 @@ class Abroa::StatementIntakeTest < ActiveSupport::TestCase
   end
 
   test "explicit matching category rule classifies newly confirmed movement without changing amount" do
-    category = @user.family.categories.create!(name: "Cafe imports", classification: "expense")
+    category = @user.family.categories.create!(name: "Cafe imports", color: "#6471eb", lucide_icon: "coffee")
     @user.family.rules.create!(name: "Exact cafe", resource_type: "transaction", active: true,
       apply_immediately: true, effective_date: Date.new(2024, 1, 1),
       conditions_attributes: [{condition_type: "transaction_name", operator: "=", value: "Cafe"}],
@@ -303,7 +303,7 @@ class Abroa::StatementIntakeTest < ActiveSupport::TestCase
   end
 
   test "automatic category never replaces locked uncategorized entry or manually selected category" do
-    category = @user.family.categories.create!(name: "Protected cafe", classification: "expense")
+    category = @user.family.categories.create!(name: "Protected cafe", color: "#6471eb", lucide_icon: "coffee")
     @user.family.rules.create!(name: "Cafe protection", resource_type: "transaction", active: true,
       apply_immediately: true, effective_date: Date.new(2024, 1, 1),
       conditions_attributes: [{condition_type: "transaction_name", operator: "=", value: "Cafe"}],
@@ -315,7 +315,7 @@ class Abroa::StatementIntakeTest < ActiveSupport::TestCase
     assert_nil entry.reload.transaction.category_id
     assert entry.transaction.locked?(:category_id)
     entry.transaction.unlock_attr!(:category_id)
-    manual = @user.family.categories.create!(name: "Manual cafe", classification: "expense")
+    manual = @user.family.categories.create!(name: "Manual cafe", color: "#6471eb", lucide_icon: "coffee")
     entry.transaction.update!(category: manual)
     assert_equal "already_classified", Abroa::ImportClassification.apply_for!(@user, entry)
     assert_equal manual.id, entry.reload.transaction.category_id
