@@ -1,0 +1,63 @@
+# Disposable test infrastructure. Do not use these credentials for any other environment.
+name: abroa-p0-test
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: .devcontainer/Dockerfile
+    working_dir: /workspace
+    init: true
+    volumes:
+      - .:/workspace
+      - bundle-cache:/bundle
+    environment:
+      RAILS_ENV: test
+      BUNDLE_PATH: /bundle
+      BUNDLE_FROZEN: "true"
+      DB_HOST: db
+      POSTGRES_DB: abroa_p0_test
+      POSTGRES_USER: abroa_test
+      POSTGRES_PASSWORD: abroa_local_test
+      DATABASE_URL: postgresql://abroa_test:abroa_local_test@db:5432/abroa_p0_test
+      REDIS_URL: redis://redis:6379/1
+      PLAID_CLIENT_ID: test_client_id
+      PLAID_SECRET: test_secret
+      PARALLEL_WORKERS: "4"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: ["bundle", "exec", "ruby", "bin/rails", "test"]
+
+  db:
+    image: pgvector/pgvector:pg16-trixie
+    environment:
+      POSTGRES_DB: abroa_p0_test
+      POSTGRES_USER: abroa_test
+      POSTGRES_PASSWORD: abroa_local_test
+    volumes:
+      - test-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U abroa_test -d abroa_p0_test"]
+      interval: 3s
+      timeout: 5s
+      retries: 30
+
+  redis:
+    image: redis:latest
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 5s
+      retries: 30
+
+  selenium:
+    image: selenium/standalone-chromium:latest
+    profiles: ["system"]
+    shm_size: 2gb
+
+volumes:
+  bundle-cache:
+  test-db:
