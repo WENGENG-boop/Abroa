@@ -77,12 +77,49 @@ class Abroa::SourceReviewTest < ActiveSupport::TestCase
     end
   end
 
+  test "unknown PDF movements require explicit classification before posting" do
+    pdf = source("pdf", source_kind: "generic_pdf", transaction_kind: "unknown")
+    review = Abroa::SourceReview.open_for!(@user, pdf.id)
+    assert_no_difference "Entry.count" do
+      assert_raises(ArgumentError) { resolve(review, "create", key: "pdf-unclassified") }
+      assert_raises(ArgumentError) { resolve(review, "create", key: "pdf-wrong-direction", movement_kind: "income") }
+    end
+    assert_difference "Entry.count", 1 do
+      action = resolve(review, "create", key: "pdf-confirmed", movement_kind: "payment")
+      assert_equal "payment", action.after_data.fetch("movement_kind")
+      assert_equal "unknown", pdf.reload.normalized.fetch("transaction_kind")
+      assert_equal "posted", pdf.status
+    end
+  end
+
+  test "refund evidence links a real inflow without inventing a refund payment" do
+    refund_source = source("refund", transaction_kind: "refund", direction: "inflow")
+    entry = @account.entries.create!(entryable: Transaction.new, name: "Actual refund",
+      date: refund_source.local_date, currency: "CNY", amount: -100)
+    review = Abroa::SourceReview.open_for!(@user, refund_source.id)
+    assert_no_difference "Entry.count" do
+      action = resolve(review, "link", key: "refund-link", target_entry_id: entry.id)
+      assert_equal "refund", action.after_data.fetch("movement_kind")
+      assert_equal entry.id, refund_source.reload.entry_id
+    end
+  end
+
+  test "classified source cannot be relabeled and transfers cannot post as regular movements" do
+    review = Abroa::SourceReview.open_for!(@user, @source.id)
+    transfer = source("transfer", transaction_kind: "transfer")
+    transfer_review = Abroa::SourceReview.open_for!(@user, transfer.id)
+    assert_no_difference "Entry.count" do
+      assert_raises(ArgumentError) { resolve(review, "create", key: "relabeled", movement_kind: "income") }
+      assert_raises(ArgumentError) { resolve(transfer_review, "create", key: "transfer", movement_kind: "payment") }
+    end
+  end
+
   private
-    def source(key, provider_status: "posted")
-      row = Abroa::NormalizedSource.build(source_kind: "generic_csv", source_instance_key: "checking",
+    def source(key, provider_status: "posted", source_kind: "generic_csv", transaction_kind: "payment", direction: "outflow")
+      row = Abroa::NormalizedSource.build(source_kind: source_kind, source_instance_key: "checking",
         source_row_key: key, raw_digest: Digest::SHA256.hexdigest(key), local_date: Date.new(2025, 1, 10),
-        amount: "100", currency: "CNY", direction: "outflow", provider_status: provider_status,
-        transaction_kind: "payment", description: "Imported charge")
+        amount: "100", currency: "CNY", direction: direction, provider_status: provider_status,
+        transaction_kind: transaction_kind, description: "Imported charge")
       Abroa::SourceRecord.ingest!(family: @user.family, account: @account, record: row)
     end
 
