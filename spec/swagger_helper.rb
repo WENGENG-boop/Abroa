@@ -64,6 +64,27 @@ RSpec.configure do |config|
           }
         },
         schemas: {
+          AbroaReconciliationPreviewResponse: {
+            type: :object, required: %w[data],
+            properties: { data: { type: :object, required: %w[status digest entry_count issues balance_checks],
+              properties: {
+                status: { type: :string, enum: %w[ready review] }, digest: { type: :string },
+                entry_count: { type: :integer, minimum: 0 }, issues: { type: :array, items: { type: :string } },
+                balance_checks: { type: :array, items: { type: :object, required: %w[key statement_amount ledger_amount difference status],
+                  properties: { key: { type: :string }, statement_amount: { type: :string },
+                    ledger_amount: { type: :string }, difference: { type: :string },
+                    status: { type: :string, enum: %w[matched mismatched] } } } }
+              } } }
+          },
+          AbroaReconciliationResultResponse: {
+            type: :object, required: %w[data],
+            properties: { data: { type: :object, required: %w[status digest entry_count confirmed_at reversed_at],
+              properties: {
+                status: { type: :string, enum: %w[reconciled reversed] }, digest: { type: :string },
+                entry_count: { type: :integer, minimum: 0 }, confirmed_at: { type: :string, format: "date-time" },
+                reversed_at: { type: :string, format: "date-time", nullable: true }
+              } } }
+          },
           AbroaConsumptionResponse: {
             type: :object, required: %w[data],
             properties: { data: { type: :object, required: %w[start_on end_on currency account_ids totals incomplete inconsistent_refund_count rates],
