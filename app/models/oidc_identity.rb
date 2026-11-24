@@ -84,7 +84,8 @@ class OidcIdentity < ApplicationRecord
       end
 
       # Extract issuer from OIDC auth response if available
-      issuer = auth.extra&.raw_info&.iss || auth.extra&.raw_info&.[]("iss")
+      google_claims = ::Abroa::GoogleIdentity.claims!(auth)
+      issuer = google_claims&.fetch(:issuer) || auth.extra&.raw_info&.iss || auth.extra&.raw_info&.[]("iss")
 
       create!(
         user: user,

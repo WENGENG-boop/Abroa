@@ -524,7 +524,9 @@ module Api
             provider: cached[:provider],
             uid: cached[:uid],
             info: OpenStruct.new(cached.slice(:email, :name, :first_name, :last_name)),
-            extra: OpenStruct.new(raw_info: OpenStruct.new(iss: cached[:issuer]))
+            extra: OpenStruct.new(raw_info: OpenStruct.new(
+              iss: cached[:issuer], sub: cached[:subject], email: cached[:email], email_verified: cached[:email_verified]
+            ))
           )
         end
 
@@ -539,6 +541,12 @@ module Api
 
           unless cached.present?
             render json: { error: "Linking code is invalid or expired" }, status: :unauthorized
+            return nil
+          end
+
+          unless ::Abroa::GoogleIdentity.valid_pending?(cached)
+            Rails.cache.delete(cache_key)
+            render json: { error: "Invalid SSO identity claims" }, status: :unauthorized
             return nil
           end
 

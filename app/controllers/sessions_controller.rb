@@ -246,6 +246,16 @@ class SessionsController < ApplicationController
       return
     end
 
+    begin
+      google_claims = ::Abroa::GoogleIdentity.claims!(auth)
+    rescue ::Abroa::GoogleIdentity::Invalid
+      session.delete(:pending_oidc_auth)
+      session.delete(:mobile_sso)
+      session.delete(:desktop_sso)
+      redirect_to new_session_path, alert: t("sessions.openid_connect.failed")
+      return
+    end
+
     if SsoIdentityBlock.blocked?(provider: auth.provider, uid: auth.uid)
       reject_removed_sso_identity(auth.provider)
       return
@@ -255,6 +265,14 @@ class SessionsController < ApplicationController
     oidc_identity = OidcIdentity.find_by(provider: auth.provider, uid: auth.uid)
 
     if oidc_identity
+      unless ::Abroa::GoogleIdentity.matches?(oidc_identity, google_claims)
+        session.delete(:pending_oidc_auth)
+        session.delete(:mobile_sso)
+        session.delete(:desktop_sso)
+        redirect_to new_session_path, alert: t("sessions.openid_connect.failed")
+        return
+      end
+
       # Existing OIDC identity found - authenticate the user
       user = oidc_identity.user
 
@@ -326,7 +344,7 @@ class SessionsController < ApplicationController
       # Mobile SSO with no linked identity - cache pending auth and redirect
       # back to the app with a linking code so the user can link or create an account
       if session[:mobile_sso].present?
-        handle_mobile_sso_onboarding(auth)
+        handle_mobile_sso_onboarding(auth, google_claims: google_claims)
         return
       end
 
@@ -347,7 +365,8 @@ class SessionsController < ApplicationController
         email: auth.info&.email,
         name: auth.info&.name,
         first_name: auth.info&.first_name,
-        last_name: auth.info&.last_name
+        last_name: auth.info&.last_name,
+        **(google_claims || {})
       }
       redirect_to link_oidc_account_path
     end
@@ -485,7 +504,7 @@ class SessionsController < ApplicationController
       redirect_to "sure://sso/callback?code=#{code}", allow_other_host: true
     end
 
-    def handle_mobile_sso_onboarding(auth)
+    def handle_mobile_sso_onboarding(auth, google_claims: nil)
       device_info = session.delete(:mobile_sso)
       email = auth.info&.email
 
@@ -504,7 +523,8 @@ class SessionsController < ApplicationController
           name: auth.info&.name,
           issuer: auth.extra&.raw_info&.iss || auth.extra&.raw_info&.[]("iss"),
           device_info: device_info,
-          allow_account_creation: allow_creation
+          allow_account_creation: allow_creation,
+          **(google_claims || {})
         },
         expires_in: 10.minutes
       )

@@ -1,7 +1,8 @@
 class OidcAccountsController < ApplicationController
   skip_authentication only: [ :link, :create_link, :new_user, :create_user ]
   before_action :reject_removed_identity, only: [ :link, :create_link, :new_user, :create_user ]
-  rescue_from SsoIdentityBlock::BlockedIdentity, with: :reject_removed_identity_after_lock
+  before_action :reject_unverified_google, only: [ :link, :create_link, :new_user, :create_user ]
+  rescue_from SsoIdentityBlock::BlockedIdentity, ::Abroa::GoogleIdentity::Invalid, with: :reject_removed_identity_after_lock
   layout "auth"
 
   def link
@@ -220,12 +221,23 @@ class OidcAccountsController < ApplicationController
       redirect_to new_session_path, alert: t("sessions.openid_connect.failed")
     end
 
+    def reject_unverified_google
+      pending = session[:pending_oidc_auth]
+      return if pending.blank? || ::Abroa::GoogleIdentity.valid_pending?(pending)
+
+      reject_removed_identity_after_lock
+    end
+
     # Convert pending auth hash to OmniAuth-like structure
     def build_auth_hash(pending_auth)
       OpenStruct.new(
         provider: pending_auth["provider"],
         uid: pending_auth["uid"],
-        info: OpenStruct.new(pending_auth.slice("email", "name", "first_name", "last_name"))
+        info: OpenStruct.new(pending_auth.slice("email", "name", "first_name", "last_name")),
+        extra: OpenStruct.new(raw_info: OpenStruct.new(
+          iss: pending_auth["issuer"], sub: pending_auth["subject"],
+          email: pending_auth["email"], email_verified: pending_auth["email_verified"]
+        ))
       )
     end
 end
