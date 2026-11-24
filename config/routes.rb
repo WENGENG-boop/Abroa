@@ -837,6 +837,16 @@ Rails.application.routes.draw do
               post :rollover
             end
           end
+          resources :pools, controller: "fund_pools", only: %i[index show create update] do
+            collection do
+              get "cash/:account_id", action: :cash
+            end
+            member do
+              post :archive
+              post :restore
+            end
+            resources :movements, controller: "pool_movements", only: %i[index create]
+          end
           resources :accounts, controller: "project_accounts", only: %i[index create] do
             delete ":account_id", to: "project_accounts#destroy", on: :collection
           end

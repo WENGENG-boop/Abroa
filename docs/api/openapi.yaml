@@ -32,6 +32,286 @@ components:
             read: Read access
             read_write: Read and write access
   schemas:
+    AbroaFundPool:
+      type: object
+      required:
+      - id
+      - project_id
+      - name
+      - kind
+      - currency
+      - status
+      - lock_version
+      - accounts
+      properties:
+        id:
+          type: string
+          format: uuid
+        project_id:
+          type: string
+          format: uuid
+        goal_id:
+          type: string
+          format: uuid
+          nullable: true
+        name:
+          type: string
+        kind:
+          type: string
+        currency:
+          type: string
+        target_amount:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum:
+          - active
+          - archived
+        archived_at:
+          type: string
+          format: date-time
+          nullable: true
+        lock_version:
+          type: integer
+        accounts:
+          type: array
+          items:
+            type: object
+            required:
+            - account_id
+            - currency
+            - allocated
+            - reserved_for_fees
+            - free
+            - shortfall
+            properties:
+              account_id:
+                type: string
+                format: uuid
+              currency:
+                type: string
+              allocated:
+                type: string
+              reserved_for_fees:
+                type: string
+              free:
+                type: string
+              shortfall:
+                type: string
+    AbroaFundPoolResponse:
+      type: object
+      required:
+      - data
+      properties:
+        data:
+          "$ref": "#/components/schemas/AbroaFundPool"
+    AbroaFundPoolListResponse:
+      type: object
+      required:
+      - data
+      - meta
+      properties:
+        data:
+          type: array
+          items:
+            "$ref": "#/components/schemas/AbroaFundPool"
+        meta:
+          type: object
+          required:
+          - next_cursor
+          properties:
+            next_cursor:
+              type: string
+              nullable: true
+    AbroaFundPoolCreate:
+      type: object
+      required:
+      - name
+      - kind
+      - currency
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+        kind:
+          type: string
+        currency:
+          type: string
+        goal_id:
+          type: string
+          format: uuid
+          nullable: true
+        target_amount:
+          type: string
+          nullable: true
+    AbroaFundPoolUpdate:
+      type: object
+      required:
+      - lock_version
+      additionalProperties: false
+      properties:
+        lock_version:
+          type: integer
+          minimum: 0
+        name:
+          type: string
+        kind:
+          type: string
+        currency:
+          type: string
+        goal_id:
+          type: string
+          format: uuid
+          nullable: true
+        target_amount:
+          type: string
+          nullable: true
+    AbroaLockVersion:
+      type: object
+      required:
+      - lock_version
+      additionalProperties: false
+      properties:
+        lock_version:
+          type: integer
+          minimum: 0
+    AbroaFundCashResponse:
+      type: object
+      required:
+      - data
+      properties:
+        data:
+          type: object
+          required:
+          - account_id
+          - currency
+          - usable_cash
+          - goal_reserved
+          - pool_reserved
+          - reserved_total
+          - unallocated_cash
+          - shortfall
+          properties:
+            account_id:
+              type: string
+              format: uuid
+            currency:
+              type: string
+            usable_cash:
+              type: string
+            goal_reserved:
+              type: string
+            pool_reserved:
+              type: string
+            reserved_total:
+              type: string
+            unallocated_cash:
+              type: string
+            shortfall:
+              type: string
+    AbroaPoolMovement:
+      type: object
+      required:
+      - id
+      - pool_id
+      - account_id
+      - kind
+      - amount
+      - currency
+      - reserved_released_amount
+      - created_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        pool_id:
+          type: string
+          format: uuid
+        account_id:
+          type: string
+          format: uuid
+        kind:
+          type: string
+          enum:
+          - allocate
+          - release
+          - reserve
+          - unreserve
+          - consume
+          - refund
+        amount:
+          type: string
+        currency:
+          type: string
+        entry_id:
+          type: string
+          format: uuid
+          nullable: true
+        fee_installment_id:
+          type: string
+          format: uuid
+          nullable: true
+        reserved_released_amount:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+    AbroaPoolMovementResponse:
+      type: object
+      required:
+      - data
+      properties:
+        data:
+          "$ref": "#/components/schemas/AbroaPoolMovement"
+    AbroaPoolMovementListResponse:
+      type: object
+      required:
+      - data
+      - meta
+      properties:
+        data:
+          type: array
+          items:
+            "$ref": "#/components/schemas/AbroaPoolMovement"
+        meta:
+          type: object
+          required:
+          - next_cursor
+          properties:
+            next_cursor:
+              type: string
+              nullable: true
+    AbroaPoolMovementCreate:
+      type: object
+      required:
+      - account_id
+      - kind
+      - amount
+      additionalProperties: false
+      properties:
+        account_id:
+          type: string
+          format: uuid
+        kind:
+          type: string
+          enum:
+          - allocate
+          - release
+          - reserve
+          - unreserve
+          - consume
+          - refund
+        amount:
+          type: string
+        entry_id:
+          type: string
+          format: uuid
+          nullable: true
+        fee_installment_id:
+          type: string
+          format: uuid
+          nullable: true
     AbroaBudgetNode:
       type: object
       required:
@@ -6448,6 +6728,223 @@ components:
         error:
           type: string
 paths:
+  "/api/v1/abroa/projects/{project_id}/pools":
+    parameters:
+    - name: project_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    get:
+      summary: List owned fund pools with native cash balances
+      tags:
+      - Abroa planning
+      security:
+      - apiKeyAuth: []
+      responses:
+        '200':
+          description: Pools
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AbroaFundPoolListResponse"
+    post:
+      summary: Create a virtual fund pool without moving real cash
+      tags:
+      - Abroa planning
+      security:
+      - apiKeyAuth: []
+      parameters:
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AbroaFundPoolResponse"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/AbroaFundPoolCreate"
+        required: true
+  "/api/v1/abroa/projects/{project_id}/pools/{id}":
+    parameters:
+    - name: project_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    get:
+      summary: View an owned virtual pool and its account allocation breakdown
+      tags:
+      - Abroa planning
+      security:
+      - apiKeyAuth: []
+      responses:
+        '200':
+          description: Pool
+    patch:
+      summary: Update future target or metadata with a version
+      tags:
+      - Abroa planning
+      security:
+      - apiKeyAuth: []
+      parameters: []
+      responses:
+        '200':
+          description: Updated
+      requestBody:
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/AbroaFundPoolUpdate"
+        required: true
+  "/api/v1/abroa/projects/{project_id}/pools/{id}/archive":
+    parameters:
+    - name: project_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    post:
+      summary: Archive a pool while retaining its promises
+      tags:
+      - Abroa planning
+      security:
+      - apiKeyAuth: []
+      parameters: []
+      responses:
+        '200':
+          description: Archived
+      requestBody:
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/AbroaLockVersion"
+        required: true
+  "/api/v1/abroa/projects/{project_id}/pools/{id}/restore":
+    parameters:
+    - name: project_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    post:
+      summary: Restore a virtual fund pool
+      tags:
+      - Abroa planning
+      security:
+      - apiKeyAuth: []
+      parameters: []
+      responses:
+        '200':
+          description: Restored
+      requestBody:
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/AbroaLockVersion"
+        required: true
+  "/api/v1/abroa/projects/{project_id}/pools/cash/{account_id}":
+    parameters:
+    - name: project_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    - name: account_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    get:
+      summary: Read native-currency usable cash, Sure goals, pool pledges and shortfall
+      tags:
+      - Abroa planning
+      security:
+      - apiKeyAuth: []
+      responses:
+        '200':
+          description: Cash commitments
+  "/api/v1/abroa/projects/{project_id}/pools/{pool_id}/movements":
+    parameters:
+    - name: project_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    - name: pool_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    get:
+      summary: List immutable native-currency fund movements
+      tags:
+      - Abroa planning
+      security:
+      - apiKeyAuth: []
+      responses:
+        '200':
+          description: Fund movements
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AbroaPoolMovementListResponse"
+    post:
+      summary: Apply an idempotent virtual fund movement, optionally linked to a real
+        ledger entry
+      tags:
+      - Abroa planning
+      security:
+      - apiKeyAuth: []
+      parameters:
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+      responses:
+        '201':
+          description: Recorded virtual movement
+      requestBody:
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/AbroaPoolMovementCreate"
+        required: true
   "/api/v1/abroa/projects/{project_id}/budgets":
     parameters:
     - name: project_id

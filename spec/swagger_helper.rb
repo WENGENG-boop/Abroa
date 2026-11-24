@@ -212,6 +212,103 @@ RSpec.configure do |config|
                 actual_rate: { type: :string }, exchanged_on: { type: :string, format: :date }, consistent: { type: :boolean }
               } } }
           },
+          AbroaFundPool: {
+            type: :object, required: %w[id project_id name kind currency status lock_version accounts],
+            properties: {
+              id: { type: :string, format: :uuid },
+              project_id: { type: :string, format: :uuid },
+              goal_id: { type: :string, format: :uuid, nullable: true },
+              name: { type: :string }, kind: { type: :string }, currency: { type: :string },
+              target_amount: { type: :string, nullable: true },
+              status: { type: :string, enum: %w[active archived] },
+              archived_at: { type: :string, format: :"date-time", nullable: true },
+              lock_version: { type: :integer },
+              accounts: { type: :array, items: { type: :object, required: %w[account_id currency allocated reserved_for_fees free shortfall],
+                properties: {
+                  account_id: { type: :string, format: :uuid }, currency: { type: :string },
+                  allocated: { type: :string }, reserved_for_fees: { type: :string },
+                  free: { type: :string }, shortfall: { type: :string }
+                } } }
+            }
+          },
+          AbroaFundPoolResponse: {
+            type: :object, required: %w[data],
+            properties: { data: { '$ref' => '#/components/schemas/AbroaFundPool' } }
+          },
+          AbroaFundPoolListResponse: {
+            type: :object, required: %w[data meta],
+            properties: {
+              data: { type: :array, items: { '$ref' => '#/components/schemas/AbroaFundPool' } },
+              meta: { type: :object, required: %w[next_cursor],
+                properties: { next_cursor: { type: :string, nullable: true } } }
+            }
+          },
+          AbroaFundPoolCreate: {
+            type: :object, required: %w[name kind currency], additionalProperties: false,
+            properties: {
+              name: { type: :string }, kind: { type: :string }, currency: { type: :string },
+              goal_id: { type: :string, format: :uuid, nullable: true },
+              target_amount: { type: :string, nullable: true }
+            }
+          },
+          AbroaFundPoolUpdate: {
+            type: :object, required: %w[lock_version], additionalProperties: false,
+            properties: {
+              lock_version: { type: :integer, minimum: 0 },
+              name: { type: :string }, kind: { type: :string }, currency: { type: :string },
+              goal_id: { type: :string, format: :uuid, nullable: true },
+              target_amount: { type: :string, nullable: true }
+            }
+          },
+          AbroaLockVersion: {
+            type: :object, required: %w[lock_version], additionalProperties: false,
+            properties: { lock_version: { type: :integer, minimum: 0 } }
+          },
+          AbroaFundCashResponse: {
+            type: :object, required: %w[data],
+            properties: { data: { type: :object, required: %w[account_id currency usable_cash goal_reserved
+              pool_reserved reserved_total unallocated_cash shortfall], properties: {
+                account_id: { type: :string, format: :uuid },
+                currency: { type: :string },
+                usable_cash: { type: :string }, goal_reserved: { type: :string },
+                pool_reserved: { type: :string }, reserved_total: { type: :string },
+                unallocated_cash: { type: :string }, shortfall: { type: :string }
+              } } }
+          },
+          AbroaPoolMovement: {
+            type: :object, required: %w[id pool_id account_id kind amount currency reserved_released_amount created_at],
+            properties: {
+              id: { type: :string, format: :uuid }, pool_id: { type: :string, format: :uuid },
+              account_id: { type: :string, format: :uuid }, kind: { type: :string, enum: %w[allocate release reserve unreserve consume refund] },
+              amount: { type: :string }, currency: { type: :string },
+              entry_id: { type: :string, format: :uuid, nullable: true },
+              fee_installment_id: { type: :string, format: :uuid, nullable: true },
+              reserved_released_amount: { type: :string },
+              created_at: { type: :string, format: :"date-time" }
+            }
+          },
+          AbroaPoolMovementResponse: {
+            type: :object, required: %w[data],
+            properties: { data: { '$ref' => '#/components/schemas/AbroaPoolMovement' } }
+          },
+          AbroaPoolMovementListResponse: {
+            type: :object, required: %w[data meta],
+            properties: {
+              data: { type: :array, items: { '$ref' => '#/components/schemas/AbroaPoolMovement' } },
+              meta: { type: :object, required: %w[next_cursor],
+                properties: { next_cursor: { type: :string, nullable: true } } }
+            }
+          },
+          AbroaPoolMovementCreate: {
+            type: :object, required: %w[account_id kind amount], additionalProperties: false,
+            properties: {
+              account_id: { type: :string, format: :uuid },
+              kind: { type: :string, enum: %w[allocate release reserve unreserve consume refund] },
+              amount: { type: :string },
+              entry_id: { type: :string, format: :uuid, nullable: true },
+              fee_installment_id: { type: :string, format: :uuid, nullable: true }
+            }
+          },
           AbroaBudgetNode: {
             type: :object, required: %w[id project_id name start_on end_on currency limit_amount rollover_amount
               rollover_enabled warning_threshold status lock_version],
