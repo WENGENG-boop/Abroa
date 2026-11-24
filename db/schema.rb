@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_24_141000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_24_142000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -103,6 +103,29 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_24_141000) do
     t.check_constraint "amount > 0::numeric AND amount <> 'NaN'::numeric AND (direction::text = ANY (ARRAY['expense'::character varying::text, 'income'::character varying::text]))", name: "abroa_allocation_positive"
   end
 
+  create_table "abroa_fund_pools", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "family_id", null: false
+    t.uuid "project_id", null: false
+    t.uuid "goal_id"
+    t.string "name", null: false
+    t.string "kind", null: false
+    t.string "currency", null: false
+    t.decimal "target_amount", precision: 19, scale: 4
+    t.string "status", default: "active", null: false
+    t.datetime "archived_at"
+    t.string "creation_key_digest"
+    t.string "creation_request_digest"
+    t.integer "lock_version", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["family_id"], name: "index_abroa_fund_pools_on_family_id"
+    t.index ["goal_id"], name: "index_abroa_fund_pools_on_goal_id", unique: true, where: "(goal_id IS NOT NULL)"
+    t.index ["project_id", "creation_key_digest"], name: "idx_abroa_fund_creation_key", unique: true, where: "(creation_key_digest IS NOT NULL)"
+    t.index ["project_id", "kind", "status"], name: "index_abroa_fund_pools_on_project_id_and_kind_and_status"
+    t.index ["project_id"], name: "index_abroa_fund_pools_on_project_id"
+    t.check_constraint "(status::text = ANY (ARRAY['active'::character varying::text, 'archived'::character varying::text])) AND (target_amount IS NULL OR target_amount >= 0::numeric AND target_amount <> 'NaN'::numeric)", name: "abroa_fund_state_target"
+  end
+
   create_table "abroa_fx_details", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.uuid "family_id", null: false
     t.uuid "actor_id", null: false
@@ -163,6 +186,38 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_24_141000) do
     t.index ["family_id", "occurred_at"], name: "index_abroa_planning_audit_events_on_family_id_and_occurred_at"
     t.index ["family_id"], name: "index_abroa_planning_audit_events_on_family_id"
     t.index ["resource_type", "resource_id", "occurred_at"], name: "idx_abroa_audit_resource"
+  end
+
+  create_table "abroa_pool_movements", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "family_id", null: false
+    t.uuid "actor_id", null: false
+    t.uuid "pool_id", null: false
+    t.uuid "account_id", null: false
+    t.uuid "entry_id"
+    t.uuid "entry_key"
+    t.uuid "fee_installment_id"
+    t.uuid "rate_snapshot_id"
+    t.uuid "reversal_of_id"
+    t.string "kind", null: false
+    t.decimal "amount", precision: 19, scale: 4, null: false
+    t.decimal "reserved_released_amount", precision: 19, scale: 4, default: "0.0", null: false
+    t.string "currency", null: false
+    t.string "operation_key", null: false
+    t.string "request_digest", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_abroa_pool_movements_on_account_id"
+    t.index ["actor_id"], name: "index_abroa_pool_movements_on_actor_id"
+    t.index ["entry_id"], name: "index_abroa_pool_movements_on_entry_id"
+    t.index ["entry_key", "kind"], name: "index_abroa_pool_movements_on_entry_key_and_kind"
+    t.index ["family_id", "operation_key"], name: "idx_abroa_pool_movement_key", unique: true
+    t.index ["family_id"], name: "index_abroa_pool_movements_on_family_id"
+    t.index ["fee_installment_id", "kind"], name: "idx_abroa_pool_fee"
+    t.index ["pool_id", "account_id", "kind"], name: "index_abroa_pool_movements_on_pool_id_and_account_id_and_kind"
+    t.index ["pool_id"], name: "index_abroa_pool_movements_on_pool_id"
+    t.index ["rate_snapshot_id"], name: "index_abroa_pool_movements_on_rate_snapshot_id"
+    t.index ["reversal_of_id"], name: "index_abroa_pool_movements_on_reversal_of_id"
+    t.check_constraint "(kind::text = ANY (ARRAY['allocate'::character varying::text, 'release'::character varying::text, 'reserve'::character varying::text, 'unreserve'::character varying::text, 'consume'::character varying::text, 'refund'::character varying::text])) AND amount > 0::numeric AND amount <> 'NaN'::numeric AND reserved_released_amount >= 0::numeric AND reserved_released_amount <= amount AND reserved_released_amount <> 'NaN'::numeric", name: "abroa_pool_movement_safe"
   end
 
   create_table "abroa_profiles", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -3592,6 +3647,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_24_141000) do
   add_foreign_key "abroa_entry_allocations", "categories", on_delete: :nullify
   add_foreign_key "abroa_entry_allocations", "entries", on_delete: :nullify
   add_foreign_key "abroa_entry_allocations", "families", on_delete: :cascade
+  add_foreign_key "abroa_fund_pools", "abroa_study_projects", column: "project_id"
+  add_foreign_key "abroa_fund_pools", "families", on_delete: :cascade
+  add_foreign_key "abroa_fund_pools", "goals"
   add_foreign_key "abroa_fx_details", "entries", column: "credit_entry_id", on_delete: :cascade
   add_foreign_key "abroa_fx_details", "entries", column: "debit_entry_id", on_delete: :cascade
   add_foreign_key "abroa_fx_details", "entries", column: "fee_entry_id", on_delete: :cascade
@@ -3602,6 +3660,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_24_141000) do
   add_foreign_key "abroa_operation_records", "users", column: "actor_id", on_delete: :cascade
   add_foreign_key "abroa_planning_audit_events", "families", on_delete: :cascade
   add_foreign_key "abroa_planning_audit_events", "users", column: "actor_id", on_delete: :nullify
+  add_foreign_key "abroa_pool_movements", "abroa_fund_pools", column: "pool_id"
+  add_foreign_key "abroa_pool_movements", "abroa_pool_movements", column: "reversal_of_id"
+  add_foreign_key "abroa_pool_movements", "abroa_rate_snapshots", column: "rate_snapshot_id"
+  add_foreign_key "abroa_pool_movements", "accounts"
+  add_foreign_key "abroa_pool_movements", "entries", on_delete: :nullify
+  add_foreign_key "abroa_pool_movements", "families", on_delete: :cascade
+  add_foreign_key "abroa_pool_movements", "users", column: "actor_id"
   add_foreign_key "abroa_profiles", "users", on_delete: :cascade
   add_foreign_key "abroa_project_accounts", "abroa_study_projects", column: "project_id", on_delete: :cascade
   add_foreign_key "abroa_project_accounts", "accounts", on_delete: :cascade

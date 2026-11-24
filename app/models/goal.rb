@@ -70,6 +70,11 @@ class Goal < ApplicationRecord
   validate :linked_accounts_must_belong_to_family
   validate :currency_locked_once_linked
   validate :restore_must_not_recreate_whole_account_conflict
+  validate :restore_must_not_overclaim_abroa_pools
+  before_save :enforce_abroa_restore_cash_guard!, if: -> {
+    will_save_change_to_state? && state_change_to_be_saved.first.in?(RELEASED_STATES) &&
+      !state_change_to_be_saved.last.in?(RELEASED_STATES)
+  }
   validate :kind_locked_while_released
   validate :progress_basis_locked_once_completed
   validate :kind_locked_once_consumed
@@ -1656,11 +1661,48 @@ class Goal < ApplicationRecord
       )
     end
 
+    # Restoring a Sure Goal after another virtual pool claimed its released
+    # money must refuse a second promise. Both writers acquire the account's
+    # advisory lock in the same order as a regular GoalAccount allocation.
+    def enforce_abroa_restore_cash_guard!
+      ids = goal_accounts.filter_map { |link| link.account_id if link.account&.accountable_type == "Depository" }
+      ids.sort.each { |account_id| self.class.lock_whole_account_claims!(account_id) }
+      restore_must_not_overclaim_abroa_pools
+      raise ActiveRecord::RecordInvalid.new(self) if errors.any?
+    end
+
+    def restore_must_not_overclaim_abroa_pools
+      return unless will_save_change_to_state?
+      previous, next_state = state_change_to_be_saved
+      return unless previous.in?(RELEASED_STATES) && !next_state.in?(RELEASED_STATES)
+
+      goal_accounts.each do |link|
+        next if link.marked_for_destruction?
+        account = link.account
+        next unless account && account.accountable_type == "Depository"
+        pool_claims = Abroa::PoolMovement.native_allocated_for(account)
+        next unless pool_claims.positive?
+        cash = [ BigDecimal("0"), account.reload.balance.to_d ].max
+        others = GoalAccount.joins(:goal).where(account_id: account.id, goals: { family_id: account.family_id })
+          .where.not(goals: { state: RELEASED_STATES }).where.not(goal_id: id)
+        other_claims = others.pluck(:allocated_amount).sum { |amount| amount.nil? ? cash : amount }
+        claimed = link.allocated_amount || cash
+        if pool_claims + other_claims + claimed > cash
+          errors.add(:base, "Account cash is already committed to Abroa fund pools")
+          break
+        end
+      end
+    end
+
     # Accounts this goal claims in full. Read from the loaded association so it
     # is correct for a goal whose links were built but not yet saved.
     def lock_whole_account_claims_in_order
       ids = own_whole_account_ids
       ids |= goal_accounts.filter_map { |ga| ga.account_id if ga.will_save_change_to_allocated_amount? }
+      if will_save_change_to_state? && state_change_to_be_saved.first.in?(RELEASED_STATES) &&
+          !state_change_to_be_saved.last.in?(RELEASED_STATES)
+        ids |= goal_accounts.filter_map { |ga| ga.account_id if ga.account&.accountable_type == "Depository" }
+      end
       ids.compact.uniq.sort.each { |account_id| self.class.lock_whole_account_claims!(account_id) }
     end
 
