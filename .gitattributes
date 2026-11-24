@@ -16,3 +16,6 @@ bin/* text eol=lf
 *.sh text eol=lf
 *.rb text eol=lf
 .devcontainer/.bashrc text eol=lf
+
+# Preserve byte offsets in PDF fixtures and binary documents on Windows.
+*.pdf -text
