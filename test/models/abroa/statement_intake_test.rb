@@ -203,6 +203,75 @@ class Abroa::StatementIntakeTest < ActiveSupport::TestCase
     assert_equal "alipay", entry.reload.transaction.extra.dig("abroa", "payment_channel")
   end
 
+  test "unknown payment funding needs explicit account assignment before posting" do
+    account, bank_entry = bank_payment("match-one")
+    wallet = Account.create!(family: @user.family, owner: @user, accountable: Depository.new,
+      name: "Alipay balance", currency: "CNY", balance: 500)
+    Abroa::AccountProfile.change_for!(@user, wallet.id, wallet_kind: "alipay")
+    statement = personal_statement(account, ["unknown-order"], method: "现金")
+    config = { source_kind: "alipay_statement" }
+    preview = Abroa::StatementIntake.preview_for!(@user, statement_id: statement.id, **config)
+    receipt = Abroa::StatementIntake.publish_for!(@user, statement_id: statement.id,
+      preview_digest: preview.fetch(:preview_digest), **config)
+    source = Abroa::SourceRecord.find_by!(statement: statement)
+    review = Abroa::SourceReview.find_by!(source_record: source, status: "pending")
+    assert_equal "unknown", source.normalized.fetch("funding_kind")
+    assert_no_difference "Entry.count" do
+      assert_raises(ArgumentError) do
+        Abroa::SourceReview.resolve_for!(@user, review_id: review.id, resolution: "link",
+          expected_version: review.lock_version, key: "unconfirmed-link", target_entry_id: bank_entry.id)
+      end
+      version = review.lock_version
+      assigned = Abroa::SourceReview.assign_account_for!(@user, review_id: review.id,
+        account_id: wallet.id, funding_kind: "wallet", expected_version: version)
+      assert_equal wallet.id, source.reload.account_id
+      assert_equal "unknown", source.normalized.fetch("funding_kind")
+      assert_equal "wallet", assigned.evidence.dig("funding_assignment", "funding_kind")
+      assert_raises(Abroa::SourceReview::Conflict) do
+        Abroa::SourceReview.assign_account_for!(@user, review_id: review.id,
+          account_id: account.id, funding_kind: "bank_account", expected_version: version)
+      end
+    end
+    review.reload
+    action = nil
+    assert_difference "Entry.count", 1 do
+      action = Abroa::SourceReview.resolve_for!(@user, review_id: review.id, resolution: "create",
+        expected_version: review.lock_version, key: "assigned-wallet")
+    end
+    assert_equal wallet.id, action.entry.account_id
+    assert_equal BigDecimal("100"), action.entry.amount
+    assert_equal account.id, statement.reload.account_id
+    assert_equal "Bank charge", bank_entry.reload.name
+    assert_difference "Entry.count", -1 do
+      Abroa::StatementIntake.rollback_for!(@user, statement_id: statement.id)
+    end
+    assert_equal "reversed", receipt.reload.payload.fetch(:status)
+    assert Entry.exists?(bank_entry.id)
+  end
+
+  test "known wallet funding cannot be reassigned as a bank payment or to another tenant" do
+    account, _entry = bank_payment("match-one")
+    statement = personal_statement(account, ["wallet-order"], method: "余额")
+    config = { source_kind: "alipay_statement" }
+    preview = Abroa::StatementIntake.preview_for!(@user, statement_id: statement.id, **config)
+    Abroa::StatementIntake.publish_for!(@user, statement_id: statement.id,
+      preview_digest: preview.fetch(:preview_digest), **config)
+    source = Abroa::SourceRecord.find_by!(statement: statement)
+    review = Abroa::SourceReview.find_by!(source_record: source, status: "pending")
+    other = users(:empty)
+    foreign = Account.create!(family: other.family, owner: other, accountable: Depository.new,
+      name: "Foreign", currency: "CNY", balance: 100)
+    assert_raises(ArgumentError) do
+      Abroa::SourceReview.assign_account_for!(@user, review_id: review.id,
+        account_id: account.id, funding_kind: "bank_account", expected_version: review.lock_version)
+    end
+    assert_raises(ActiveRecord::RecordNotFound) do
+      Abroa::SourceReview.assign_account_for!(@user, review_id: review.id,
+        account_id: foreign.id, funding_kind: "wallet", expected_version: review.lock_version)
+    end
+    assert_equal account.id, source.reload.account_id
+  end
+
   private
     def bank_payment(reference)
       account = Account.create!(family: @user.family, owner: @user, accountable: Depository.new,
@@ -221,9 +290,9 @@ class Abroa::StatementIntakeTest < ActiveSupport::TestCase
       [ account, entry ]
     end
 
-    def personal_statement(account, orders)
+    def personal_statement(account, orders, method: "银行卡")
       header = "交易时间,交易分类,交易对方,对方账号,商品说明,收/支,金额,收/付款方式,交易状态,交易订单号,商家订单号,备注\n"
-      rows = orders.map { |order| "2025-01-10 10:00:00,购物,测试商户,,商品,支出,100.00,银行卡,交易成功,#{order},match-one,\n" }
+      rows = orders.map { |order| "2025-01-10 10:00:00,购物,测试商户,,商品,支出,100.00,#{method},交易成功,#{order},match-one,\n" }
       AccountStatement.create_from_upload!(family: @user.family, account: account,
         file: Upload.new("wallet.csv", "text/csv", StringIO.new(header + rows.join)))
     end
