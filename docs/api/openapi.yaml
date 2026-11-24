@@ -32,6 +32,64 @@ components:
             read: Read access
             read_write: Read and write access
   schemas:
+    AbroaConsumptionResponse:
+      type: object
+      required:
+      - data
+      properties:
+        data:
+          type: object
+          required:
+          - start_on
+          - end_on
+          - currency
+          - account_ids
+          - totals
+          - incomplete
+          - inconsistent_refund_count
+          - rates
+          properties:
+            start_on:
+              type: string
+              format: date
+            end_on:
+              type: string
+              format: date
+            currency:
+              type: string
+            account_ids:
+              type: array
+              items:
+                type: string
+                format: uuid
+            totals:
+              type: object
+              required:
+              - gross_consumption
+              - refunds
+              - net_consumption
+              - unallocated_inflows
+              properties:
+                gross_consumption:
+                  type: string
+                  nullable: true
+                refunds:
+                  type: string
+                  nullable: true
+                net_consumption:
+                  type: string
+                  nullable: true
+                unallocated_inflows:
+                  type: string
+                  nullable: true
+            incomplete:
+              type: boolean
+            inconsistent_refund_count:
+              type: integer
+            rates:
+              type: array
+              items:
+                type: object
     AbroaIntakeInput:
       type: object
       required:
@@ -180,6 +238,7 @@ components:
               type: string
               enum:
               - staged
+              - reversed
             summary:
               type: object
               required:
@@ -203,6 +262,12 @@ components:
                 auto_linked_count:
                   type: integer
                   minimum: 0
+                reversed_source_count:
+                  type: integer
+                  minimum: 0
+                reversed_at:
+                  type: string
+                  format: date-time
                 accepted_invalid_rows:
                   type: boolean
     AbroaSourceReview:
@@ -239,6 +304,13 @@ components:
           type: integer
         proposed_action:
           type: string
+        account_id:
+          type: string
+          format: uuid
+          nullable: true
+        funding_kind:
+          type: string
+          nullable: true
     AbroaSourceActionResponse:
       type: object
       required:
@@ -5603,6 +5675,47 @@ components:
         error:
           type: string
 paths:
+  "/api/v1/abroa/reports/consumption":
+    get:
+      summary: Report gross and net standard spending with linked refunds at receipt
+        date
+      tags:
+      - Abroa imports
+      security:
+      - apiKeyAuth: []
+      parameters:
+      - name: start_on
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date
+      - name: end_on
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date
+      - name: currency
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: account_ids[]
+        in: query
+        required: false
+        schema:
+          type: array
+          items:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Consumption and refund projection
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AbroaConsumptionResponse"
   "/api/v1/abroa/fx/rates":
     get:
       summary: Read a historical exchange rate
@@ -5800,6 +5913,56 @@ paths:
             application/json:
               schema:
                 "$ref": "#/components/schemas/AbroaExchangeResponse"
+  "/api/v1/abroa/reviews/{id}/assign-account":
+    parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    post:
+      summary: Confirm the actual funding account of an unresolved payment
+      tags:
+      - Abroa imports
+      security:
+      - apiKeyAuth: []
+      parameters: []
+      responses:
+        '200':
+          description: Assigned review; no ledger write
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                properties:
+                  data:
+                    "$ref": "#/components/schemas/AbroaSourceReview"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+              - account_id
+              - funding_kind
+              - expected_version
+              properties:
+                account_id:
+                  type: string
+                  format: uuid
+                funding_kind:
+                  type: string
+                  enum:
+                  - wallet
+                  - bank_account
+                expected_version:
+                  type: integer
+                  minimum: 0
+        required: true
   "/api/v1/abroa/profile":
     get:
       summary: Read own Abroa preferences
@@ -6323,6 +6486,28 @@ paths:
             schema:
               "$ref": "#/components/schemas/AbroaIntakePublish"
         required: true
+  "/api/v1/abroa/imports/{id}/rollback":
+    parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    post:
+      summary: Atomically reverse the batch without deleting shared or edited ledger
+        entries
+      tags:
+      - Abroa imports
+      security:
+      - apiKeyAuth: []
+      responses:
+        '200':
+          description: Reversed receipt
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AbroaIntakeReceiptResponse"
   "/api/v1/abroa/imports/{id}":
     parameters:
     - name: id

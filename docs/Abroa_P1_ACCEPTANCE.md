@@ -45,3 +45,15 @@
 
 测试提交 2fdb085b7：102 runs，3 errors（未实现自动关联统计），其余测试正常；实现提交 0b441650a：102 runs，563 assertions，0 failures，0 errors，0 skips。发布前先入库全部证据；仅唯一银行记录、显式共同订单号、同账户/金额/币种/方向、无其他竞争订单及无钱包账户冲突的场景自动关联已有交易。不新增 Entry；写入前重新匹配，使用独立 savepoint；冲突保留人工审核，记录 automatic 审计标识。新增回执 auto_linked_count。
 接口规格再次实际执行：23/23 通过。
+
+## 批量回滚、净消费与资金归属补验
+
+- P1.5 批量回滚：d14d66f7c（红：106 runs，2 failures、2 errors），8ce4ca9b4（绿：106 runs、596 assertions），ca1818abd（跨批次共享来源保护，107 runs、604 assertions）。批次记录内部来源所有权清单；只撤销本批次且未被修改的效果，保留原始来源与审计，遇到共享引用、缺失所有权清单或后续修改整批拒绝，禁止重复回滚后重发。
+- P1.5 净消费：e0e92e5d2（红：112 runs、5 errors），8f24d1965（绿：112 runs、632 assertions，25/25 request specs）。报告使用实际退款到账日、实际退款原币，缺失汇率/失效分配返回 incomplete/null，不修改原账本；未匹配入账仅称未分配入账，不确认为收入。GET /reports/consumption。
+- P1.4 资金归属：dcc1ba5db（红：114 runs、2 failures），d2623653d（多账户归属实现，发现 PostgreSQL DISTINCT 锁查询回归），cbb3b68d8（锁查询修复：114 runs、653 assertions、0 failures、0 errors、0 skips；26/26 request specs）。未知渠道资金需人工确认实际账户，保留归属历史与原始证据；同一账户所有者与两端写权限、账户类型、币种、版本及跨批次证据保护。POST /reviews/:id/assign-account。
+- 最新代码重跑原 Sure 相关回归及 OpenAPI 生成结果见下方实测日志。D 盘隔离测试环境不变。
+- 尚未完成：完整对账、自动分类与用户锁、可调自动化策略、真实 Google/银行/账单样本、完整并发及外部验收。上述绿色用例不等于全部 P1 验收完成。
+
+代码 SHA: cbb3b68d81dafbaf1109e63902138c87c96e6677
+- Sure 回归: 964 runs, 3287 assertions, 0 failures, 0 errors, 0 skips
+- OpenAPI dry-run: 511 examples, 0 failures, 89 pending（非行为测试）
