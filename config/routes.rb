@@ -821,6 +821,12 @@ Rails.application.routes.draw do
   # API routes
   namespace :api do
     namespace :v1 do
+      namespace :abroa do
+        resource :profile, only: [ :show, :update ]
+        resource :onboarding, only: [ :show, :update ] do
+          post :complete
+        end
+      end
       resource :version, only: :show
       namespace :financekit do
         get "capabilities", to: "connections#capabilities"

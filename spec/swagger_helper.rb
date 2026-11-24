@@ -64,6 +64,56 @@ RSpec.configure do |config|
           }
         },
         schemas: {
+          AbroaProfileResponse: {
+            type: :object,
+            required: %w[data],
+            properties: {
+              data: {
+                type: :object,
+                required: %w[student_enabled parent_enabled origin_country residence_country display_currency timezone mode lock_version],
+                properties: {
+                  student_enabled: { type: :boolean },
+                  parent_enabled: { type: :boolean },
+                  origin_country: { type: :string, nullable: true, maxLength: 2 },
+                  residence_country: { type: :string, nullable: true, maxLength: 2 },
+                  display_currency: { type: :string, nullable: true },
+                  timezone: { type: :string, nullable: true },
+                  mode: { type: :string, enum: %w[simple professional custom] },
+                  lock_version: { type: :integer, minimum: 0 }
+                }
+              }
+            }
+          },
+          AbroaProfileUpdate: {
+            type: :object,
+            additionalProperties: false,
+            required: %w[lock_version],
+            properties: {
+              student_enabled: { type: :boolean },
+              parent_enabled: { type: :boolean },
+              origin_country: { type: :string, nullable: true, maxLength: 2 },
+              residence_country: { type: :string, nullable: true, maxLength: 2 },
+              display_currency: { type: :string, nullable: true },
+              timezone: { type: :string, nullable: true },
+              mode: { type: :string, enum: %w[simple professional custom] },
+              lock_version: { type: :integer, minimum: 0 }
+            }
+          },
+          AbroaOnboardingResponse: {
+            type: :object,
+            required: %w[data],
+            properties: {
+              data: {
+                type: :object,
+                required: %w[step completed_at lock_version],
+                properties: {
+                  step: { type: :string, enum: %w[role region preferences review complete] },
+                  completed_at: { type: :string, format: 'date-time', nullable: true },
+                  lock_version: { type: :integer, minimum: 0 }
+                }
+              }
+            }
+          },
           Version: {
             type: :object,
             additionalProperties: false,

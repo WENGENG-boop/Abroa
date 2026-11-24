@@ -3,7 +3,7 @@
 |需求/范围|任务|验收|复用/新增|状态|实现路径/测试证据|
 |---|---|---|---|---|---|
 |P0 源码及环境|P0.1–5|A00|审计|IN_PROGRESS|P0.1 静态基线核实完成，见 Abroa_P0_BASELINE.md；P0.2 已核实核心及身份/回滚/AI 方法，见 Abroa_P0_METHOD_AUDIT.md，仍未完成；P0.3 Docker 已恢复；隔离测试镜像构建中；P0.4 首批 schema/API 已对照，见 Abroa_P0_SCHEMA_API.md；P0.5 四个 golden 测试已编写，未执行|
-|用户/邮箱/Google/初始化|P1.1|A01|复用+扩展|PLANNED|待填|
+|用户/邮箱/Google/初始化|P1.1|A01|复用+扩展|IN_PROGRESS|Profile 模型/迁移及资料、引导 API 已编写；Minitest/rswag 已补；未运行迁移、测试或生成 OpenAPI；Google 专项认证仍待实现|
 |FX 多币种/地区|P1.2|A02|扩展|PLANNED|待填|
 |CONNECT-01,02,03|P1.3–5|A03-1–5|复用+新增|PLANNED|待填|
 |CONNECT-04,05,06|P1.5|A03-4–8|扩展|PLANNED|待填|
