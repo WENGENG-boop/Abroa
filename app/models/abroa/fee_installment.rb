@@ -5,6 +5,7 @@ module Abroa
 
     belongs_to :family
     belongs_to :fee_plan, class_name: "Abroa::FeePlan"
+    belongs_to :recurring_occurrence, optional: true
     has_many :settlements, class_name: "Abroa::FeeSettlement", foreign_key: :fee_installment_id
 
     validates :name, :due_on, presence: true
@@ -37,6 +38,57 @@ module Abroa
       end
     end
 
+    # Import existing Sure bill occurrences as fee liabilities, never as
+    # bank transactions. The recurring engine remains authoritative for the
+    # schedule; this creates a stable project snapshot of its due amount.
+    def self.import_recurring_for!(user, plan_id, from_on:, through_on:)
+      begin
+        first, last = Date.iso8601(from_on), Date.iso8601(through_on)
+      rescue Date::Error, TypeError
+        raise ArgumentError, "Expected ISO recurrence dates"
+      end
+      if last < first || (last - first).to_i > 366 || first.year < 2000
+        raise ArgumentError, "Invalid recurring fee import window"
+      end
+      StudyProject.with_actor(user) do
+        plan = FeePlan.for_user(user).lock.find(plan_id)
+        plan.project.ensure_writable!
+        raise FeePlan::Conflict, "Cancelled fee" if plan.status == "cancelled"
+        recurring = plan.recurring_transaction
+        raise ArgumentError, "Fee has no linked Sure recurring bill" unless recurring
+        raise ActiveRecord::RecordNotFound unless recurring.family_id == user.family_id &&
+          recurring.account_id &&
+          user.family.accounts.accessible_by(user).where(id: recurring.account_id).exists?
+        raise ArgumentError, "Recurring bill currency differs from the fee" unless recurring.currency == plan.currency
+        occurrences = recurring.recurring_occurrences.where(due_on: first..last)
+          .order(:due_on, :id).limit(101).to_a
+        raise ArgumentError, "Too many recurring occurrences for one import" if occurrences.size > 100
+        occurrences.filter_map do |occurrence|
+          next if occurrence.skipped?
+          due_date = occurrence.effective_due_on
+          next if due_date < first || due_date > last
+          if due_date < plan.project.start_on || (plan.project.end_on && due_date > plan.project.end_on)
+            raise ArgumentError, "Recurring fee is outside study dates"
+          end
+          raise ArgumentError, "Recurring occurrence currency changed" unless occurrence.currency == plan.currency
+          existing = find_by(recurring_occurrence_id: occurrence.id)
+          if existing
+            raise FeePlan::Conflict, "Sure occurrence assigned to another fee" unless existing.fee_plan_id == plan.id
+            next existing
+          end
+          amount = Decimal.money!(occurrence.resolved_expected_amount, nonnegative: true)
+          record = plan.installments.create!(
+            family: user.family, recurring_occurrence: occurrence,
+            name: "#{plan.name} - #{due_date.iso8601}", due_on: due_date,
+            gross_amount: amount, discount_amount: BigDecimal("0"), state: "confirmed"
+          )
+          PlanningAuditEvent.record!(actor: user, event_type: "fee_installment.imported", resource: record,
+            safe_data: { recurring_occurrence_id: occurrence.id })
+          record
+        end
+      end
+    end
+
     def self.change_for!(user, id, version:, attributes:)
       values = checked(attributes)
       StudyProject.with_actor(user) do
@@ -44,6 +96,9 @@ module Abroa
         installment.fee_plan.project.ensure_writable!
         raise FeePlan::Conflict, "Installment changed" unless version.is_a?(Integer) && version == installment.lock_version
         raise FeePlan::Conflict, "Fee is cancelled" if installment.fee_plan.status == "cancelled"
+        if installment.recurring_occurrence_id && values.key?(:due_on)
+          raise FeePlan::Conflict, "Due date of a linked Sure occurrence cannot be edited"
+        end
         raise FeePlan::Conflict, "Cannot cancel a paid installment" if values[:state] == "cancelled" && installment.settlements.exists?
         installment.update!(values)
         if installment.settlements.exists? && installment.net_amount < installment.paid_amount
@@ -102,7 +157,8 @@ module Abroa
       { id: id, fee_plan_id: fee_plan_id, name: name, due_on: due_on.iso8601, state: state,
         gross_amount: gross_amount.to_s("F"), discount_amount: discount_amount.to_s("F"),
         net_amount: net_amount.to_s("F"), paid_amount: paid_amount.to_s("F"),
-        outstanding_amount: outstanding_amount.to_s("F"), payment_status: payment_status, lock_version: lock_version }
+        outstanding_amount: outstanding_amount.to_s("F"), payment_status: payment_status,
+        recurring_occurrence_id: recurring_occurrence_id, lock_version: lock_version }
     end
 
     private
@@ -113,6 +169,11 @@ module Abroa
           errors.add(:discount_amount, :invalid) if discount > gross
         rescue ArgumentError
           errors.add(:base, "Invalid installment amounts")
+        end
+        if recurring_occurrence &&
+            (recurring_occurrence.family_id != family_id ||
+             fee_plan&.recurring_transaction_id != recurring_occurrence.recurring_transaction_id)
+          errors.add(:recurring_occurrence, :invalid)
         end
         unless fee_plan && family_id == fee_plan.family_id && due_on &&
             due_on >= fee_plan.project.start_on && (!fee_plan.project.end_on || due_on <= fee_plan.project.end_on)

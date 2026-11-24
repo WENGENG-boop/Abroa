@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_24_143000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_24_144000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -116,10 +116,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_24_143000) do
     t.string "creation_request_digest"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.uuid "recurring_occurrence_id"
     t.index ["family_id"], name: "index_abroa_fee_installments_on_family_id"
     t.index ["fee_plan_id", "creation_key_digest"], name: "idx_abroa_installment_create_key", unique: true, where: "(creation_key_digest IS NOT NULL)"
     t.index ["fee_plan_id", "due_on"], name: "index_abroa_fee_installments_on_fee_plan_id_and_due_on"
     t.index ["fee_plan_id"], name: "index_abroa_fee_installments_on_fee_plan_id"
+    t.index ["recurring_occurrence_id"], name: "idx_abroa_fee_occurrence_once", unique: true
     t.check_constraint "gross_amount >= 0::numeric AND discount_amount >= 0::numeric AND discount_amount <= gross_amount AND gross_amount <> 'NaN'::numeric AND discount_amount <> 'NaN'::numeric AND (state::text = ANY (ARRAY['draft'::character varying::text, 'confirmed'::character varying::text, 'cancelled'::character varying::text]))", name: "abroa_installment_valid"
   end
 
@@ -3727,6 +3729,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_24_143000) do
   add_foreign_key "abroa_entry_allocations", "families", on_delete: :cascade
   add_foreign_key "abroa_fee_installments", "abroa_fee_plans", column: "fee_plan_id"
   add_foreign_key "abroa_fee_installments", "families", on_delete: :cascade
+  add_foreign_key "abroa_fee_installments", "recurring_occurrences", on_delete: :nullify
   add_foreign_key "abroa_fee_plans", "abroa_budget_nodes", column: "budget_node_id"
   add_foreign_key "abroa_fee_plans", "abroa_fund_pools", column: "fund_pool_id"
   add_foreign_key "abroa_fee_plans", "abroa_study_projects", column: "project_id"

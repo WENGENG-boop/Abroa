@@ -51,7 +51,7 @@ module Abroa
         fee.project.ensure_writable!
         raise Conflict, "Fee changed" unless version.is_a?(Integer) && fee.lock_version == version
         raise Conflict, "Cancelled fee" if fee.status == "cancelled"
-        if fee.installments.joins(:settlements).exists? && (values.keys & %i[currency kind fund_pool_id]).any?
+        if fee.installments.joins(:settlements).exists? && (values.keys & %i[currency kind fund_pool_id recurring_transaction_id]).any?
           raise Conflict, "Cannot change settled fee sources"
         end
         fee.update!(values)
@@ -161,7 +161,14 @@ module Abroa
         errors.add(:budget_node, :invalid) if budget_node && budget_node.project_id != project_id
         errors.add(:fund_pool, :invalid) if fund_pool && fund_pool.project_id != project_id
         errors.add(:category, :invalid) if category && category.family_id != family_id
-        errors.add(:recurring_transaction, :invalid) if recurring_transaction && recurring_transaction.family_id != family_id
+        if recurring_transaction &&
+            (recurring_transaction.family_id != family_id ||
+             recurring_transaction.account_id.nil? ||
+             !project&.owner ||
+             !project.owner.family.accounts.accessible_by(project.owner)
+               .where(id: recurring_transaction.account_id).exists?)
+          errors.add(:recurring_transaction, :invalid)
+        end
         return unless persisted?
         if installments.where.not(state: "cancelled").sum("gross_amount - discount_amount") > amount_due
           errors.add(:base, "Installments exceed discounted fee amount")
