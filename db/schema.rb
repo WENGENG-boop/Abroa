@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_23_220100) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_24_135000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -20,6 +20,258 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_23_220100) do
   create_enum "account_status", ["ok", "syncing", "error"]
   create_enum "goal_pledge_kind", ["transfer", "manual_save"]
   create_enum "goal_pledge_status", ["open", "matched", "cancelled", "expired"]
+
+  create_table "abroa_account_profiles", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "family_id", null: false
+    t.uuid "account_id", null: false
+    t.string "country", limit: 2
+    t.string "wallet_kind"
+    t.integer "lock_version", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_abroa_account_profiles_on_account_id", unique: true
+    t.index ["family_id"], name: "index_abroa_account_profiles_on_family_id"
+    t.check_constraint "wallet_kind IS NULL OR (wallet_kind::text = ANY (ARRAY['alipay'::character varying::text, 'wechat'::character varying::text, 'other'::character varying::text]))", name: "abroa_account_wallet_valid"
+  end
+
+  create_table "abroa_fx_details", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "family_id", null: false
+    t.uuid "actor_id", null: false
+    t.uuid "transfer_id", null: false
+    t.uuid "debit_entry_id", null: false
+    t.uuid "credit_entry_id", null: false
+    t.uuid "fee_entry_id"
+    t.decimal "debit_amount", precision: 19, scale: 4, null: false
+    t.decimal "credit_amount", precision: 19, scale: 4, null: false
+    t.string "debit_currency", null: false
+    t.string "credit_currency", null: false
+    t.decimal "fee_amount", precision: 19, scale: 4, default: "0.0", null: false
+    t.string "fee_currency"
+    t.decimal "actual_rate", precision: 30, scale: 16, null: false
+    t.date "exchanged_on", null: false
+    t.string "operation_key_digest", limit: 64, null: false
+    t.string "request_digest", limit: 64, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["actor_id", "operation_key_digest"], name: "idx_abroa_fx_actor_key", unique: true
+    t.index ["actor_id"], name: "index_abroa_fx_details_on_actor_id"
+    t.index ["credit_entry_id"], name: "index_abroa_fx_details_on_credit_entry_id"
+    t.index ["debit_entry_id"], name: "index_abroa_fx_details_on_debit_entry_id"
+    t.index ["family_id"], name: "index_abroa_fx_details_on_family_id"
+    t.index ["fee_entry_id"], name: "index_abroa_fx_details_on_fee_entry_id"
+    t.index ["transfer_id"], name: "index_abroa_fx_details_on_transfer_id", unique: true
+    t.check_constraint "debit_amount <> 'NaN'::numeric AND credit_amount <> 'NaN'::numeric AND actual_rate <> 'NaN'::numeric AND fee_amount <> 'NaN'::numeric", name: "abroa_fx_finite_amounts"
+    t.check_constraint "debit_amount > 0::numeric AND credit_amount > 0::numeric AND actual_rate > 0::numeric AND fee_amount >= 0::numeric AND debit_currency::text <> credit_currency::text", name: "abroa_fx_amounts_valid"
+    t.check_constraint "fee_amount = 0::numeric AND fee_entry_id IS NULL AND fee_currency IS NULL OR fee_amount > 0::numeric AND fee_entry_id IS NOT NULL AND fee_currency IS NOT NULL AND (fee_currency::text = debit_currency::text OR fee_currency::text = credit_currency::text)", name: "abroa_fx_fee_valid"
+  end
+
+  create_table "abroa_profiles", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "user_id", null: false
+    t.boolean "student_enabled", default: false, null: false
+    t.boolean "parent_enabled", default: false, null: false
+    t.string "origin_country", limit: 2
+    t.string "residence_country", limit: 2
+    t.string "display_currency", limit: 12
+    t.string "timezone", limit: 128
+    t.string "mode", default: "simple", null: false
+    t.string "onboarding_step", default: "role", null: false
+    t.datetime "completed_at"
+    t.string "completion_key_digest", limit: 64
+    t.integer "completion_request_version"
+    t.integer "completion_version"
+    t.integer "lock_version", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["user_id"], name: "index_abroa_profiles_on_user_id", unique: true
+    t.check_constraint "(onboarding_step::text = 'complete'::text) = (completed_at IS NOT NULL)", name: "abroa_profiles_completion_valid"
+    t.check_constraint "completed_at IS NULL AND completion_key_digest IS NULL AND completion_request_version IS NULL AND completion_version IS NULL OR completed_at IS NOT NULL AND completion_key_digest IS NOT NULL AND completion_request_version IS NOT NULL AND completion_version IS NOT NULL", name: "abroa_profiles_receipt_valid"
+    t.check_constraint "completed_at IS NULL OR student_enabled OR parent_enabled", name: "abroa_profiles_completed_role_valid"
+    t.check_constraint "lock_version >= 0", name: "abroa_profiles_version_valid"
+    t.check_constraint "mode::text = ANY (ARRAY['simple'::character varying::text, 'professional'::character varying::text, 'custom'::character varying::text])", name: "abroa_profiles_mode_valid"
+    t.check_constraint "onboarding_step::text = ANY (ARRAY['role'::character varying::text, 'region'::character varying::text, 'preferences'::character varying::text, 'review'::character varying::text, 'complete'::character varying::text])", name: "abroa_profiles_step_valid"
+  end
+
+  create_table "abroa_rate_snapshots", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "family_id", null: false
+    t.string "from_currency", null: false
+    t.string "to_currency", null: false
+    t.decimal "rate", precision: 30, scale: 16, null: false
+    t.date "rate_date", null: false
+    t.date "as_of", null: false
+    t.string "source", null: false
+    t.string "source_reference"
+    t.string "quality", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["family_id", "from_currency", "to_currency", "as_of"], name: "idx_abroa_rates_lookup"
+    t.index ["family_id"], name: "index_abroa_rate_snapshots_on_family_id"
+    t.check_constraint "rate > 0::numeric AND rate <> 'NaN'::numeric AND rate::text <> 'Infinity'::text", name: "abroa_snapshot_positive"
+    t.check_constraint "rate_date <= as_of AND (quality::text = ANY (ARRAY['exact'::character varying::text, 'historical_fallback'::character varying::text, 'parity'::character varying::text]))", name: "abroa_snapshot_date_quality"
+  end
+
+  create_table "abroa_refund_links", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "family_id", null: false
+    t.uuid "original_entry_id"
+    t.uuid "refund_entry_id"
+    t.uuid "original_entry_key", null: false
+    t.uuid "refund_entry_key", null: false
+    t.uuid "rate_snapshot_id"
+    t.uuid "actor_id"
+    t.uuid "revoked_by_id"
+    t.decimal "applied_amount", precision: 19, scale: 4, null: false
+    t.decimal "refund_amount", precision: 19, scale: 4, null: false
+    t.string "currency", null: false
+    t.string "refund_currency", null: false
+    t.date "original_date", null: false
+    t.date "refund_date", null: false
+    t.datetime "revoked_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["actor_id"], name: "index_abroa_refund_links_on_actor_id"
+    t.index ["family_id", "original_entry_key", "refund_entry_key"], name: "idx_abroa_refund_pair", unique: true
+    t.index ["family_id"], name: "index_abroa_refund_links_on_family_id"
+    t.index ["original_entry_id"], name: "index_abroa_refund_links_on_original_entry_id"
+    t.index ["rate_snapshot_id"], name: "index_abroa_refund_links_on_rate_snapshot_id"
+    t.index ["refund_entry_id"], name: "index_abroa_refund_links_on_refund_entry_id"
+    t.index ["revoked_by_id"], name: "index_abroa_refund_links_on_revoked_by_id"
+    t.check_constraint "applied_amount > 0::numeric AND refund_amount > 0::numeric AND applied_amount <> 'NaN'::numeric AND refund_amount <> 'NaN'::numeric", name: "abroa_refund_positive"
+    t.check_constraint "original_entry_key <> refund_entry_key AND refund_date >= original_date", name: "abroa_refund_distinct_dates"
+  end
+
+  create_table "abroa_region_configs", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.string "country_code", limit: 2, null: false
+    t.string "locale"
+    t.jsonb "defaults", default: {}, null: false
+    t.boolean "enabled", default: true, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["country_code"], name: "index_abroa_region_configs_on_country_code", unique: true
+  end
+
+  create_table "abroa_source_actions", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "family_id", null: false
+    t.uuid "source_record_id", null: false
+    t.uuid "source_review_id", null: false
+    t.uuid "actor_id"
+    t.uuid "entry_id"
+    t.string "operation", null: false
+    t.string "operation_key", limit: 64, null: false
+    t.string "request_digest", limit: 64, null: false
+    t.jsonb "before_data", default: {}, null: false
+    t.jsonb "after_data", default: {}, null: false
+    t.datetime "reversed_at"
+    t.uuid "reversed_by_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["actor_id"], name: "index_abroa_source_actions_on_actor_id"
+    t.index ["entry_id"], name: "index_abroa_source_actions_on_entry_id"
+    t.index ["family_id", "operation_key"], name: "idx_abroa_source_action_key", unique: true
+    t.index ["family_id"], name: "index_abroa_source_actions_on_family_id"
+    t.index ["reversed_by_id"], name: "index_abroa_source_actions_on_reversed_by_id"
+    t.index ["source_record_id"], name: "index_abroa_source_actions_on_source_record_id"
+    t.index ["source_review_id"], name: "index_abroa_source_actions_on_source_review_id", unique: true
+    t.check_constraint "operation::text = ANY (ARRAY['create'::character varying::text, 'link'::character varying::text, 'ignore'::character varying::text, 'dismiss'::character varying::text])", name: "abroa_source_action_operation"
+  end
+
+  create_table "abroa_source_observations", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "family_id", null: false
+    t.uuid "source_record_id", null: false
+    t.uuid "import_id"
+    t.uuid "statement_id"
+    t.string "source_kind", limit: 32, null: false
+    t.string "source_instance_key", limit: 128, null: false
+    t.string "source_row_key", limit: 192, null: false
+    t.string "raw_digest", limit: 64, null: false
+    t.string "status", null: false
+    t.jsonb "normalized", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["family_id", "source_kind", "source_instance_key", "source_row_key"], name: "idx_abroa_observation_identity", unique: true
+    t.index ["family_id"], name: "index_abroa_source_observations_on_family_id"
+    t.index ["import_id"], name: "index_abroa_source_observations_on_import_id"
+    t.index ["source_record_id"], name: "index_abroa_source_observations_on_source_record_id"
+    t.index ["statement_id"], name: "index_abroa_source_observations_on_statement_id"
+    t.check_constraint "status::text = ANY (ARRAY['observed'::character varying::text, 'conflict'::character varying::text])", name: "abroa_observation_status_valid"
+  end
+
+  create_table "abroa_source_records", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "family_id", null: false
+    t.uuid "account_id"
+    t.uuid "entry_id"
+    t.uuid "import_id"
+    t.uuid "statement_id"
+    t.string "source_kind", limit: 32, null: false
+    t.string "source_instance_key", limit: 128, null: false
+    t.string "external_id", limit: 256
+    t.string "source_row_key", limit: 192, null: false
+    t.datetime "occurred_at"
+    t.date "local_date", null: false
+    t.decimal "amount", precision: 19, scale: 4, null: false
+    t.string "currency", null: false
+    t.string "direction", null: false
+    t.string "status", null: false
+    t.string "payment_channel"
+    t.string "raw_digest", limit: 64, null: false
+    t.jsonb "normalized", default: {}, null: false
+    t.integer "lock_version", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_abroa_source_records_on_account_id"
+    t.index ["entry_id"], name: "index_abroa_source_records_on_entry_id"
+    t.index ["family_id", "account_id", "local_date", "currency", "amount"], name: "idx_abroa_source_candidates"
+    t.index ["family_id", "source_kind", "source_instance_key", "external_id"], name: "idx_abroa_source_external", unique: true, where: "(external_id IS NOT NULL)"
+    t.index ["family_id", "source_kind", "source_instance_key", "source_row_key"], name: "idx_abroa_source_first_row", unique: true
+    t.index ["family_id", "status"], name: "idx_abroa_source_status"
+    t.index ["family_id"], name: "index_abroa_source_records_on_family_id"
+    t.index ["import_id"], name: "index_abroa_source_records_on_import_id"
+    t.index ["statement_id"], name: "index_abroa_source_records_on_statement_id"
+    t.check_constraint "amount >= 0::numeric AND amount <> 'NaN'::numeric", name: "abroa_source_amount_valid"
+    t.check_constraint "direction::text = ANY (ARRAY['inflow'::character varying::text, 'outflow'::character varying::text, 'unknown'::character varying::text])", name: "abroa_source_direction_valid"
+    t.check_constraint "jsonb_typeof(normalized) = 'object'::text", name: "abroa_source_normalized_object"
+    t.check_constraint "status::text = ANY (ARRAY['received'::character varying::text, 'parsed'::character varying::text, 'linked'::character varying::text, 'posted'::character varying::text, 'review'::character varying::text, 'ignored'::character varying::text, 'error'::character varying::text, 'reversed'::character varying::text, 'conflict'::character varying::text])", name: "abroa_source_status_valid"
+  end
+
+  create_table "abroa_source_reviews", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "family_id", null: false
+    t.uuid "source_record_id", null: false
+    t.uuid "resolved_by_id"
+    t.string "review_type", default: "source_resolution", null: false
+    t.string "reason_code", null: false
+    t.jsonb "candidate_ids", default: [], null: false
+    t.jsonb "evidence", default: {}, null: false
+    t.string "status", default: "pending", null: false
+    t.datetime "resolved_at"
+    t.integer "lock_version", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["family_id", "status"], name: "index_abroa_source_reviews_on_family_id_and_status"
+    t.index ["family_id"], name: "index_abroa_source_reviews_on_family_id"
+    t.index ["resolved_by_id"], name: "index_abroa_source_reviews_on_resolved_by_id"
+    t.index ["source_record_id", "review_type"], name: "idx_abroa_open_source_review", unique: true, where: "((status)::text = 'pending'::text)"
+    t.index ["source_record_id"], name: "index_abroa_source_reviews_on_source_record_id"
+    t.check_constraint "status::text = 'pending'::text AND resolved_at IS NULL OR status::text <> 'pending'::text AND resolved_at IS NOT NULL", name: "abroa_review_resolution"
+    t.check_constraint "status::text = ANY (ARRAY['pending'::character varying::text, 'resolved'::character varying::text, 'dismissed'::character varying::text])", name: "abroa_review_status"
+  end
+
+  create_table "abroa_statement_intakes", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "family_id", null: false
+    t.uuid "statement_id", null: false
+    t.uuid "account_id"
+    t.uuid "actor_id"
+    t.uuid "pdf_import_id"
+    t.string "source_kind", null: false
+    t.string "config_digest", limit: 64, null: false
+    t.string "preview_digest", limit: 64, null: false
+    t.string "file_digest", limit: 64, null: false
+    t.jsonb "summary", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_abroa_statement_intakes_on_account_id"
+    t.index ["actor_id"], name: "index_abroa_statement_intakes_on_actor_id"
+    t.index ["family_id"], name: "index_abroa_statement_intakes_on_family_id"
+    t.index ["pdf_import_id"], name: "index_abroa_statement_intakes_on_pdf_import_id"
+    t.index ["statement_id"], name: "index_abroa_statement_intakes_on_statement_id", unique: true
+  end
 
   create_table "account_providers", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.uuid "account_id", null: false
@@ -3165,6 +3417,45 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_23_220100) do
     t.index ["status"], name: "index_wise_items_on_status"
   end
 
+  add_foreign_key "abroa_account_profiles", "accounts", on_delete: :cascade
+  add_foreign_key "abroa_account_profiles", "families"
+  add_foreign_key "abroa_fx_details", "entries", column: "credit_entry_id", on_delete: :cascade
+  add_foreign_key "abroa_fx_details", "entries", column: "debit_entry_id", on_delete: :cascade
+  add_foreign_key "abroa_fx_details", "entries", column: "fee_entry_id", on_delete: :cascade
+  add_foreign_key "abroa_fx_details", "families"
+  add_foreign_key "abroa_fx_details", "transfers", on_delete: :cascade
+  add_foreign_key "abroa_fx_details", "users", column: "actor_id"
+  add_foreign_key "abroa_profiles", "users", on_delete: :cascade
+  add_foreign_key "abroa_rate_snapshots", "families"
+  add_foreign_key "abroa_refund_links", "abroa_rate_snapshots", column: "rate_snapshot_id", on_delete: :nullify
+  add_foreign_key "abroa_refund_links", "entries", column: "original_entry_id", on_delete: :nullify
+  add_foreign_key "abroa_refund_links", "entries", column: "refund_entry_id", on_delete: :nullify
+  add_foreign_key "abroa_refund_links", "families", on_delete: :cascade
+  add_foreign_key "abroa_refund_links", "users", column: "actor_id", on_delete: :nullify
+  add_foreign_key "abroa_refund_links", "users", column: "revoked_by_id", on_delete: :nullify
+  add_foreign_key "abroa_source_actions", "abroa_source_records", column: "source_record_id", on_delete: :cascade
+  add_foreign_key "abroa_source_actions", "abroa_source_reviews", column: "source_review_id", on_delete: :cascade
+  add_foreign_key "abroa_source_actions", "entries", on_delete: :nullify
+  add_foreign_key "abroa_source_actions", "families", on_delete: :cascade
+  add_foreign_key "abroa_source_actions", "users", column: "actor_id", on_delete: :nullify
+  add_foreign_key "abroa_source_actions", "users", column: "reversed_by_id", on_delete: :nullify
+  add_foreign_key "abroa_source_observations", "abroa_source_records", column: "source_record_id", on_delete: :cascade
+  add_foreign_key "abroa_source_observations", "account_statements", column: "statement_id", on_delete: :nullify
+  add_foreign_key "abroa_source_observations", "families", on_delete: :cascade
+  add_foreign_key "abroa_source_observations", "imports", on_delete: :nullify
+  add_foreign_key "abroa_source_records", "account_statements", column: "statement_id", on_delete: :nullify
+  add_foreign_key "abroa_source_records", "accounts", on_delete: :nullify
+  add_foreign_key "abroa_source_records", "entries", on_delete: :nullify
+  add_foreign_key "abroa_source_records", "families", on_delete: :cascade
+  add_foreign_key "abroa_source_records", "imports", on_delete: :nullify
+  add_foreign_key "abroa_source_reviews", "abroa_source_records", column: "source_record_id", on_delete: :cascade
+  add_foreign_key "abroa_source_reviews", "families", on_delete: :cascade
+  add_foreign_key "abroa_source_reviews", "users", column: "resolved_by_id", on_delete: :nullify
+  add_foreign_key "abroa_statement_intakes", "account_statements", column: "statement_id", on_delete: :cascade
+  add_foreign_key "abroa_statement_intakes", "accounts", on_delete: :nullify
+  add_foreign_key "abroa_statement_intakes", "families", on_delete: :cascade
+  add_foreign_key "abroa_statement_intakes", "imports", column: "pdf_import_id", on_delete: :nullify
+  add_foreign_key "abroa_statement_intakes", "users", column: "actor_id", on_delete: :nullify
   add_foreign_key "account_providers", "accounts", on_delete: :cascade
   add_foreign_key "account_shares", "accounts"
   add_foreign_key "account_shares", "users"

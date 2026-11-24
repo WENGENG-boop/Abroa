@@ -32,6 +32,555 @@ components:
             read: Read access
             read_write: Read and write access
   schemas:
+    AbroaIntakeInput:
+      type: object
+      required:
+      - source_kind
+      additionalProperties: false
+      properties:
+        source_kind:
+          type: string
+          enum:
+          - bank_statement
+          - alipay_statement
+          - wechat_statement
+          - generic_csv
+          - generic_xlsx
+          - generic_pdf
+        mapping:
+          type: object
+          nullable: true
+          additionalProperties:
+            type: string
+        separator:
+          type: string
+        pdf_import_id:
+          type: string
+          format: uuid
+          nullable: true
+    AbroaIntakePublish:
+      type: object
+      required:
+      - source_kind
+      - preview_digest
+      additionalProperties: false
+      properties:
+        source_kind:
+          type: string
+          enum:
+          - bank_statement
+          - alipay_statement
+          - wechat_statement
+          - generic_csv
+          - generic_xlsx
+          - generic_pdf
+        mapping:
+          type: object
+          nullable: true
+          additionalProperties:
+            type: string
+        separator:
+          type: string
+        pdf_import_id:
+          type: string
+          format: uuid
+          nullable: true
+        preview_digest:
+          type: string
+          minLength: 64
+          maxLength: 64
+        accept_invalid_rows:
+          type: boolean
+    AbroaIntakePreviewResponse:
+      type: object
+      required:
+      - data
+      properties:
+        data:
+          type: object
+          required:
+          - statement_id
+          - account_id
+          - source_kind
+          - file_sha256
+          - preview_digest
+          - record_count
+          - issue_count
+          - rows
+          - issues
+          properties:
+            statement_id:
+              type: string
+              format: uuid
+            account_id:
+              type: string
+              format: uuid
+            source_kind:
+              type: string
+            file_sha256:
+              type: string
+            preview_digest:
+              type: string
+            record_count:
+              type: integer
+            issue_count:
+              type: integer
+            rows:
+              type: array
+              items:
+                type: object
+            issues:
+              type: array
+              items:
+                type: object
+                required:
+                - row_number
+                - code
+                - message
+                properties:
+                  row_number:
+                    type: integer
+                  code:
+                    type: string
+                  message:
+                    type: string
+    AbroaIntakeReceiptResponse:
+      type: object
+      required:
+      - data
+      properties:
+        data:
+          type: object
+          required:
+          - id
+          - statement_id
+          - account_id
+          - source_kind
+          - file_sha256
+          - preview_digest
+          - status
+          - summary
+          properties:
+            id:
+              type: string
+              format: uuid
+            statement_id:
+              type: string
+              format: uuid
+            account_id:
+              type: string
+              format: uuid
+            source_kind:
+              type: string
+            file_sha256:
+              type: string
+            preview_digest:
+              type: string
+            status:
+              type: string
+              enum:
+              - staged
+            summary:
+              type: object
+              required:
+              - record_count
+              - issue_count
+              - review_count
+              - ignored_count
+              - existing_count
+              - accepted_invalid_rows
+              properties:
+                record_count:
+                  type: integer
+                issue_count:
+                  type: integer
+                review_count:
+                  type: integer
+                ignored_count:
+                  type: integer
+                existing_count:
+                  type: integer
+                accepted_invalid_rows:
+                  type: boolean
+    AbroaSourceReview:
+      type: object
+      required:
+      - id
+      - source_record_id
+      - reason_code
+      - candidate_ids
+      - status
+      - lock_version
+      - proposed_action
+      properties:
+        id:
+          type: string
+          format: uuid
+        source_record_id:
+          type: string
+          format: uuid
+        reason_code:
+          type: string
+        candidate_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+        status:
+          type: string
+          enum:
+          - pending
+          - resolved
+          - dismissed
+        lock_version:
+          type: integer
+        proposed_action:
+          type: string
+    AbroaSourceActionResponse:
+      type: object
+      required:
+      - data
+      properties:
+        data:
+          type: object
+          required:
+          - id
+          - source_record_id
+          - review_id
+          - operation
+          - entry_id
+          - reversed_at
+          properties:
+            id:
+              type: string
+              format: uuid
+            source_record_id:
+              type: string
+              format: uuid
+            review_id:
+              type: string
+              format: uuid
+            operation:
+              type: string
+            entry_id:
+              type: string
+              format: uuid
+              nullable: true
+            reversed_at:
+              type: string
+              format: date-time
+              nullable: true
+    AbroaRefundResponse:
+      type: object
+      required:
+      - data
+      properties:
+        data:
+          type: object
+          required:
+          - id
+          - original_entry_id
+          - refund_entry_id
+          - applied_amount
+          - refund_amount
+          - currency
+          - refund_currency
+          - refund_date
+          - rate_snapshot_id
+          - revoked_at
+          - consistent
+          properties:
+            id:
+              type: string
+              format: uuid
+            original_entry_id:
+              type: string
+              format: uuid
+            refund_entry_id:
+              type: string
+              format: uuid
+            applied_amount:
+              type: string
+            refund_amount:
+              type: string
+            currency:
+              type: string
+            refund_currency:
+              type: string
+            refund_date:
+              type: string
+              format: date
+            rate_snapshot_id:
+              type: string
+              format: uuid
+              nullable: true
+            revoked_at:
+              type: string
+              format: date-time
+              nullable: true
+            consistent:
+              type: boolean
+    AbroaRateResponse:
+      type: object
+      required:
+      - data
+      properties:
+        data:
+          type: object
+          required:
+          - from_currency
+          - to_currency
+          - rate
+          - rate_date
+          - as_of
+          - source
+          - quality
+          - incomplete
+          properties:
+            from_currency:
+              type: string
+            to_currency:
+              type: string
+            rate:
+              type: string
+              nullable: true
+            rate_date:
+              type: string
+              format: date
+              nullable: true
+            as_of:
+              type: string
+              format: date
+            source:
+              type: string
+              nullable: true
+            quality:
+              type: string
+            incomplete:
+              type: boolean
+            original_amount:
+              type: string
+            converted_amount:
+              type: string
+              nullable: true
+            display_amount:
+              type: string
+              nullable: true
+    AbroaRegionResponse:
+      type: object
+      required:
+      - data
+      properties:
+        data:
+          type: object
+          required:
+          - country_code
+          - currency
+          - locale
+          - connection_kinds
+          - configured
+          properties:
+            country_code:
+              type: string
+            currency:
+              type: string
+              nullable: true
+            locale:
+              type: string
+              nullable: true
+            connection_kinds:
+              type: array
+              items:
+                type: string
+            configured:
+              type: boolean
+    AbroaAccountProfileResponse:
+      type: object
+      required:
+      - data
+      properties:
+        data:
+          type: object
+          required:
+          - account_id
+          - country
+          - wallet_kind
+          - lock_version
+          properties:
+            account_id:
+              type: string
+              format: uuid
+            country:
+              type: string
+              nullable: true
+            wallet_kind:
+              type: string
+              nullable: true
+            lock_version:
+              type: integer
+    AbroaExchangeResponse:
+      type: object
+      required:
+      - data
+      properties:
+        data:
+          type: object
+          required:
+          - id
+          - transfer_id
+          - debit_entry_id
+          - credit_entry_id
+          - fee_entry_id
+          - debit_amount
+          - credit_amount
+          - debit_currency
+          - credit_currency
+          - fee_amount
+          - fee_currency
+          - actual_rate
+          - exchanged_on
+          - consistent
+          properties:
+            id:
+              type: string
+              format: uuid
+            transfer_id:
+              type: string
+              format: uuid
+            debit_entry_id:
+              type: string
+              format: uuid
+            credit_entry_id:
+              type: string
+              format: uuid
+            fee_entry_id:
+              type: string
+              format: uuid
+              nullable: true
+            debit_amount:
+              type: string
+            credit_amount:
+              type: string
+            debit_currency:
+              type: string
+            credit_currency:
+              type: string
+            fee_amount:
+              type: string
+            fee_currency:
+              type: string
+              nullable: true
+            actual_rate:
+              type: string
+            exchanged_on:
+              type: string
+              format: date
+            consistent:
+              type: boolean
+    AbroaProfileResponse:
+      type: object
+      required:
+      - data
+      properties:
+        data:
+          type: object
+          required:
+          - student_enabled
+          - parent_enabled
+          - origin_country
+          - residence_country
+          - display_currency
+          - timezone
+          - mode
+          - lock_version
+          properties:
+            student_enabled:
+              type: boolean
+            parent_enabled:
+              type: boolean
+            origin_country:
+              type: string
+              nullable: true
+              maxLength: 2
+            residence_country:
+              type: string
+              nullable: true
+              maxLength: 2
+            display_currency:
+              type: string
+              nullable: true
+            timezone:
+              type: string
+              nullable: true
+            mode:
+              type: string
+              enum:
+              - simple
+              - professional
+              - custom
+            lock_version:
+              type: integer
+              minimum: 0
+    AbroaProfileUpdate:
+      type: object
+      additionalProperties: false
+      required:
+      - lock_version
+      properties:
+        student_enabled:
+          type: boolean
+        parent_enabled:
+          type: boolean
+        origin_country:
+          type: string
+          nullable: true
+          maxLength: 2
+        residence_country:
+          type: string
+          nullable: true
+          maxLength: 2
+        display_currency:
+          type: string
+          nullable: true
+        timezone:
+          type: string
+          nullable: true
+        mode:
+          type: string
+          enum:
+          - simple
+          - professional
+          - custom
+        lock_version:
+          type: integer
+          minimum: 0
+    AbroaOnboardingResponse:
+      type: object
+      required:
+      - data
+      properties:
+        data:
+          type: object
+          required:
+          - step
+          - completed_at
+          - lock_version
+          properties:
+            step:
+              type: string
+              enum:
+              - role
+              - region
+              - preferences
+              - review
+              - complete
+            completed_at:
+              type: string
+              format: date-time
+              nullable: true
+            lock_version:
+              type: integer
+              minimum: 0
     Version:
       type: object
       additionalProperties: false
@@ -5051,6 +5600,747 @@ components:
         error:
           type: string
 paths:
+  "/api/v1/abroa/fx/rates":
+    get:
+      summary: Read a historical exchange rate
+      tags:
+      - Abroa FX
+      security:
+      - apiKeyAuth: []
+      parameters:
+      - name: from
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: to
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: date
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date
+      - name: lookback_days
+        in: query
+        schema:
+          type: integer
+          minimum: 0
+          maximum: 365
+      - name: amount
+        in: query
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Historical quote or incomplete rate
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AbroaRateResponse"
+  "/api/v1/abroa/regions/{country_code}":
+    parameters:
+    - name: country_code
+      in: path
+      required: true
+      schema:
+        type: string
+    get:
+      summary: Read country defaults (not a connectivity guarantee)
+      tags:
+      - Abroa FX
+      security:
+      - apiKeyAuth: []
+      responses:
+        '200':
+          description: Region defaults
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AbroaRegionResponse"
+  "/api/v1/abroa/accounts/{account_id}/profile":
+    parameters:
+    - name: account_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    get:
+      summary: Read visible account region and wallet metadata
+      tags:
+      - Abroa FX
+      security:
+      - apiKeyAuth: []
+      responses:
+        '200':
+          description: Account profile
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AbroaAccountProfileResponse"
+    patch:
+      summary: Update writable account metadata
+      tags:
+      - Abroa FX
+      security:
+      - apiKeyAuth: []
+      parameters: []
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AbroaAccountProfileResponse"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+              - lock_version
+              properties:
+                country:
+                  type: string
+                  nullable: true
+                wallet_kind:
+                  type: string
+                  nullable: true
+                  enum:
+                  - alipay
+                  - wechat
+                  - other
+                  -
+                lock_version:
+                  type: integer
+                  minimum: 0
+        required: true
+  "/api/v1/abroa/fx/exchanges":
+    post:
+      summary: Record an actual exchange, with separate fee
+      tags:
+      - Abroa FX
+      security:
+      - apiKeyAuth: []
+      parameters:
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+          maxLength: 128
+      responses:
+        '201':
+          description: Recorded or same-request replay
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AbroaExchangeResponse"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+              - source_account_id
+              - destination_account_id
+              - date
+              - debit_amount
+              - credit_amount
+              properties:
+                source_account_id:
+                  type: string
+                  format: uuid
+                destination_account_id:
+                  type: string
+                  format: uuid
+                date:
+                  type: string
+                  format: date
+                debit_amount:
+                  type: string
+                  description: Source principal, excluding separate fee
+                credit_amount:
+                  type: string
+                  description: Destination principal, before a separately debited
+                    fee
+                fee_amount:
+                  type: string
+                fee_currency:
+                  type: string
+                  nullable: true
+        required: true
+  "/api/v1/abroa/fx/exchanges/{id}":
+    parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    get:
+      summary: Read actual exchange metadata and ledger consistency
+      tags:
+      - Abroa FX
+      security:
+      - apiKeyAuth: []
+      responses:
+        '200':
+          description: Exchange
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AbroaExchangeResponse"
+  "/api/v1/abroa/profile":
+    get:
+      summary: Read own Abroa preferences
+      tags:
+      - Abroa
+      security:
+      - apiKeyAuth: []
+      responses:
+        '200':
+          description: Preferences (defaults when not yet saved)
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AbroaProfileResponse"
+    patch:
+      summary: Update own Abroa preferences
+      tags:
+      - Abroa
+      security:
+      - apiKeyAuth: []
+      parameters: []
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AbroaProfileResponse"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/AbroaProfileUpdate"
+        required: true
+  "/api/v1/abroa/onboarding":
+    get:
+      summary: Read onboarding state
+      tags:
+      - Abroa
+      security:
+      - apiKeyAuth: []
+      responses:
+        '200':
+          description: Current state
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AbroaOnboardingResponse"
+    patch:
+      summary: Change onboarding step
+      tags:
+      - Abroa
+      security:
+      - apiKeyAuth: []
+      parameters: []
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AbroaOnboardingResponse"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+              - step
+              - lock_version
+              properties:
+                step:
+                  type: string
+                  enum:
+                  - role
+                  - region
+                  - preferences
+                  - review
+                lock_version:
+                  type: integer
+                  minimum: 0
+        required: true
+  "/api/v1/abroa/onboarding/complete":
+    post:
+      summary: Complete onboarding idempotently
+      tags:
+      - Abroa
+      security:
+      - apiKeyAuth: []
+      parameters:
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+          maxLength: 128
+      responses:
+        '200':
+          description: Completed or replayed
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AbroaOnboardingResponse"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+              - lock_version
+              properties:
+                lock_version:
+                  type: integer
+                  minimum: 0
+        required: true
+  "/api/v1/abroa/accounts/{account_id}/sources/capture":
+    parameters:
+    - name: account_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    post:
+      summary: Capture existing ledger provider evidence without posting new transactions
+      tags:
+      - Abroa imports
+      security:
+      - apiKeyAuth: []
+      parameters: []
+      responses:
+        '200':
+          description: Bounded capture result
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                properties:
+                  data:
+                    type: object
+                    required:
+                    - account_id
+                    - scanned_count
+                    - captured_count
+                    - conflict_count
+                    - invalid_count
+                    - next_cursor
+                    - evidence_origin
+                    properties:
+                      account_id:
+                        type: string
+                        format: uuid
+                      scanned_count:
+                        type: integer
+                      captured_count:
+                        type: integer
+                      conflict_count:
+                        type: integer
+                      invalid_count:
+                        type: integer
+                      next_cursor:
+                        type: string
+                        format: uuid
+                        nullable: true
+                      evidence_origin:
+                        type: string
+                        enum:
+                        - existing_ledger
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                limit:
+                  type: integer
+                  minimum: 1
+                  maximum: 500
+                after_id:
+                  type: string
+                  format: uuid
+                  nullable: true
+        required: true
+  "/api/v1/abroa/accounts/{account_id}/sources/diagnostics":
+    parameters:
+    - name: account_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    get:
+      summary: Read redacted account sync and source evidence status
+      tags:
+      - Abroa imports
+      security:
+      - apiKeyAuth: []
+      responses:
+        '200':
+          description: Diagnostics; not a live connectivity check
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                properties:
+                  data:
+                    type: object
+                    required:
+                    - account_id
+                    - configured_provider_count
+                    - live_connection_status
+                    - ledger_sync
+                    - source_counts
+                    - missing_ledger_count
+                    properties:
+                      account_id:
+                        type: string
+                        format: uuid
+                      configured_provider_count:
+                        type: integer
+                      live_connection_status:
+                        type: string
+                      ledger_sync:
+                        type: object
+                      source_counts:
+                        type: object
+                        additionalProperties:
+                          type: integer
+                      missing_ledger_count:
+                        type: integer
+  "/api/v1/abroa/reviews":
+    get:
+      summary: List reviews in accessible accounts
+      tags:
+      - Abroa imports
+      security:
+      - apiKeyAuth: []
+      parameters:
+      - name: status
+        in: query
+        schema:
+          type: string
+          enum:
+          - pending
+          - resolved
+          - dismissed
+      - name: page
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 10000
+      responses:
+        '200':
+          description: Paginated reviews
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                - page
+                - has_more
+                properties:
+                  data:
+                    type: array
+                    items:
+                      "$ref": "#/components/schemas/AbroaSourceReview"
+                  page:
+                    type: integer
+                  has_more:
+                    type: boolean
+    post:
+      summary: Open a review for an assigned source
+      tags:
+      - Abroa imports
+      security:
+      - apiKeyAuth: []
+      parameters: []
+      responses:
+        '201':
+          description: Review created or reused
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                properties:
+                  data:
+                    "$ref": "#/components/schemas/AbroaSourceReview"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+              - source_record_id
+              properties:
+                source_record_id:
+                  type: string
+                  format: uuid
+        required: true
+  "/api/v1/abroa/reviews/{id}/resolve":
+    parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    post:
+      summary: Resolve an import review
+      tags:
+      - Abroa imports
+      security:
+      - apiKeyAuth: []
+      parameters:
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+          maxLength: 128
+      responses:
+        '200':
+          description: Audited resolution
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AbroaSourceActionResponse"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+              - resolution
+              - expected_version
+              properties:
+                resolution:
+                  type: string
+                  enum:
+                  - create
+                  - link
+                  - ignore
+                  - dismiss
+                expected_version:
+                  type: integer
+                  minimum: 0
+                target_entry_id:
+                  type: string
+                  format: uuid
+                movement_kind:
+                  type: string
+                  enum:
+                  - payment
+                  - income
+                  - refund
+                  nullable: true
+        required: true
+  "/api/v1/abroa/source-actions/{id}/reverse":
+    parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    post:
+      summary: Reverse an unchanged source action
+      tags:
+      - Abroa imports
+      security:
+      - apiKeyAuth: []
+      responses:
+        '200':
+          description: Reversed or already reversed
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AbroaSourceActionResponse"
+  "/api/v1/abroa/refund-links":
+    post:
+      summary: Allocate a real refund to a purchase
+      tags:
+      - Abroa imports
+      security:
+      - apiKeyAuth: []
+      parameters: []
+      responses:
+        '201':
+          description: Refund allocated or replayed
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AbroaRefundResponse"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+              - original_entry_id
+              - refund_entry_id
+              - applied_amount
+              - refund_amount
+              properties:
+                original_entry_id:
+                  type: string
+                  format: uuid
+                refund_entry_id:
+                  type: string
+                  format: uuid
+                applied_amount:
+                  type: string
+                refund_amount:
+                  type: string
+                rate_snapshot_id:
+                  type: string
+                  format: uuid
+                  nullable: true
+        required: true
+  "/api/v1/abroa/refund-links/{id}":
+    parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    get:
+      summary: Read refund allocation
+      tags:
+      - Abroa imports
+      security:
+      - apiKeyAuth: []
+      responses:
+        '200':
+          description: Allocation
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AbroaRefundResponse"
+    delete:
+      summary: Revoke allocation without removing either ledger entry
+      tags:
+      - Abroa imports
+      security:
+      - apiKeyAuth: []
+      responses:
+        '200':
+          description: Revoked allocation
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AbroaRefundResponse"
+  "/api/v1/abroa/imports/{id}/preview":
+    parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    post:
+      summary: Preview a stored statement without ledger changes
+      tags:
+      - Abroa imports
+      security:
+      - apiKeyAuth: []
+      parameters: []
+      responses:
+        '200':
+          description: Preview digest, bounded sample and row errors
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AbroaIntakePreviewResponse"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/AbroaIntakeInput"
+        required: true
+  "/api/v1/abroa/imports/{id}/publish":
+    parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    post:
+      summary: Stage the confirmed preview into the review queue
+      tags:
+      - Abroa imports
+      security:
+      - apiKeyAuth: []
+      parameters: []
+      responses:
+        '201':
+          description: Staging receipt (not posted to the ledger)
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AbroaIntakeReceiptResponse"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/AbroaIntakePublish"
+        required: true
+  "/api/v1/abroa/imports/{id}":
+    parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    get:
+      summary: Read the staging receipt by Statement Vault id
+      tags:
+      - Abroa imports
+      security:
+      - apiKeyAuth: []
+      responses:
+        '200':
+          description: Staging receipt
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AbroaIntakeReceiptResponse"
   "/api/v1/account_statements":
     get:
       summary: List statements in the Statement Vault
