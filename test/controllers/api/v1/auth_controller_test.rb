@@ -1182,7 +1182,7 @@ class Api::V1::AuthControllerTest < ActionDispatch::IntegrationTest
 
   test "sso_create_account makes new family creator admin even when provider default role is member" do
     Rails.configuration.x.auth.stubs(:sso_providers).returns([
-      { name: "google_oauth2", settings: { default_role: "member" } }
+      { name: "google_oauth2", strategy: "google_oauth2", settings: { default_role: "member" } }
     ])
     linking_code = SecureRandom.urlsafe_base64(32)
     Rails.cache.write("mobile_sso_link:#{linking_code}", {
@@ -1215,7 +1215,7 @@ class Api::V1::AuthControllerTest < ActionDispatch::IntegrationTest
 
   test "sso_create_account preserves super admin provider default for new family creator" do
     Rails.configuration.x.auth.stubs(:sso_providers).returns([
-      { name: "google_oauth2", settings: { default_role: "super_admin" } }
+      { name: "google_oauth2", strategy: "google_oauth2", settings: { default_role: "super_admin" } }
     ])
     linking_code = SecureRandom.urlsafe_base64(32)
     Rails.cache.write("mobile_sso_link:#{linking_code}", {
