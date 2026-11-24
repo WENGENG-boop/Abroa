@@ -40,6 +40,24 @@ class Abroa::ProviderCaptureTest < ActiveSupport::TestCase
     assert_equal "unverified", result.fetch(:live_connection_status)
   end
 
+  test "Wise source captures actual provider payment reference rather than editable notes" do
+    entry = @account.entries.create!(entryable: Transaction.new(extra: { "wise" => {
+      "statement_id" => "123", "payment_reference" => "merchant-order-123",
+      "reference" => "provider-statement-id" } }), name: "Wise payment", amount: 10, currency: "GBP",
+      date: Date.current, source: "wise", external_id: "wise_statement_123")
+    record = Abroa::ProviderSource.capture_existing!(entry)
+    assert_equal "merchant-order-123", record.normalized.fetch("reference")
+    assert_equal "linked", record.status
+    assert_equal entry.id, record.entry_id
+    assert_no_difference "Entry.count" do
+      assert_equal record.id, Abroa::ProviderSource.capture_existing!(entry).id
+    end
+    unrelated = external_entry("not-wise")
+    unrelated.transaction.update!(extra: { "wise" => { "payment_reference" => "untrusted" },
+      "abroa" => { "reference" => "untrusted" } })
+    assert_nil Abroa::ProviderSource.capture_existing!(unrelated).normalized.fetch("reference")
+  end
+
   private
     def external_entry(id)
       @account.entries.create!(entryable: Transaction.new, name: "Provider entry", amount: 10, currency: "GBP",
