@@ -94,7 +94,7 @@ module Abroa
     def self.visible_for!(user, statement_id)
       statement = user.family.account_statements.find(statement_id)
       raise ActiveRecord::RecordNotFound unless statement.account_id && statement.viewable_by?(user)
-      receipt = where(family: user.family, statement: statement).find_by!
+      receipt = find_by!(family: user.family, statement: statement)
       raise ActiveRecord::RecordNotFound unless receipt.account_id == statement.account_id
       receipt
     end

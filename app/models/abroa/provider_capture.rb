@@ -30,7 +30,7 @@ module Abroa
       family = account.family
       family.with_lock do
         account.lock!
-        next if account.scheduled_for_deletion?
+        next if account.pending_deletion?
         capture_page!(account, limit: DEFAULT_LIMIT, after_id: after_id,
           updated_range: updated_from..updated_through)
       end

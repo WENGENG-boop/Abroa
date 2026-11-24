@@ -19,9 +19,11 @@ module Abroa
       unless bytes.is_a?(String) && bytes.bytesize.between?(1, MAX_BYTES)
         raise StatementParser::UnsupportedFormat, "Unsupported XLSX size"
       end
+      rows = nil
       Zip::File.open_buffer(StringIO.new(bytes.b)) do |zip|
-        new(zip).rows
+        rows = new(zip).rows
       end
+      rows
     rescue Zip::Error, Nokogiri::XML::SyntaxError, EncodingError, ArgumentError, EOFError
       raise StatementParser::UnsupportedFormat, "Invalid or unsupported XLSX"
     end
