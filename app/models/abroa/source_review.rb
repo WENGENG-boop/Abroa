@@ -31,15 +31,18 @@ module Abroa
       end
     end
 
-    def self.resolve_for!(user, review_id:, resolution:, expected_version:, key:, target_entry_id: nil)
+    def self.resolve_for!(user, review_id:, resolution:, expected_version:, key:, target_entry_id: nil, movement_kind: nil)
       raise ArgumentError, "Unknown review resolution" unless %w[create link ignore dismiss].include?(resolution)
       raise ArgumentError, "Invalid expected_version" unless expected_version.is_a?(Integer) && expected_version >= 0
       raise ArgumentError, "Invalid Idempotency-Key" unless key.is_a?(String) && key.present? && key.bytesize <= 128
       if (resolution == "link") != target_entry_id.present?
         raise ArgumentError, "A target entry is required only for linking"
       end
+      if movement_kind && (!movement_kind.in?(%w[payment income refund]) || !resolution.in?(%w[create link]))
+        raise ArgumentError, "Movement classification only applies to financial resolutions"
+      end
       operation_key = Digest::SHA256.hexdigest("#{user.id}:#{key}")
-      request_digest = Digest::SHA256.hexdigest(JSON.generate([ review_id, resolution, expected_version, target_entry_id ]))
+      request_digest = Digest::SHA256.hexdigest(JSON.generate([ review_id, resolution, expected_version, target_entry_id, movement_kind ]))
 
       with_actor(user) do |family|
         review = where(family: family).find(review_id)
@@ -61,9 +64,10 @@ module Abroa
         before = { "status" => source.status, "source_version" => source.lock_version }
         entry = nil
         channel_added = false
+        resolved_kind = nil
         case resolution
         when "create", "link"
-          validate_financial_source!(source, account)
+          resolved_kind = validate_financial_source!(source, account, movement_kind)
           if resolution == "create"
             validate_creation!(source, account)
             entry = account.entries.create!(entryable: Transaction.new(kind: "standard",
@@ -99,7 +103,7 @@ module Abroa
 
         review.update!(status: resolution == "dismiss" ? "dismissed" : "resolved", resolved_by: user, resolved_at: Time.current)
         after = { "status" => source.status, "source_version" => source.lock_version,
-          "entry_id" => entry&.id, "channel_added" => channel_added,
+          "entry_id" => entry&.id, "channel_added" => channel_added, "movement_kind" => resolved_kind,
           "fingerprint" => entry && SourceAction.fingerprint(entry.reload) }
         action = SourceAction.create!(family: family, source_record: source, source_review: review,
           actor: user, entry: entry, operation: resolution, operation_key: operation_key,
@@ -190,10 +194,17 @@ module Abroa
           [ source, account ]
         end
 
-        def validate_financial_source!(source, account)
+        def validate_financial_source!(source, account, movement_kind)
+          source_kind = source.normalized["transaction_kind"]
+          # Preserve raw evidence. Only the user-confirmed audit action records
+          # a classification for an otherwise unknown posted movement.
+          kind = source_kind == "unknown" ? movement_kind : source_kind
+          if movement_kind && source_kind != "unknown" && movement_kind != source_kind
+            raise ArgumentError, "Classification contradicts source evidence"
+          end
+          expected_direction = { "payment" => "outflow", "income" => "inflow", "refund" => "inflow" }[kind]
           unless source.normalized["provider_status"] == "posted" &&
-              source.normalized["transaction_kind"].in?(%w[payment income]) &&
-              source.direction.in?(%w[inflow outflow]) && source.amount.positive? &&
+              expected_direction && source.direction == expected_direction && source.amount.positive? &&
               source.local_date <= Date.current && source.currency == account.currency &&
               !source.observations.where(status: "conflict").exists?
             raise ArgumentError, "Source is not a confirmed regular account movement"
@@ -204,6 +215,7 @@ module Abroa
               raise ArgumentError, "A wallet-funded payment requires the matching wallet account"
             end
           end
+          kind
         end
 
         def validate_creation!(source, account)

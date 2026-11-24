@@ -67,7 +67,8 @@ RSpec.describe 'API V1 Abroa source reviews and refunds', type: :request do
       parameter name: :body, in: :body, required: true, schema: {
         type: :object, additionalProperties: false, required: %w[resolution expected_version],
         properties: { resolution: { type: :string, enum: %w[create link ignore dismiss] },
-          expected_version: { type: :integer, minimum: 0 }, target_entry_id: { type: :string, format: :uuid } }
+          expected_version: { type: :integer, minimum: 0 }, target_entry_id: { type: :string, format: :uuid },
+          movement_kind: { type: :string, enum: %w[payment income refund], nullable: true } }
       }
       response '200', 'Audited resolution' do
         schema '$ref' => '#/components/schemas/AbroaSourceActionResponse'

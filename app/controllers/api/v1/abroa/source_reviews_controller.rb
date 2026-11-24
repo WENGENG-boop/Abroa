@@ -27,11 +27,11 @@ class Api::V1::Abroa::SourceReviewsController < Api::V1::Abroa::BaseController
 
   def resolve
     require_uuid!(params[:id])
-    fields = body_fields!(:resolution, :expected_version, :target_entry_id)
+    fields = body_fields!(:resolution, :expected_version, :target_entry_id, :movement_kind)
     require_uuid!(fields[:target_entry_id]) if fields.key?(:target_entry_id) && fields[:target_entry_id].present?
     action = ::Abroa::SourceReview.resolve_for!(Current.user, review_id: params[:id],
       resolution: fields[:resolution], expected_version: fields[:expected_version],
-      key: request.headers["Idempotency-Key"], target_entry_id: fields[:target_entry_id])
+      key: request.headers["Idempotency-Key"], target_entry_id: fields[:target_entry_id], movement_kind: fields[:movement_kind])
     render_json({ data: action.payload })
   end
 
