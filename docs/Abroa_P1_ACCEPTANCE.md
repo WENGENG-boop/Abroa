@@ -85,3 +85,39 @@
 ## 验收口径更新（2026-11-24）
 
 用户确认不需要真实 Google/银行连接/真实账单联调。现有 1123 个通过用例与 7 个迁移、新库验收继续有效；外部真实数据不再阻塞 P1，无法执行的场景须代码审查通过。本地可运行的并发与重试等场景仍需实际验证，不能仅因旧测试全绿而直接宣布未覆盖项目通过。后续验收以 Abroa_ACCEPTANCE.md 最新口径为准。
+
+## P1 最终签收（2026-11-24）
+
+验收口径：依据 9a5606536 及用户确认，采用隔离运行、模拟第三方服务和无法真实执行项的针对性代码审查；真实账号、真实账单及生产联调不作为阶段门槛。
+
+最终业务代码：03f8a88d6。最终测试快照：db7889c34（与该业务版本相比，仅修正原 OIDC 测试夹具，生产代码、迁移、路由及规格不变）。
+
+| 验收 | 证据和结论 |
+|---|---|
+| A01-1 | 原 Auth/Sessions/Registrations/Passwords/PasswordResets/Onboardings/OAuthRegistration/OidcIdentity 等测试，注册、登录、退出、重置密码、SSO 绑定及租户隔离走原流程。通过。 |
+| A01-2 | GoogleIdentityTest、AbroaGoogleLoginTest、原 Auth/OIDC 回归覆盖已验证身份、issuer/subject、改配、阻止未验证与已封禁身份、关联保护。实际 Google 服务不能在无凭证环境中调用：审查 OmniAuth 服务端回调、配置 issuer、签名/nonce 校验及 linking state 约束通过；不声称真实连接已成功。 |
+| A01-3 | ProfileTest、OnboardingsControllerTest 及原 OnboardingsControllerTest：可跳过、重复请求、版本和幂等，未强制创建项目。通过。 |
+| A02-1/2/3 | RateSnapshotTest、AccountProfileTest、FxDetailTest、NetConsumptionTest、CurrencyControllerTest：历史快照、过期/缺失汇率、JPY/KWD 精度、真实本金/手续费分离、历史退款报表；不从当前率改写快照。通过。 |
+| A03-1 | LedgerConcurrencyTest 的两个独立 PostgreSQL 连接同时创建同一 external_id、同时采集同一来源；ProviderImportAdapterTest 原锁定/重试回归。修复 03f8a88d6 使用账户行锁与唯一索引，两个并发调用返回同一条 Entry。通过。 |
+| A03-2/3/4/5 | SourceRecordTest、SourceMatcherTest、StatementParserTest、StatementIntakeTest：同文件/相同外部订单去重、唯一显式引用、多个候选、未知账户确认与跨租户拒绝。通过。 |
+| A03-6 | SourceReviewTest、SourceRecordTest、RefundLinkTest、NetConsumptionTest、StatementIntakeTest、LedgerConcurrencyTest：关闭/pending/posted、退款冲减、并发额度、分类/锁及后续改动保护。通过。 |
+| A03-7 | StatementParserTest、XlsxRowsTest、PdfSourceTest：BOM/GB18030、显式字段映射、错误行、公式、文件和行数上限、PDF 提取证据；250f76ab3 双导入路径互斥，与原 PdfImportTest 一并回归。通过。真实国内银行格式依实际账单列名由通用模板配置，不宣称未经验证的专用银行格式。 |
+| A03-8 | SourceReviewTest、StatementIntakeTest、StatementReconciliationsControllerTest：原子整批撤销、共享来源与人工修改冲突、对账撤销前后精确指纹、保留原银行交易。通过。 |
+| A03-9 | ProviderSyncStatusTest、ProviderCaptureTest、ProviderCaptureJobTest、原 SyncTest/ProviderImportAdapterTest：模拟 401/429/超时、脱敏诊断、取消和迟到完成防护、重复采集；实际外部银行请求/撤销凭证未执行，审查原 provider adapter、Sync 状态/取消、回调与 Abroa capture 的权限、日志字段及幂等边界；通过阶段口径。无真实银行连通性承诺。 |
+
+末轮审查新增的实际问题均已处理：PDF 双路径入账风险（红测 133 runs/1 failure，250f76ab3 修后 133/133）；并发入账唯一键冲突（7d7c3a58d 红测、03f8a88d6 修后 136/136）；原 OIDC 模拟数据缺已验证字段（244 runs/2 errors，db7889c34 修正夹具并增加 issuer 断言，未放松认证）。
+
+| 实测套件 | 结果 |
+|---|---|
+| P1/P0.5 行为、权限及并发 | 136 runs, 764 assertions, 0 failures, 0 errors, 0 skips |
+| 上述用例 + 9 个原认证相关测试文件 | 244 runs, 1364 assertions, 0 failures, 0 errors, 0 skips（含前述136，不重复计数） |
+| 原 Sure 相关回归（18 文件） | 964 runs, 3287 assertions, 0 failures, 0 errors, 0 skips |
+| P1 API 请求规格 | 29 examples, 0 failures |
+| 数据库迁移和新库初始化 | 7/7；此前生成 schema 新库实际加载和回归通过，本轮无 schema 改动 |
+| OpenAPI 全量生成 | 514 examples, 0 failures, 89 文档专用 pending；dry-run，不计入行为用例 |
+
+总计 1237 个独立运行测试（244+964+29），4651 次 Minitest 断言；0 failures、0 errors、0 skips（OpenAPI dry-run 的文档专用 pending 不计入）。原 P0 环境/部署全量审计与后续部署联调不在 P1 签收范围。
+
+日志目录：D:\开发\Abroa\.p1-env\logs；p1-final-review-before.log、p1-final-provider-concurrency-before.log、p1-auth-regression-before.log、p1-final-review-minitest.log、p1-round2-minitest.log、p1-final-review-rspec.log、p1-original-regression.log、p1-openapi-generate.log。测试源清单 p1-test-files.txt，验收代码快照 acceptance-sha.txt。
+
+结论：P1.1–P1.6 在上述阶段开发验收口径下签收为 VERIFIED。未承诺实际第三方网络可用性；真实服务部署后另行联调。P2 业务开发尚未开始，后续阶段保持 PLANNED。
