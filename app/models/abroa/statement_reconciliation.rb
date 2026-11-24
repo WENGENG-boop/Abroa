@@ -33,8 +33,10 @@ module Abroa
         end
         timestamp = Time.current
         snapshots = rows.map do |row|
+          before_fingerprint = SourceAction.fingerprint(row)
           row.mark_reconciled!(statement: statement, at: timestamp)
-          { "entry_id" => row.id, "fingerprint" => SourceAction.fingerprint(row.reload) }
+          { "entry_id" => row.id, "before_fingerprint" => before_fingerprint,
+            "fingerprint" => SourceAction.fingerprint(row.reload) }
         end
         active = { "digest" => digest, "actor_id" => user.id,
           "confirmed_at" => timestamp.iso8601(6), "entries" => snapshots }
@@ -54,8 +56,15 @@ module Abroa
         end
         raise ActiveRecord::RecordNotFound unless active["actor_id"] == user.id
         rows = verify_markers!(active, statement, account)
-        rows.each(&:unmark_reconciled!)
-        event = active.merge("reversed_at" => Time.current.iso8601(6), "reversed_by_id" => user.id)
+        restored = rows.index_with do |row|
+          row.unmark_reconciled!
+          SourceAction.fingerprint(row.reload)
+        end
+        by_id = restored.to_h { |row, value| [row.id, value] }
+        snapshots = active.fetch("entries").map do |snapshot|
+          snapshot.merge("restored_fingerprint" => by_id.fetch(snapshot.fetch("entry_id")))
+        end
+        event = active.merge("entries" => snapshots, "reversed_at" => Time.current.iso8601(6), "reversed_by_id" => user.id)
         receipt.update!(summary: receipt.summary.except("reconciliation").merge("reconciliation_history" => history + [event]))
         result_for(event, "reversed")
       end

@@ -28,6 +28,28 @@ module Abroa
       ]))
     end
 
+    # A verified reconciliation/undo pair is an explicitly audited state
+    # transition. Follow only the exact full fingerprints recorded before and
+    # after it; never ignore timestamps or user edits in a rollback check.
+    def self.rollback_fingerprint_matches?(entry, action)
+      expected = action.after_data["fingerprint"]
+      current = fingerprint(entry)
+      return true if expected == current
+      receipts = StatementIntake.where(family_id: action.family_id, account_id: entry.account_id)
+        .where("summary -> 'reconciliation_history' @> ?::jsonb",
+          [{ "entries" => [{ "entry_id" => entry.id }] }].to_json).limit(51).to_a
+      return false if receipts.size > 50
+      events = receipts.flat_map { |receipt| Array(receipt.summary["reconciliation_history"]) }
+      events.sort_by { |event| event["reversed_at"].to_s }.each do |event|
+        next unless event["reversed_at"].present?
+        snapshot = Array(event["entries"]).find { |row| row["entry_id"] == entry.id }
+        next unless snapshot && snapshot["before_fingerprint"] == expected &&
+          snapshot["restored_fingerprint"].present?
+        expected = snapshot["restored_fingerprint"]
+      end
+      expected == current
+    end
+
     private
       def same_tenant
         errors.add(:source_record, :invalid) unless source_record && source_record.family_id == family_id

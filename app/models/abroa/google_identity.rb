@@ -62,7 +62,11 @@ module Abroa
       end
 
       def matches?(identity, claims)
-        claims.nil? || (ISSUERS.include?(identity.issuer) && identity.uid == claims[:subject])
+        if claims.nil?
+          !ISSUERS.include?(identity.issuer)
+        else
+          ISSUERS.include?(identity.issuer) && identity.uid == claims[:subject]
+        end
       end
     end
   end

@@ -48,8 +48,11 @@ module Abroa
       # Both sides must belong to the selected, accessible account scope.
       # Never disclose a private account's refund association.
       credits = entries.select { |entry| entry.amount.negative? }.index_by(&:id)
-      links = RefundLink.active.where(family_id: user.family_id, original_entry_id: allowed.select(:id),
-        refund_entry_id: credits.keys).order(:id).limit(MAX_ROWS + 1)
+      # A surviving, accessible credit with deleted purchase evidence is
+      # inconsistent, not ordinary income. Do not expose the lost purchase.
+      visible_links = RefundLink.active.where(family_id: user.family_id, refund_entry_id: credits.keys)
+      links = visible_links.where(original_entry_id: allowed.select(:id))
+        .or(visible_links.where(original_entry_id: nil)).order(:id).limit(MAX_ROWS + 1)
         .includes(:rate_snapshot, original_entry: [:account, :entryable], refund_entry: [:account, :entryable]).to_a
       raise ArgumentError, "Too many refund allocations; select a shorter report period" if links.size > MAX_ROWS
       invalid = Set.new

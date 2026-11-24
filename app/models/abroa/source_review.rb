@@ -157,6 +157,11 @@ module Abroa
             transaction = entry.transaction if entry.transaction?
             transaction&.lock!
             validate_link!(source, entry)
+            if SourceMatcher::PAYMENT_KINDS.include?(source.source_kind) &&
+                SourceRecord.where(entry: entry, source_kind: SourceMatcher::PAYMENT_KINDS)
+                  .where.not(id: source.id).exists?
+              raise Conflict, "Ledger movement already belongs to another payment order"
+            end
             if automatic
               decision = SourceMatcher.call(user: user, source: source)
               unless source.status == "parsed" && decision.action == "link" && decision.entry_id == entry.id
@@ -205,8 +210,9 @@ module Abroa
         action = SourceAction.where(family: family).find(action_id)
         source, _account = lock_source!(user, family, action.source_record_id)
         action.lock!
+        raise ActiveRecord::RecordNotFound unless action.actor_id == user.id
         next action if action.reversed_at?
-        unless action.actor_id == user.id &&
+        unless
             source.lock_version == action.after_data["source_version"] &&
             source.status == action.after_data["status"] &&
             source.entry_id == action.after_data["entry_id"]
@@ -230,7 +236,7 @@ module Abroa
           else
             if action.after_data["channel_added"]
               if SourceRecord.where(entry: entry).where.not(id: source.id).where(payment_channel: source.payment_channel).exists? ||
-                  SourceAction.fingerprint(entry) != action.after_data["fingerprint"]
+                  !SourceAction.rollback_fingerprint_matches?(entry, action)
                 raise Conflict, "Payment metadata has later dependencies"
               end
               extra = entry.transaction.extra.deep_dup
@@ -368,7 +374,7 @@ module Abroa
               entry.reconciled_at.nil? && entry.unreconciled? &&
               !SourceRecord.where(entry: entry).where.not(id: source.id).exists? &&
               !RefundLink.active.where("original_entry_id = ? OR refund_entry_id = ?", entry.id, entry.id).exists? &&
-              SourceAction.fingerprint(entry) == action.after_data["fingerprint"]
+              SourceAction.rollback_fingerprint_matches?(entry, action)
             raise Conflict, "Created entry changed or has later dependencies"
           end
         end
