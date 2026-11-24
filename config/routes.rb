@@ -847,6 +847,14 @@ Rails.application.routes.draw do
             end
             resources :movements, controller: "pool_movements", only: %i[index create]
           end
+          resources :fees, controller: "fee_plans", only: %i[index show create update] do
+            member do
+              post :cancel
+            end
+            resources :installments, controller: "fee_installments", only: %i[index show create update] do
+              resources :settlements, controller: "fee_settlements", only: %i[index create]
+            end
+          end
           resources :accounts, controller: "project_accounts", only: %i[index create] do
             delete ":account_id", to: "project_accounts#destroy", on: :collection
           end

@@ -212,6 +212,147 @@ RSpec.configure do |config|
                 actual_rate: { type: :string }, exchanged_on: { type: :string, format: :date }, consistent: { type: :boolean }
               } } }
           },
+          AbroaFeePlan: {
+            type: :object, required: %w[id project_id name kind currency status gross_amount
+              discount_amount amount_due paid_amount outstanding_amount refundable_deposit lock_version],
+            properties: {
+              id: { type: :string, format: :uuid },
+              project_id: { type: :string, format: :uuid },
+              name: { type: :string },
+              kind: { type: :string, enum: %w[tuition housing rent deposit visa insurance transport textbooks exam application other] },
+              currency: { type: :string },
+              status: { type: :string, enum: %w[active cancelled] },
+              gross_amount: { type: :string }, discount_amount: { type: :string },
+              amount_due: { type: :string }, paid_amount: { type: :string, nullable: true },
+              outstanding_amount: { type: :string, nullable: true },
+              incomplete: { type: :boolean }, refundable_deposit: { type: :boolean },
+              budget_node_id: { type: :string, format: :uuid, nullable: true },
+              fund_pool_id: { type: :string, format: :uuid, nullable: true },
+              recurring_transaction_id: { type: :string, format: :uuid, nullable: true },
+              category_id: { type: :string, format: :uuid, nullable: true },
+              lock_version: { type: :integer }
+            }
+          },
+          AbroaFeePlanResponse: {
+            type: :object, required: %w[data],
+            properties: { data: { '$ref' => '#/components/schemas/AbroaFeePlan' } }
+          },
+          AbroaFeePlanListResponse: {
+            type: :object, required: %w[data meta],
+            properties: {
+              data: { type: :array, items: { '$ref' => '#/components/schemas/AbroaFeePlan' } },
+              meta: { type: :object, required: %w[next_cursor],
+                properties: { next_cursor: { type: :string, nullable: true } } }
+            }
+          },
+          AbroaFeePlanCreate: {
+            type: :object, required: %w[name kind currency gross_amount], additionalProperties: false,
+            properties: {
+              name: { type: :string },
+              kind: { type: :string, enum: %w[tuition housing rent deposit visa insurance transport textbooks exam application other] },
+              currency: { type: :string },
+              gross_amount: { type: :string }, discount_amount: { type: :string },
+              budget_node_id: { type: :string, format: :uuid, nullable: true },
+              fund_pool_id: { type: :string, format: :uuid, nullable: true },
+              recurring_transaction_id: { type: :string, format: :uuid, nullable: true },
+              category_id: { type: :string, format: :uuid, nullable: true }
+            }
+          },
+          AbroaFeePlanUpdate: {
+            type: :object, required: %w[lock_version], additionalProperties: false,
+            properties: {
+              lock_version: { type: :integer, minimum: 0 },
+              name: { type: :string },
+              kind: { type: :string, enum: %w[tuition housing rent deposit visa insurance transport textbooks exam application other] },
+              currency: { type: :string },
+              gross_amount: { type: :string }, discount_amount: { type: :string },
+              budget_node_id: { type: :string, format: :uuid, nullable: true },
+              fund_pool_id: { type: :string, format: :uuid, nullable: true },
+              recurring_transaction_id: { type: :string, format: :uuid, nullable: true },
+              category_id: { type: :string, format: :uuid, nullable: true }
+            }
+          },
+          AbroaFeeInstallment: {
+            type: :object, required: %w[id fee_plan_id name due_on state gross_amount
+              discount_amount net_amount paid_amount outstanding_amount payment_status lock_version],
+            properties: {
+              id: { type: :string, format: :uuid },
+              fee_plan_id: { type: :string, format: :uuid },
+              name: { type: :string }, due_on: { type: :string, format: :date },
+              state: { type: :string, enum: %w[draft confirmed cancelled] },
+              gross_amount: { type: :string }, discount_amount: { type: :string },
+              net_amount: { type: :string }, paid_amount: { type: :string, nullable: true },
+              outstanding_amount: { type: :string, nullable: true }, incomplete: { type: :boolean },
+              payment_status: { type: :string, enum: %w[draft pending overdue partially_paid paid cancelled unavailable] },
+              lock_version: { type: :integer }
+            }
+          },
+          AbroaFeeInstallmentResponse: {
+            type: :object, required: %w[data],
+            properties: { data: { '$ref' => '#/components/schemas/AbroaFeeInstallment' } }
+          },
+          AbroaFeeInstallmentListResponse: {
+            type: :object, required: %w[data meta],
+            properties: {
+              data: { type: :array, items: { '$ref' => '#/components/schemas/AbroaFeeInstallment' } },
+              meta: { type: :object, required: %w[next_cursor],
+                properties: { next_cursor: { type: :string, nullable: true } } }
+            }
+          },
+          AbroaFeeInstallmentCreate: {
+            type: :object, required: %w[name due_on gross_amount], additionalProperties: false,
+            properties: {
+              name: { type: :string }, due_on: { type: :string, format: :date },
+              gross_amount: { type: :string }, discount_amount: { type: :string },
+              state: { type: :string, enum: %w[draft confirmed cancelled] }
+            }
+          },
+          AbroaFeeInstallmentUpdate: {
+            type: :object, required: %w[lock_version], additionalProperties: false,
+            properties: {
+              lock_version: { type: :integer, minimum: 0 },
+              name: { type: :string }, due_on: { type: :string, format: :date },
+              gross_amount: { type: :string }, discount_amount: { type: :string },
+              state: { type: :string, enum: %w[draft confirmed cancelled] }
+            }
+          },
+          AbroaFeeSettlement: {
+            type: :object, required: %w[id fee_installment_id kind amount currency fee_amount
+              fee_currency source_date consistent created_at],
+            properties: {
+              id: { type: :string, format: :uuid },
+              fee_installment_id: { type: :string, format: :uuid },
+              kind: { type: :string, enum: %w[payment refund] },
+              allocation_id: { type: :string, format: :uuid, nullable: true },
+              refund_link_id: { type: :string, format: :uuid, nullable: true },
+              amount: { type: :string }, currency: { type: :string },
+              fee_amount: { type: :string }, fee_currency: { type: :string },
+              source_date: { type: :string, format: :date },
+              rate_snapshot_id: { type: :string, format: :uuid, nullable: true },
+              consistent: { type: :boolean }, created_at: { type: :string, format: :"date-time" }
+            }
+          },
+          AbroaFeeSettlementResponse: {
+            type: :object, required: %w[data],
+            properties: { data: { '$ref' => '#/components/schemas/AbroaFeeSettlement' } }
+          },
+          AbroaFeeSettlementListResponse: {
+            type: :object, required: %w[data meta],
+            properties: {
+              data: { type: :array, items: { '$ref' => '#/components/schemas/AbroaFeeSettlement' } },
+              meta: { type: :object, required: %w[next_cursor],
+                properties: { next_cursor: { type: :string, nullable: true } } }
+            }
+          },
+          AbroaFeeSettlementCreate: {
+            type: :object, required: %w[kind amount], additionalProperties: false,
+            properties: {
+              kind: { type: :string, enum: %w[payment refund] },
+              allocation_id: { type: :string, format: :uuid, nullable: true },
+              refund_link_id: { type: :string, format: :uuid, nullable: true },
+              amount: { type: :string }
+            }
+          },
           AbroaFundPool: {
             type: :object, required: %w[id project_id name kind currency status lock_version accounts],
             properties: {

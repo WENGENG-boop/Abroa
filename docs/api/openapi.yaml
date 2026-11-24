@@ -32,6 +32,436 @@ components:
             read: Read access
             read_write: Read and write access
   schemas:
+    AbroaFeePlan:
+      type: object
+      required:
+      - id
+      - project_id
+      - name
+      - kind
+      - currency
+      - status
+      - gross_amount
+      - discount_amount
+      - amount_due
+      - paid_amount
+      - outstanding_amount
+      - refundable_deposit
+      - lock_version
+      properties:
+        id:
+          type: string
+          format: uuid
+        project_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        kind:
+          type: string
+          enum:
+          - tuition
+          - housing
+          - rent
+          - deposit
+          - visa
+          - insurance
+          - transport
+          - textbooks
+          - exam
+          - application
+          - other
+        currency:
+          type: string
+        status:
+          type: string
+          enum:
+          - active
+          - cancelled
+        gross_amount:
+          type: string
+        discount_amount:
+          type: string
+        amount_due:
+          type: string
+        paid_amount:
+          type: string
+          nullable: true
+        outstanding_amount:
+          type: string
+          nullable: true
+        incomplete:
+          type: boolean
+        refundable_deposit:
+          type: boolean
+        budget_node_id:
+          type: string
+          format: uuid
+          nullable: true
+        fund_pool_id:
+          type: string
+          format: uuid
+          nullable: true
+        recurring_transaction_id:
+          type: string
+          format: uuid
+          nullable: true
+        category_id:
+          type: string
+          format: uuid
+          nullable: true
+        lock_version:
+          type: integer
+    AbroaFeePlanResponse:
+      type: object
+      required:
+      - data
+      properties:
+        data:
+          "$ref": "#/components/schemas/AbroaFeePlan"
+    AbroaFeePlanListResponse:
+      type: object
+      required:
+      - data
+      - meta
+      properties:
+        data:
+          type: array
+          items:
+            "$ref": "#/components/schemas/AbroaFeePlan"
+        meta:
+          type: object
+          required:
+          - next_cursor
+          properties:
+            next_cursor:
+              type: string
+              nullable: true
+    AbroaFeePlanCreate:
+      type: object
+      required:
+      - name
+      - kind
+      - currency
+      - gross_amount
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+        kind:
+          type: string
+          enum:
+          - tuition
+          - housing
+          - rent
+          - deposit
+          - visa
+          - insurance
+          - transport
+          - textbooks
+          - exam
+          - application
+          - other
+        currency:
+          type: string
+        gross_amount:
+          type: string
+        discount_amount:
+          type: string
+        budget_node_id:
+          type: string
+          format: uuid
+          nullable: true
+        fund_pool_id:
+          type: string
+          format: uuid
+          nullable: true
+        recurring_transaction_id:
+          type: string
+          format: uuid
+          nullable: true
+        category_id:
+          type: string
+          format: uuid
+          nullable: true
+    AbroaFeePlanUpdate:
+      type: object
+      required:
+      - lock_version
+      additionalProperties: false
+      properties:
+        lock_version:
+          type: integer
+          minimum: 0
+        name:
+          type: string
+        kind:
+          type: string
+          enum:
+          - tuition
+          - housing
+          - rent
+          - deposit
+          - visa
+          - insurance
+          - transport
+          - textbooks
+          - exam
+          - application
+          - other
+        currency:
+          type: string
+        gross_amount:
+          type: string
+        discount_amount:
+          type: string
+        budget_node_id:
+          type: string
+          format: uuid
+          nullable: true
+        fund_pool_id:
+          type: string
+          format: uuid
+          nullable: true
+        recurring_transaction_id:
+          type: string
+          format: uuid
+          nullable: true
+        category_id:
+          type: string
+          format: uuid
+          nullable: true
+    AbroaFeeInstallment:
+      type: object
+      required:
+      - id
+      - fee_plan_id
+      - name
+      - due_on
+      - state
+      - gross_amount
+      - discount_amount
+      - net_amount
+      - paid_amount
+      - outstanding_amount
+      - payment_status
+      - lock_version
+      properties:
+        id:
+          type: string
+          format: uuid
+        fee_plan_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        due_on:
+          type: string
+          format: date
+        state:
+          type: string
+          enum:
+          - draft
+          - confirmed
+          - cancelled
+        gross_amount:
+          type: string
+        discount_amount:
+          type: string
+        net_amount:
+          type: string
+        paid_amount:
+          type: string
+          nullable: true
+        outstanding_amount:
+          type: string
+          nullable: true
+        incomplete:
+          type: boolean
+        payment_status:
+          type: string
+          enum:
+          - draft
+          - pending
+          - overdue
+          - partially_paid
+          - paid
+          - cancelled
+          - unavailable
+        lock_version:
+          type: integer
+    AbroaFeeInstallmentResponse:
+      type: object
+      required:
+      - data
+      properties:
+        data:
+          "$ref": "#/components/schemas/AbroaFeeInstallment"
+    AbroaFeeInstallmentListResponse:
+      type: object
+      required:
+      - data
+      - meta
+      properties:
+        data:
+          type: array
+          items:
+            "$ref": "#/components/schemas/AbroaFeeInstallment"
+        meta:
+          type: object
+          required:
+          - next_cursor
+          properties:
+            next_cursor:
+              type: string
+              nullable: true
+    AbroaFeeInstallmentCreate:
+      type: object
+      required:
+      - name
+      - due_on
+      - gross_amount
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+        due_on:
+          type: string
+          format: date
+        gross_amount:
+          type: string
+        discount_amount:
+          type: string
+        state:
+          type: string
+          enum:
+          - draft
+          - confirmed
+          - cancelled
+    AbroaFeeInstallmentUpdate:
+      type: object
+      required:
+      - lock_version
+      additionalProperties: false
+      properties:
+        lock_version:
+          type: integer
+          minimum: 0
+        name:
+          type: string
+        due_on:
+          type: string
+          format: date
+        gross_amount:
+          type: string
+        discount_amount:
+          type: string
+        state:
+          type: string
+          enum:
+          - draft
+          - confirmed
+          - cancelled
+    AbroaFeeSettlement:
+      type: object
+      required:
+      - id
+      - fee_installment_id
+      - kind
+      - amount
+      - currency
+      - fee_amount
+      - fee_currency
+      - source_date
+      - consistent
+      - created_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        fee_installment_id:
+          type: string
+          format: uuid
+        kind:
+          type: string
+          enum:
+          - payment
+          - refund
+        allocation_id:
+          type: string
+          format: uuid
+          nullable: true
+        refund_link_id:
+          type: string
+          format: uuid
+          nullable: true
+        amount:
+          type: string
+        currency:
+          type: string
+        fee_amount:
+          type: string
+        fee_currency:
+          type: string
+        source_date:
+          type: string
+          format: date
+        rate_snapshot_id:
+          type: string
+          format: uuid
+          nullable: true
+        consistent:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+    AbroaFeeSettlementResponse:
+      type: object
+      required:
+      - data
+      properties:
+        data:
+          "$ref": "#/components/schemas/AbroaFeeSettlement"
+    AbroaFeeSettlementListResponse:
+      type: object
+      required:
+      - data
+      - meta
+      properties:
+        data:
+          type: array
+          items:
+            "$ref": "#/components/schemas/AbroaFeeSettlement"
+        meta:
+          type: object
+          required:
+          - next_cursor
+          properties:
+            next_cursor:
+              type: string
+              nullable: true
+    AbroaFeeSettlementCreate:
+      type: object
+      required:
+      - kind
+      - amount
+      additionalProperties: false
+      properties:
+        kind:
+          type: string
+          enum:
+          - payment
+          - refund
+        allocation_id:
+          type: string
+          format: uuid
+          nullable: true
+        refund_link_id:
+          type: string
+          format: uuid
+          nullable: true
+        amount:
+          type: string
     AbroaFundPool:
       type: object
       required:
@@ -6728,6 +7158,261 @@ components:
         error:
           type: string
 paths:
+  "/api/v1/abroa/projects/{project_id}/fees":
+    parameters:
+    - name: project_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    get:
+      summary: List project tuition, housing, deposits and other scheduled fees
+      tags:
+      - Abroa study fees
+      security:
+      - apiKeyAuth: []
+      responses:
+        '200':
+          description: Fees
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AbroaFeePlanListResponse"
+    post:
+      summary: Create a gross fee with directly deducted scholarships or discounts
+      tags:
+      - Abroa study fees
+      security:
+      - apiKeyAuth: []
+      parameters:
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+      responses:
+        '201':
+          description: Fee created without bank movement
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AbroaFeePlanResponse"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/AbroaFeePlanCreate"
+        required: true
+  "/api/v1/abroa/projects/{project_id}/fees/{fee_id}":
+    parameters:
+    - name: project_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    - name: fee_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    get:
+      summary: Read an owned fee, plan total, paid amount and remaining liability
+      tags:
+      - Abroa study fees
+      security:
+      - apiKeyAuth: []
+      responses:
+        '200':
+          description: Fee
+    patch:
+      summary: Versioned fee edit, without altering the original ledger
+      tags:
+      - Abroa study fees
+      security:
+      - apiKeyAuth: []
+      parameters: []
+      responses:
+        '200':
+          description: Updated
+      requestBody:
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/AbroaFeePlanUpdate"
+        required: true
+  "/api/v1/abroa/projects/{project_id}/fees/{fee_id}/cancel":
+    parameters:
+    - name: project_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    - name: fee_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    post:
+      summary: Cancel an unpaid fee without deleting transactions
+      tags:
+      - Abroa study fees
+      security:
+      - apiKeyAuth: []
+      parameters: []
+      responses:
+        '200':
+          description: Cancelled
+      requestBody:
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/AbroaLockVersion"
+        required: true
+  "/api/v1/abroa/projects/{project_id}/fees/{fee_id}/installments":
+    parameters:
+    - name: project_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    - name: fee_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    get:
+      summary: List fee installments
+      tags:
+      - Abroa study fees
+      security:
+      - apiKeyAuth: []
+      responses:
+        '200':
+          description: Installments
+    post:
+      summary: Create a dated installment of a net fee
+      tags:
+      - Abroa study fees
+      security:
+      - apiKeyAuth: []
+      parameters:
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+      responses:
+        '201':
+          description: Installment created
+      requestBody:
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/AbroaFeeInstallmentCreate"
+        required: true
+  "/api/v1/abroa/projects/{project_id}/fees/{fee_id}/installments/{installment_id}":
+    parameters:
+    - name: project_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    - name: fee_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    - name: installment_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    get:
+      summary: Read an installment and its confirmed payment state
+      tags:
+      - Abroa study fees
+      security:
+      - apiKeyAuth: []
+      responses:
+        '200':
+          description: Installment
+    patch:
+      summary: Change due date or discount with optimistic locking
+      tags:
+      - Abroa study fees
+      security:
+      - apiKeyAuth: []
+      parameters: []
+      responses:
+        '200':
+          description: Updated installment
+      requestBody:
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/AbroaFeeInstallmentUpdate"
+        required: true
+  "/api/v1/abroa/projects/{project_id}/fees/{fee_id}/installments/{installment_id}/settlements":
+    parameters:
+    - name: project_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    - name: fee_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    - name: installment_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    get:
+      summary: List payment and refund links to real ledger entries
+      tags:
+      - Abroa study fees
+      security:
+      - apiKeyAuth: []
+      responses:
+        '200':
+          description: Settlements
+    post:
+      summary: Reconcile a fee with confirmed entry allocation or authoritative refund
+        link
+      tags:
+      - Abroa study fees
+      security:
+      - apiKeyAuth: []
+      parameters:
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+      responses:
+        '201':
+          description: Linked without creating another financial entry
+      requestBody:
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/AbroaFeeSettlementCreate"
+        required: true
   "/api/v1/abroa/projects/{project_id}/pools":
     parameters:
     - name: project_id

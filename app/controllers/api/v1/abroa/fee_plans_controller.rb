@@ -1,0 +1,45 @@
+class Api::V1::Abroa::FeePlansController < Api::V1::Abroa::BaseController
+  before_action :ensure_write_access, only: %i[create update cancel]
+  rescue_from ::Abroa::FeePlan::Conflict, with: :render_conflict
+  rescue_from ArgumentError, with: :render_invalid_input
+
+  def index
+    page = ::Abroa::Page.fetch(project.fee_plans, limit: params[:limit], cursor: params[:cursor])
+    render_json({ data: page[:rows].map { |plan| plan.payload_for(Current.user) }, meta: { next_cursor: page[:next_cursor] } })
+  end
+
+  def show
+    render_json({ data: fee.payload_for(Current.user) })
+  end
+
+  def create
+    fields = body_fields!(*::Abroa::FeePlan::FIELDS)
+    record = ::Abroa::FeePlan.create_for!(Current.user, project.id,
+      attributes: fields, key: require_idempotency_key!)
+    render_json({ data: record.payload_for(Current.user) }, status: :created)
+  end
+
+  def update
+    fields = body_fields!(*::Abroa::FeePlan::FIELDS, :lock_version)
+    record = ::Abroa::FeePlan.change_for!(Current.user, fee.id,
+      version: fields.delete(:lock_version), attributes: fields)
+    render_json({ data: record.payload_for(Current.user) })
+  end
+
+  def cancel
+    fields = body_fields!(:lock_version)
+    record = ::Abroa::FeePlan.cancel_for!(Current.user, fee.id, version: fields[:lock_version])
+    render_json({ data: record.payload_for(Current.user) })
+  end
+
+  private
+    def project
+      raise ActiveRecord::RecordNotFound unless valid_uuid?(params[:project_id])
+      @project ||= ::Abroa::StudyProject.find_for!(Current.user, params[:project_id])
+    end
+
+    def fee
+      raise ActiveRecord::RecordNotFound unless valid_uuid?(params[:id])
+      @fee ||= project.fee_plans.find(params[:id])
+    end
+end
