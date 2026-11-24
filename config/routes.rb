@@ -822,6 +822,13 @@ Rails.application.routes.draw do
   namespace :api do
     namespace :v1 do
       namespace :abroa do
+        get "reviews", to: "source_reviews#index"
+        post "reviews", to: "source_reviews#create"
+        post "reviews/:id/resolve", to: "source_reviews#resolve"
+        post "source-actions/:id/reverse", to: "source_reviews#reverse"
+        post "refund-links", to: "refund_links#create"
+        get "refund-links/:id", to: "refund_links#show"
+        delete "refund-links/:id", to: "refund_links#destroy"
         get "regions/:country_code", to: "currency#region"
         get "accounts/:account_id/profile", to: "currency#account_profile"
         patch "accounts/:account_id/profile", to: "currency#update_account_profile"

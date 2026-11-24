@@ -64,6 +64,36 @@ RSpec.configure do |config|
           }
         },
         schemas: {
+          AbroaSourceReview: {
+            type: :object, required: %w[id source_record_id reason_code candidate_ids status lock_version proposed_action],
+            properties: {
+              id: { type: :string, format: :uuid }, source_record_id: { type: :string, format: :uuid },
+              reason_code: { type: :string }, candidate_ids: { type: :array, items: { type: :string, format: :uuid } },
+              status: { type: :string, enum: %w[pending resolved dismissed] },
+              lock_version: { type: :integer }, proposed_action: { type: :string }
+            }
+          },
+          AbroaSourceActionResponse: {
+            type: :object, required: %w[data],
+            properties: { data: { type: :object, required: %w[id source_record_id review_id operation entry_id reversed_at],
+              properties: {
+                id: { type: :string, format: :uuid }, source_record_id: { type: :string, format: :uuid },
+                review_id: { type: :string, format: :uuid }, operation: { type: :string },
+                entry_id: { type: :string, format: :uuid, nullable: true },
+                reversed_at: { type: :string, format: 'date-time', nullable: true }
+              } } }
+          },
+          AbroaRefundResponse: {
+            type: :object, required: %w[data],
+            properties: { data: { type: :object, required: %w[id original_entry_id refund_entry_id applied_amount refund_amount currency refund_currency refund_date rate_snapshot_id revoked_at consistent],
+              properties: {
+                id: { type: :string, format: :uuid }, original_entry_id: { type: :string, format: :uuid },
+                refund_entry_id: { type: :string, format: :uuid }, applied_amount: { type: :string },
+                refund_amount: { type: :string }, currency: { type: :string }, refund_currency: { type: :string },
+                refund_date: { type: :string, format: :date }, rate_snapshot_id: { type: :string, format: :uuid, nullable: true },
+                revoked_at: { type: :string, format: 'date-time', nullable: true }, consistent: { type: :boolean }
+              } } }
+          },
           AbroaRateResponse: {
             type: :object, required: %w[data],
             properties: { data: { type: :object, required: %w[from_currency to_currency rate rate_date as_of source quality incomplete],
