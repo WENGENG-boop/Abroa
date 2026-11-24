@@ -68,7 +68,81 @@ class Abroa::StatementIntakeTest < ActiveSupport::TestCase
     end
   end
 
+  test "confirmed bank-funded statement links unique explicit reference without creating a ledger entry" do
+    account, entry = bank_payment("match-one")
+    statement = personal_statement(account, ["wallet-order"])
+    config = { source_kind: "alipay_statement" }
+    preview = Abroa::StatementIntake.preview_for!(@user, statement_id: statement.id, **config)
+    assert_no_difference "Entry.count" do
+      receipt = Abroa::StatementIntake.publish_for!(@user, statement_id: statement.id,
+        preview_digest: preview.fetch(:preview_digest), **config)
+      assert_equal 1, receipt.summary.fetch("auto_linked_count")
+      assert_equal 0, receipt.summary.fetch("review_count")
+      assert_equal receipt.id, Abroa::StatementIntake.publish_for!(@user, statement_id: statement.id,
+        preview_digest: preview.fetch(:preview_digest), **config).id
+    end
+    source = Abroa::SourceRecord.find_by!(source_kind: "alipay_statement", external_id: "wallet-order")
+    assert_equal "linked", source.status
+    assert_equal entry.id, source.entry_id
+    assert_equal "alipay", entry.reload.transaction.extra.dig("abroa", "payment_channel")
+    assert_equal "Bank charge", entry.name
+    assert_equal true, Abroa::SourceAction.find_by!(source_record: source).after_data.fetch("automatic")
+  end
+
+  test "ambiguous bank entries remain in review with no automatic mutation" do
+    account, entry = bank_payment("match-one")
+    account.entries.create!(entryable: Transaction.new, name: "Other charge", amount: 100,
+      currency: "CNY", date: Date.new(2025, 1, 10))
+    statement = personal_statement(account, ["wallet-order"])
+    preview = Abroa::StatementIntake.preview_for!(@user, statement_id: statement.id, source_kind: "alipay_statement")
+    assert_no_difference "Entry.count" do
+      receipt = Abroa::StatementIntake.publish_for!(@user, statement_id: statement.id,
+        source_kind: "alipay_statement", preview_digest: preview.fetch(:preview_digest))
+      assert_equal 0, receipt.summary.fetch("auto_linked_count")
+      assert_equal 1, receipt.summary.fetch("review_count")
+    end
+    assert_nil entry.reload.transaction.extra.dig("abroa", "payment_channel")
+    assert_nil Abroa::SourceRecord.find_by!(source_kind: "alipay_statement", external_id: "wallet-order").entry_id
+  end
+
+  test "different orders sharing the same reference in one file do not auto-link" do
+    account, entry = bank_payment("match-one")
+    statement = personal_statement(account, ["wallet-one", "wallet-two"])
+    preview = Abroa::StatementIntake.preview_for!(@user, statement_id: statement.id, source_kind: "alipay_statement")
+    assert_no_difference "Entry.count" do
+      receipt = Abroa::StatementIntake.publish_for!(@user, statement_id: statement.id,
+        source_kind: "alipay_statement", preview_digest: preview.fetch(:preview_digest))
+      assert_equal 0, receipt.summary.fetch("auto_linked_count")
+      assert_equal 2, receipt.summary.fetch("review_count")
+    end
+    assert_nil entry.reload.transaction.extra.dig("abroa", "payment_channel")
+  end
+
   private
+    def bank_payment(reference)
+      account = Account.create!(family: @user.family, owner: @user, accountable: Depository.new,
+        name: "CNY bank", currency: "CNY", balance: 1000)
+      entry = account.entries.create!(entryable: Transaction.new, name: "Bank charge", amount: 100,
+        currency: "CNY", date: Date.new(2025, 1, 10), source: "test-provider", external_id: "bank-one")
+      normalized = Abroa::NormalizedSource.build(
+        source_kind: "bank_provider", source_instance_key: "test-bank",
+        source_row_key: "provider:bank-one", external_id: "bank-one",
+        raw_digest: Digest::SHA256.hexdigest("bank-one"), local_date: entry.date,
+        amount: "100", currency: "CNY", direction: "outflow", provider_status: "posted",
+        transaction_kind: "payment", description: "Bank charge", provider_name: entry.source, reference: reference
+      )
+      record = Abroa::SourceRecord.ingest!(family: @user.family, account: account, record: normalized)
+      record.link_existing_provider_entry!(entry)
+      [ account, entry ]
+    end
+
+    def personal_statement(account, orders)
+      header = "交易时间,交易分类,交易对方,对方账号,商品说明,收/支,金额,收/付款方式,交易状态,交易订单号,商家订单号,备注\n"
+      rows = orders.map { |order| "2025-01-10 10:00:00,购物,测试商户,,商品,支出,100.00,银行卡,交易成功,#{order},match-one,\n" }
+      AccountStatement.create_from_upload!(family: @user.family, account: account,
+        file: Upload.new("wallet.csv", "text/csv", StringIO.new(header + rows.join)))
+    end
+
     def publish(preview)
       Abroa::StatementIntake.publish_for!(@user, statement_id: @statement.id, **@config,
         preview_digest: preview.fetch(:preview_digest))
