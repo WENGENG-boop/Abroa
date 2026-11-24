@@ -5,15 +5,16 @@ module Abroa
     PROVIDER_STATUSES = %w[posted pending failed closed].freeze
     TRANSACTION_KINDS = %w[payment income refund transfer unknown].freeze
     CHANNELS = %w[alipay wechat apple_pay google_pay card cash bank_transfer other].freeze
+    FUNDING_KINDS = %w[wallet bank_account unknown].freeze
 
     FIELDS = %i[source_kind source_instance_key source_row_key external_id raw_digest local_date
       occurred_at amount currency direction provider_status transaction_kind description payment_channel
-      reference provider_name].freeze
+      reference provider_name funding_kind].freeze
     attr_reader(*FIELDS)
 
     def self.build(source_kind:, source_instance_key:, source_row_key:, raw_digest:, local_date:, amount:,
         currency:, direction:, provider_status:, transaction_kind:, description:, external_id: nil,
-        occurred_at: nil, payment_channel: nil, reference: nil, provider_name: nil)
+        occurred_at: nil, payment_channel: nil, reference: nil, provider_name: nil, funding_kind: "unknown")
       values = {
         source_kind: choice!(source_kind, KINDS), source_instance_key: text!(source_instance_key, 128),
         source_row_key: text!(source_row_key, 192), external_id: optional_text!(external_id, 256),
@@ -22,7 +23,8 @@ module Abroa
         direction: choice!(direction, DIRECTIONS), provider_status: choice!(provider_status, PROVIDER_STATUSES),
         transaction_kind: choice!(transaction_kind, TRANSACTION_KINDS), description: text!(description, 256),
         payment_channel: payment_channel.nil? ? nil : choice!(payment_channel, CHANNELS),
-        reference: optional_text!(reference, 256), provider_name: optional_text!(provider_name, 64)
+        reference: optional_text!(reference, 256), provider_name: optional_text!(provider_name, 64),
+        funding_kind: choice!(funding_kind, FUNDING_KINDS)
       }
       unless local_date.instance_of?(Date) && local_date.year.positive?
         raise ArgumentError, "Invalid source date"
@@ -31,7 +33,7 @@ module Abroa
         raise ArgumentError, "Invalid source timestamp"
       end
       if values[:provider_status].in?(%w[posted pending]) &&
-          (!values[:amount].positive? || direction == "unknown")
+          (!values[:amount].positive? || (direction == "unknown" && !transaction_kind.in?(%w[transfer unknown])))
         raise ArgumentError, "A financial movement requires a positive magnitude and known direction"
       end
       if source_kind == "bank_provider" && (values[:external_id].nil? || values[:provider_name].nil?)
@@ -64,7 +66,7 @@ module Abroa
         "amount" => amount.to_s("F"), "currency" => currency, "direction" => direction,
         "provider_status" => provider_status, "transaction_kind" => transaction_kind,
         "description" => description, "payment_channel" => payment_channel,
-        "reference" => reference, "provider_name" => provider_name
+        "reference" => reference, "provider_name" => provider_name, "funding_kind" => funding_kind
       }
     end
 
