@@ -21,3 +21,21 @@
 ## 验收状态
 
 本次只读源码，未运行 Ruby、数据库、Docker 或测试。原版测试路径见 P0.1 记录，不能标记 VERIFIED。继续 P0.2；P0.3 仍受环境阻塞。
+
+
+## P0.2 第二批：身份、回滚、周期分配、AI 写路径
+
+以下源码及测试声明均已直接读取，尚未执行。
+
+| 证据 | 已核实行为 | Abroa 实施约束 |
+|---|---|---|
+| app/models/oidc_identity.rb:1–125 | provider + uid 唯一校验；身份锁与黑名单；保存 issuer；旧身份 issuer 为空或配置无 issuer 时兼容放行；IdP 可映射原版角色 | Google 专用入口须核实 issuer/subject/email_verified；不得把 IdP group 映射为 Abroa 平台权限；新身份不沿用空 issuer 兼容例外 |
+| app/controllers/api/v1/auth_controller.rb:217–361 | 绑定既有账号须密码验证；一次性链接码原子领取；身份、审计、设备 token 事务；新 SSO 用户可接受 Sure family 邀请或新建 family | 学生与家长分别建立独立 family；Abroa 关联邀请不复用加入同 family 的语义；Google Web 流程及真实凭证仍需验收 |
+| app/models/import.rb:276–351；app/jobs/revert_import_job.rb | 已完成/正在回滚批次拒绝重复 publish；revert 在事务中销毁导入账户及顶层 Entry，之后同步；回滚失败可重试 | 跨源来源记录和用户后续修改必须独立记录；不能直接调用原版破坏性 revert 作为 Abroa 来源撤销 |
+| app/models/recurring_transaction/allocator.rb:30–151 | occurrence 行锁及按拆分根 Entry 的事务 advisory lock；容量包含 split counterpart；跨币种 source_amount；允许 entry-less 手工支付；可选 cap_at_remaining | 留学费用已支付事实要求真实 Entry；付款占用必须纳入统一锁和原版容量，不能双重核销；无 Entry 只可表示待确认计划 |
+| app/models/assistant/function/update_budget.rb:90–151；create_transaction.rb:138–242 | update_budget 在事务内直接写预算；create_transaction 直接写 Entry，有可选稳定外部 ID 幂等、可写账户 scope | 聊天写入口必须先产生提议，确认后由服务器授权执行；幂等需覆盖所有确认动作，不能仅依赖调用方提供 external_id |
+| app/models/subscription.rb:7–52 | active 状态要求 stripe_id，存在 synthetic/demo 判别 | 免费核心与套餐权益独立，不伪造 Stripe 状态或启用真实扣费 |
+
+已有测试声明证据：entry_split_test.rb 覆盖拆分守恒、禁止转账/重复拆分；transfer_test.rb 覆盖同租户、相反金额、确认分类及删除恢复；recurring_transaction/allocator_concurrency_test.rb 覆盖并发超分配、匹配与手工核销竞争；assistant/function/update_budget_test.rb 覆盖跨 family 分类拒绝及事务回滚；api/v1/auth_controller_test.rb 覆盖开放注册限制、邀请、账号创建及无效设备。Goal 测试包含历史整账户重叠兼容情形；新增约束不应破坏既有数据读取。
+
+P0.2 仍需完整核查 Web OIDC、报表/退款、provider/导入子类、Goal backing、AI 工具分派、订阅 gating、后台任务、schema/migration 及测试断言。未标记完成。
