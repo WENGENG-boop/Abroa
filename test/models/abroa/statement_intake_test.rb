@@ -176,6 +176,33 @@ class Abroa::StatementIntakeTest < ActiveSupport::TestCase
     assert_equal "linked", Abroa::SourceRecord.find_by!(entry: entry, source_kind: "bank_provider").status
   end
 
+  test "later statement evidence blocks rollback of the original batch" do
+    account, entry = bank_payment("match-one")
+    config = { source_kind: "alipay_statement" }
+    first = personal_statement(account, ["wallet-order"])
+    preview = Abroa::StatementIntake.preview_for!(@user, statement_id: first.id, **config)
+    receipt = Abroa::StatementIntake.publish_for!(@user, statement_id: first.id,
+      preview_digest: preview.fetch(:preview_digest), **config)
+    bytes = first.original_file.download + "\n"
+    second = AccountStatement.create_from_upload!(family: @user.family, account: account,
+      file: Upload.new("later.csv", "text/csv", StringIO.new(bytes)))
+    preview = Abroa::StatementIntake.preview_for!(@user, statement_id: second.id, **config)
+    Abroa::StatementIntake.publish_for!(@user, statement_id: second.id,
+      preview_digest: preview.fetch(:preview_digest), **config)
+    source = Abroa::SourceRecord.find_by!(source_kind: "alipay_statement", external_id: "wallet-order")
+    assert_equal 2, source.observations.count
+    assert_no_difference "Entry.count" do
+      [first, second].each do |statement|
+        assert_raises(Abroa::StatementIntake::Conflict) do
+          Abroa::StatementIntake.rollback_for!(@user, statement_id: statement.id)
+        end
+      end
+    end
+    assert_equal "staged", receipt.reload.payload.fetch(:status)
+    assert_equal "linked", source.reload.status
+    assert_equal "alipay", entry.reload.transaction.extra.dig("abroa", "payment_channel")
+  end
+
   private
     def bank_payment(reference)
       account = Account.create!(family: @user.family, owner: @user, accountable: Depository.new,
