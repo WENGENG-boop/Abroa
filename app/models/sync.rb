@@ -22,6 +22,7 @@ class Sync < ApplicationRecord
   scope :visible, -> { incomplete.where("syncs.created_at > ?", VISIBLE_FOR.ago).where(cancel_requested_at: nil) }
 
   after_commit :update_family_sync_timestamp, on: [ :create, :update ]
+  after_update_commit :enqueue_abroa_source_capture, if: -> { saved_change_to_status? && completed? && syncable_type == "Account" }
 
   serialize :sync_stats, coder: JSON
 
@@ -218,7 +219,7 @@ class Sync < ApplicationRecord
           # while this job was still running. An unguarded fail! on the in-memory
           # record would silently overwrite that terminal status.
           with_lock { fail! if may_fail? }
-          update(error: e.message)
+          update(error: e.message, data: (data || {}).merge("abroa_error_code" => Abroa::ProviderSyncStatus.code(e)))
           report_error(e)
         ensure
           finalize_if_all_children_finalized
@@ -334,6 +335,12 @@ class Sync < ApplicationRecord
     end
 
   private
+    def enqueue_abroa_source_capture
+      Abroa::ProviderCaptureJob.perform_later(id)
+    rescue StandardError => e
+      Rails.logger.warn("Abroa provider capture enqueue failed: #{e.class}")
+    end
+
     def log_status_change
       Rails.logger.info("changing from #{aasm.from_state} to #{aasm.to_state} (event: #{aasm.current_event})")
     end
