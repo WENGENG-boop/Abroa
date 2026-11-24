@@ -1,0 +1,33 @@
+{
+  "split_bill": {
+    "charge": "1000.00",
+    "parts": [
+      {
+        "name": "Rent",
+        "amount": "700.00"
+      },
+      {
+        "name": "Utilities",
+        "amount": "300.00"
+      }
+    ],
+    "reported_expense": "1000.00",
+    "remaining_due": "0.00"
+  },
+  "refund": {
+    "purchase": "1000.00",
+    "refund": "200.00",
+    "net_cost": "800.00"
+  },
+  "credit_card_payment": {
+    "amount": "100.00",
+    "reported_expense": "0.00"
+  },
+  "goal_consume": {
+    "account_balance": "1000.00",
+    "target": "700.00",
+    "initial_allocation": "700.00",
+    "consumed": "200.00",
+    "remaining_allocation": "500.00"
+  }
+}

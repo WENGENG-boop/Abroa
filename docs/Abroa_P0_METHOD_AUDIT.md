@@ -39,3 +39,11 @@
 已有测试声明证据：entry_split_test.rb 覆盖拆分守恒、禁止转账/重复拆分；transfer_test.rb 覆盖同租户、相反金额、确认分类及删除恢复；recurring_transaction/allocator_concurrency_test.rb 覆盖并发超分配、匹配与手工核销竞争；assistant/function/update_budget_test.rb 覆盖跨 family 分类拒绝及事务回滚；api/v1/auth_controller_test.rb 覆盖开放注册限制、邀请、账号创建及无效设备。Goal 测试包含历史整账户重叠兼容情形；新增约束不应破坏既有数据读取。
 
 P0.2 仍需完整核查 Web OIDC、报表/退款、provider/导入子类、Goal backing、AI 工具分派、订阅 gating、后台任务、schema/migration 及测试断言。未标记完成。
+
+
+## 报表兼容及黄金用例
+
+- IncomeStatement::ScopedTransactionsQuery#classification_sql / #converted_amount_sql：普通负数归入 income，贷款和投资贡献单独分类，按 Entry 日期汇率转换；缺失汇率返回 NULL。IncomeStatement::Totals 对总和 COALESCE 为 0，因此 Abroa 必须单独报告缺失汇率，不能把 0 当完整结果。
+- IncomeStatement::CategoryNetting#groups：按类别将 expense - income 净额，并从父类合计扣除子类，避免退款重复净额。原版分类净额不等于 Abroa 明确的退款关系；新模块须单独记录原消费/退款关联。
+- db/schema.rb 版本 2026_11_23_220100；Entry 同源 ID/幂等唯一索引及 OIDC provider/uid 唯一索引已确认。新增迁移必须使用 ActiveRecord::Migration[8.1]。
+- P0.5 新增实际模型/报表的四个黄金回归场景（拆分核销、退款、信用卡还款、Goal 消费），见 test/integration/abroa_core_compatibility_test.rb 与 test/fixtures/files/abroa/golden_core_cases.json。需运行测试后验证；跨币换汇、严格资金池、定向拨款与应收应付的新增业务测试仍在后续实施中补齐。
