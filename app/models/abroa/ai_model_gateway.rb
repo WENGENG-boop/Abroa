@@ -106,11 +106,21 @@ module Abroa
       end
       raise ModelFailure, "Model returned unsuccessful status" unless res.is_a?(Net::HTTPSuccess)
       parsed = JSON.parse(response_body)
-      text = parsed.dig("choices", 0, "message", "content")
+      raise ModelFailure, "Malformed model response" unless parsed.is_a?(Hash)
+      choices = parsed["choices"]
+      raise ModelFailure, "Malformed model choices" unless choices.is_a?(Array) &&
+        choices.first.is_a?(Hash)
+      first_choice = choices.first
+      message = first_choice["message"]
+      text = message["content"] if message.is_a?(Hash)
       raise ModelFailure, "Model response missing content" unless text.is_a?(String) &&
         text.bytesize.between?(1, MAX_TEXT_BYTES)
-      info = parsed["usage"].is_a?(Hash) ? parsed["usage"] : {}
-      finish_reason = parsed.dig("choices", 0, "finish_reason")
+      usage = parsed["usage"]
+      raise ModelFailure, "Malformed model usage" if usage && !usage.is_a?(Hash)
+      info = usage || {}
+      finish_reason = first_choice["finish_reason"]
+      raise ModelFailure, "Unexpected model tool request" if
+        %w[tool_calls function_call].include?(finish_reason)
       {
         text: text,
         input_tokens: valid_token_count(info["prompt_tokens"]),
@@ -119,10 +129,13 @@ module Abroa
         incomplete: finish_reason == "length",
         total_cost: nil, status: "success"
       }
-    rescue Net::OpenTimeout, Net::ReadTimeout, Net::WriteTimeout, ::Timeout::Error
+    rescue Net::OpenTimeout, Net::ReadTimeout, Net::WriteTimeout, ::Timeout::Error,
+      Errno::ETIMEDOUT
       raise Timeout, "AI service timed out"
     rescue JSON::ParserError, OpenSSL::SSL::SSLError, EOFError, Errno::ECONNRESET,
-      Errno::ECONNREFUSED, SocketError
+      Errno::ECONNREFUSED, Errno::ECONNABORTED, Errno::EHOSTUNREACH,
+      Errno::EPIPE, Net::HTTPBadResponse, Net::HTTPHeaderSyntaxError,
+      SocketError, IOError
       raise ModelFailure, "AI service request failed"
     end
 

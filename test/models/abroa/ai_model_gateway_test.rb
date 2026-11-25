@@ -56,6 +56,28 @@ class Abroa::AiModelGatewayTest < ActiveSupport::TestCase
     assert_raises(Abroa::AiModelGateway::ModelFailure) { chat_with(http) }
   end
 
+  test "gateway rejects valid JSON with unexpected response shapes as model failures" do
+    malformed_shapes = [
+      "null", "true", "123", %("text"), "[]", %({"choices":"PONG"}),
+      %({"choices":[{"message":42}]}), %({"choices":[{"message":{"content":42}}]}),
+      %({"choices":[{"message":{"content":"PONG"}}],"usage":"bad"})
+    ]
+    malformed_shapes.each do |body|
+      http = FakeHttp.new(response_for(Net::HTTPOK, body))
+      assert_raises(Abroa::AiModelGateway::ModelFailure, "Must reject #{body}") do
+        chat_with(http)
+      end
+    end
+  end
+
+  test "gateway maps invalid HTTP framing and connection aborts to safe model failures" do
+    [ Net::HTTPBadResponse.new("invalid response"), Errno::EHOSTUNREACH.new,
+      Errno::ECONNABORTED.new, Errno::EPIPE.new ].each do |error|
+      http = FakeHttp.new(nil, error)
+      assert_raises(Abroa::AiModelGateway::ModelFailure) { chat_with(http) }
+    end
+  end
+
   test "gateway accepts a valid OpenAI compatible response" do
     payload = {
       choices: [ { message: { content: "PONG" } } ],
