@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_25_110500) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_25_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -111,6 +111,25 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_25_110500) do
     t.index ["refund_link_id"], name: "index_abroa_debt_settlements_on_refund_link_id"
     t.index ["refunded_settlement_id"], name: "index_abroa_debt_settlements_on_refunded_settlement_id"
     t.check_constraint "(kind::text = ANY (ARRAY['payment'::character varying::text, 'refund'::character varying::text, 'source_refund'::character varying::text])) AND native_amount > 0::numeric AND applied_amount > 0::numeric AND entry_amount > 0::numeric AND native_amount <> 'NaN'::numeric AND applied_amount <> 'NaN'::numeric AND entry_amount <> 'NaN'::numeric AND (kind::text = 'payment'::text AND refunded_settlement_id IS NULL AND refund_link_id IS NULL OR kind::text = 'refund'::text AND refunded_settlement_id IS NOT NULL AND refund_link_id IS NULL OR kind::text = 'source_refund'::text AND refunded_settlement_id IS NULL AND refund_link_id IS NOT NULL)", name: "abroa_debt_settlement_valid"
+  end
+
+  create_table "abroa_email_outboxes", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "inbox_notification_id", null: false
+    t.uuid "recipient_id", null: false
+    t.uuid "family_id", null: false
+    t.string "status", default: "pending", null: false
+    t.integer "attempt_count", default: 0, null: false
+    t.datetime "next_retry_at"
+    t.datetime "sent_at"
+    t.string "error_code"
+    t.integer "lock_version", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["family_id"], name: "index_abroa_email_outboxes_on_family_id"
+    t.index ["inbox_notification_id"], name: "index_abroa_email_outboxes_on_inbox_notification_id", unique: true
+    t.index ["recipient_id"], name: "index_abroa_email_outboxes_on_recipient_id"
+    t.index ["status", "next_retry_at"], name: "index_abroa_email_outboxes_on_status_and_next_retry_at"
+    t.check_constraint "(status::text = ANY (ARRAY['pending'::character varying, 'sending'::character varying, 'sent'::character varying, 'failed'::character varying, 'cancelled'::character varying, 'uncertain'::character varying]::text[])) AND attempt_count >= 0", name: "abroa_outbox_delivery_state"
   end
 
   create_table "abroa_entry_allocations", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -475,6 +494,41 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_25_110500) do
     t.check_constraint "capability::text = ANY (ARRAY['summary'::character varying::text, 'account_balance'::character varying::text, 'transaction_details'::character varying::text, 'budget_read'::character varying::text, 'fees_read'::character varying::text, 'forecasts_read'::character varying::text, 'propose'::character varying::text, 'budget_manage'::character varying::text, 'fees_manage'::character varying::text, 'pool_manage'::character varying::text])", name: "abroa_grant_capabilities"
     t.check_constraint "resource_kind::text = 'project'::text AND resource_id IS NULL OR (resource_kind::text = ANY (ARRAY['budget_node'::character varying::text, 'fee_plan'::character varying::text, 'fund_pool'::character varying::text])) AND resource_id IS NOT NULL", name: "abroa_grant_exact_resource"
     t.check_constraint "status::text = ANY (ARRAY['active'::character varying::text, 'revoked'::character varying::text, 'expired'::character varying::text])", name: "abroa_grant_states"
+  end
+
+  create_table "abroa_inbox_notifications", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "recipient_id", null: false
+    t.uuid "family_id", null: false
+    t.string "event_kind", null: false
+    t.string "source_type", null: false
+    t.uuid "source_id", null: false
+    t.string "event_key_digest", null: false
+    t.datetime "occurred_at", null: false
+    t.datetime "read_at"
+    t.string "state", default: "unread", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["family_id"], name: "index_abroa_inbox_notifications_on_family_id"
+    t.index ["recipient_id", "created_at"], name: "idx_abroa_inbox_recency"
+    t.index ["recipient_id", "event_key_digest"], name: "idx_abroa_inbox_event_dedup", unique: true
+    t.index ["recipient_id"], name: "index_abroa_inbox_notifications_on_recipient_id"
+    t.check_constraint "state::text = ANY (ARRAY['unread'::character varying, 'read'::character varying]::text[])", name: "abroa_inbox_state"
+  end
+
+  create_table "abroa_notification_preferences", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "user_id", null: false
+    t.uuid "family_id", null: false
+    t.boolean "email_enabled", default: false, null: false
+    t.boolean "in_app_enabled", default: true, null: false
+    t.string "timezone", default: "UTC", null: false
+    t.integer "quiet_start_hour"
+    t.integer "quiet_end_hour"
+    t.integer "lock_version", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["family_id"], name: "index_abroa_notification_preferences_on_family_id"
+    t.index ["user_id"], name: "index_abroa_notification_preferences_on_user_id", unique: true
+    t.check_constraint "quiet_start_hour IS NULL AND quiet_end_hour IS NULL OR quiet_start_hour >= 0 AND quiet_start_hour <= 23 AND quiet_end_hour >= 0 AND quiet_end_hour <= 23", name: "abroa_notification_quiet_hours"
   end
 
   create_table "abroa_operation_records", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -4110,6 +4164,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_25_110500) do
   add_foreign_key "abroa_debt_settlements", "entries", on_delete: :restrict
   add_foreign_key "abroa_debt_settlements", "families", on_delete: :cascade
   add_foreign_key "abroa_debt_settlements", "users", column: "actor_id", on_delete: :cascade
+  add_foreign_key "abroa_email_outboxes", "abroa_inbox_notifications", column: "inbox_notification_id", on_delete: :restrict
+  add_foreign_key "abroa_email_outboxes", "families", on_delete: :cascade
+  add_foreign_key "abroa_email_outboxes", "users", column: "recipient_id", on_delete: :cascade
   add_foreign_key "abroa_entry_allocations", "abroa_study_projects", column: "project_id", on_delete: :cascade
   add_foreign_key "abroa_entry_allocations", "categories", on_delete: :nullify
   add_foreign_key "abroa_entry_allocations", "entries", on_delete: :nullify
@@ -4175,6 +4232,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_25_110500) do
   add_foreign_key "abroa_grants", "abroa_study_projects", column: "project_id", on_delete: :cascade
   add_foreign_key "abroa_grants", "families", on_delete: :cascade
   add_foreign_key "abroa_grants", "users", column: "actor_id", on_delete: :cascade
+  add_foreign_key "abroa_inbox_notifications", "families", on_delete: :cascade
+  add_foreign_key "abroa_inbox_notifications", "users", column: "recipient_id", on_delete: :cascade
+  add_foreign_key "abroa_notification_preferences", "families", on_delete: :cascade
+  add_foreign_key "abroa_notification_preferences", "users", on_delete: :cascade
   add_foreign_key "abroa_operation_records", "families", on_delete: :cascade
   add_foreign_key "abroa_operation_records", "users", column: "actor_id", on_delete: :cascade
   add_foreign_key "abroa_personal_debts", "abroa_study_projects", column: "project_id", on_delete: :restrict

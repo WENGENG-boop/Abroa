@@ -18,7 +18,7 @@
 |家长汇总隔离|P3.4|A08/A09|新增|VERIFIED|项目/消费/预算/费用/资金池/现金/拨款的受限投影，账户流水默认脱敏；越权 404、授权撤销即时生效；真实 Web HTTP、Brakeman 0 安全警告及完整回归通过，见 P3_BACKEND_ACCEPTANCE.md。|
 |RECEIVABLE 个人代付|P4.1|A10|扩展|IN_PROGRESS|独立业务提交 95583376d；A10 专项 11/74、双 PG 并发 2/11、Abroa 联合回归 273/1705 均 0 失败；可逆迁移、RuboCop 0 违规、Brakeman 0 活跃警告，详见 P4_BACKEND_ACCEPTANCE.md。等待 P1–P4 联合验收。|
 |FORECAST 全部|P4.2|A11|扩展|IN_PROGRESS|确定性 30/90/180 天现金、资金缺口、计划拨款/压力/生活费/租金/FX、历史消费及已付固定费用去重、留学成本、异常消费、输入指纹；学生/家长实时 Grant 授权；A10–A11 阶段回归 288/1788 通过、RuboCop 5/0、Brakeman 0 活跃警告，见 P4_BACKEND_ACCEPTANCE.md；等待 P1–P4 联合验收。|
-|NOTIFY 站内/邮件|P4.3|A12|扩展|PLANNED|待填|
+|NOTIFY 站内/邮件|P4.3|A12|扩展|IN_PROGRESS|本人站内收件箱/已读/通知偏好、唯一事件键、邮件 Outbox/Sidekiq 调度/权限二次核验、时区静默、明确 SMTP 拒绝安全重试、Worker 中断不盲目重发、P2/P3/Sure 事件路由；A12 专项 17/88 和双 PostgreSQL 并发 2/8 全通过，可逆迁移，见 P4_BACKEND_ACCEPTANCE.md；尚待联合验收。|
 |REPORT 项目/家长/FX|P4.4|A13|扩展|PLANNED|待填|
 |AI-01–07|P4.5|A14|复用+扩展|PLANNED|待填|
 |ADMIN 权限/用户/审计|P5.1|A15-1|扩展|PLANNED|待填|

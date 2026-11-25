@@ -43,3 +43,9 @@ IDOR（读写、列表、批量、导出、附件）、跨 family scope、平台
 Forecast is read-only, deterministic and BigDecimal-based. Student cash account IDs must be accessible and owned, project-linked when project-scoped; inaccessible IDs return 404. It cannot write Entry, balance, transaction or real payment. Input date, scenario, historical FX, amounts, multipliers, delays and finite values are validated before returning numeric results. Zero-history, missing-rates and inconsistent settlement evidence are surfaced explicitly rather than misrepresented as exact financial predictions.
 
 Parent forecast requires an active student-parent relation plus effective project summary/forecasts_read/account_balance/fees_read grants at request time. It removes account identifiers, individual transactions, private debt assumptions, anomaly flags and other parents' unreceived funding plans. It does not persist or reuse parent-specific cached financial data; a withdrawn grant therefore blocks the next request. Scope-specific data-version fingerprints avoid revealing unrelated project edits through cache metadata.
+
+## P4.3 A12 通知与邮件安全
+
+站内通知的唯一 ID、事件键不可用作他人数据访问凭证；收件人必须为当前登录的用户且 family 匹配。查询和已读再次检测源资源（P3 Grant/关系撤销后失去详情权限）；邮件 Worker 执行前重新读取用户、偏好和源权限，拒绝错配 recipient/family/source、跨租户与已撤销授权。邮件正文和主题完全通用，不包含姓名、银行账户、项目、交易、金额、API Key、原始导入文本；收到邮件时仍须在 Abroa 登录后访问收件箱。邮件默认 opt-out；静默时段按用户 timezone 处理。
+
+Outbox 在 PG 事务锁中独占标记 sending；已发出不重复发送；Worker 重启时弃置不确定的旧 sending 为 uncertain（需要人工核实 SMTP 接收情况），明确拒绝的 SMTP 响应才进入安全重试 failed。记录错误类别，不回显 SMTP 响应正文或凭证。真实第三方 SMTP 验证列为外部缺口；本地投递器/真实隔离 PG、Sidekiq 模拟任务属于可执行验收。

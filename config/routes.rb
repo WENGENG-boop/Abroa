@@ -822,6 +822,10 @@ Rails.application.routes.draw do
   namespace :api do
     namespace :v1 do
       namespace :abroa do
+        get "notifications", to: "notifications#index"
+        post "notifications/:id/read", to: "notifications#read"
+        get "notification_preferences", to: "notifications#preferences"
+        patch "notification_preferences", to: "notifications#update_preferences"
         get "forecasts", to: "forecasts#show"
         get "parent/projects/:id/forecast", to: "forecasts#parent"
         resources :personal_debts, only: %i[index show create] do

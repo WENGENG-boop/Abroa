@@ -90,3 +90,10 @@
 Forecasts are read-only computations over Sure's deposited-cash accounts and posted Entry history, P2 confirmed fee installments/payments, P3 received and future planned funding, and P4 personal obligations. No new forecast Ledger, synthetic cash transaction, second accounting subsystem or persistent forecast table is introduced. Historical FX is read through `Abroa::RateSnapshot.quote`; unavailable conversion returns an `incomplete` response and null balances. Aggregation excludes non-cash receivables and target sizes of funds from available cash. Already paid P2 fees are excluded from repeatable daily spend to avoid double counting their next installments.
 
 `Abroa::Forecast::VERSION` identifies the deterministic algorithm; each projection returns a digest of its financial inputs and a UTC data timestamp. `cache_policy=no_persistent_cache` deliberately prevents stale grant-scoped snapshots; input changes therefore invalidate results immediately without cache eviction jobs. The parent projection filters to the granted project and excludes private debt and unrelated parents' unreceived plans.
+
+## P4.3 A12 通知数据结构
+
+`abroa_notification_preferences`：用户唯一、family 租户、邮件默认 false、站内默认 true、IANA 时区、每日静默小时和乐观锁。
+`abroa_inbox_notifications`：收件人及其家庭、稳定事件键 SHA-256（收件人+键唯一索引）、事件类型、源资源指针、发生时间、已读状态；API 不返回私人内容或源对象。对源资源采用类允许表及现时授权检查，不使用来自用户的 dynamic constantize。
+`abroa_email_outboxes`：唯一 `inbox_notification_id`、收件人/租户、pending/sending/sent/failed/cancelled/uncertain、重试次数、下次时间、错误类别、完成时间；不存储收件人邮箱副本、交易内容或凭证，邮件发送前重新读取用户和 Grant。
+唯一新增可逆迁移：`db/migrate/20261125120000_create_abroa_notifications.rb`；复用原 Sure Sidekiq/Redis、ActionMailer 和 P2/P3 历史事件，不另建账本。定时任务在 `config/schedule.yml`。

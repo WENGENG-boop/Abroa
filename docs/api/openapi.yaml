@@ -9837,6 +9837,106 @@ paths:
               schema:
                 type: object
                 additionalProperties: true
+  "/api/v1/abroa/notifications":
+    get:
+      summary: List private, currently authorized generic inbox notifications
+      tags:
+      - Abroa P4 notifications
+      security:
+      - apiKeyAuth: []
+      parameters:
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+      - name: cursor
+        in: query
+        required: false
+        schema:
+          type: string
+      responses:
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  "/api/v1/abroa/notifications/{id}/read":
+    parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    post:
+      summary: Mark a private notification read without exposing its source
+      tags:
+      - Abroa P4 notifications
+      security:
+      - apiKeyAuth: []
+      responses:
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  "/api/v1/abroa/notification_preferences":
+    get:
+      summary: Read personal notification preferences
+      tags:
+      - Abroa P4 notifications
+      security:
+      - apiKeyAuth: []
+      responses:
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+    patch:
+      summary: Change opted-in channels and quiet hours with version guard
+      tags:
+      - Abroa P4 notifications
+      security:
+      - apiKeyAuth: []
+      parameters: []
+      responses:
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                lock_version:
+                  type: integer
+                email_enabled:
+                  type: boolean
+                in_app_enabled:
+                  type: boolean
+                timezone:
+                  type: string
+                quiet_start_hour:
+                  type: integer
+                quiet_end_hour:
+                  type: integer
+              required:
+              - lock_version
+        required: true
   "/api/v1/abroa/profile":
     get:
       summary: Read own Abroa preferences

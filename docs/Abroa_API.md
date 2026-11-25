@@ -115,3 +115,16 @@ P0 核实 API 路由、controller、认证方式及现有 serializer，再将精
 - Values: algorithm and input versions, UTC data timestamp, currency and scenario; day 10/30/90/180 balances, daily historical baseline, first shortage date, shortage amount, runway days, future hypothetical income, reserve warning, 30-day top-up estimate, expected cost to 180 days, and project total/remaining cost estimates. `missing` and `incomplete` report absent historical FX or sources; never substitute missing financial data with a manufactured 0.
 - Conservative and stress scenarios exclude unreceived planned transfers from actual cash; `planned_funding` assumes explicit hypothetical arrivals. No forecast endpoint modifies Sure Ledger, bank balance, actual funding receipts or fee settlements. Cost estimates extrapolate historical daily living spend and add separately identified P2 fee obligations.
 - Input errors return 422, inaccessible account or grant 404, unauthorized 401. Documented in `spec/requests/api/v1/abroa/p4_forecasts_spec.rb` and generated `docs/api/openapi.yaml`.
+
+## P4.3 A12 站内通知与邮件（统一 API）
+
+所有请求均使用已有 Sure API Key 认证；读取允许 read，标记已读和更新偏好要求 read_write，跨租户资源返回 404。
+
+| 方法 | 路径 | 用途 |
+|---|---|---|
+| GET | `/api/v1/abroa/notifications` | 本人事件收件箱、limit/cursor 分页；仅返回仍有查看权限的事件与通用 event_kind、occurred_at、已读状态 |
+| POST | `/api/v1/abroa/notifications/{id}/read` | 本人通知标记已读，幂等；撤销授权或非本人 404 |
+| GET | `/api/v1/abroa/notification_preferences` | 查询邮件和站内开关、timezone、quiet_start_hour/quiet_end_hour、lock_version |
+| PATCH | `/api/v1/abroa/notification_preferences` | `lock_version` + 变更字段，版本冲突 409，不支持未知字段 422 |
+
+通知由 `Abroa::NotificationEventSweepJob` 从 P2 费用事件、P3 Grant/拨款/邀请审计及 Sure 待确认交易、同步失败生成；稳定事件键按收件人唯一。邮箱默认关闭，不默认发送敏感财务信息。邮件由 `EmailOutboxSweepJob`/ `EmailOutboxDeliveryJob` 异步发送，发送前再次核对权限/偏好；GMT/用户 timezone 静默时段重试。Worker 意外中断可能已被 SMTP 接受的 `sending` 被恢复为 `uncertain`，不会盲目重发。明确收到 SMTP 拒绝的 `failed` 可安全重试，最多五次。该阶段只使用本地/模拟邮箱执行验收，真实生产 SMTP 需独立验证。

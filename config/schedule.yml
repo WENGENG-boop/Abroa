@@ -109,6 +109,27 @@ sweep_abroa_fee_reminders:
   queue: "scheduled"
   description: "Emits idempotent due-soon and overdue fee reminder events without sending mail"
 
+sweep_abroa_notification_events:
+  cron: "5 6 * * *" # after P2 fee events; inbox and outbox only
+  class: "Abroa::NotificationEventSweepJob"
+  active_job: true
+  queue: "scheduled"
+  description: "Builds permission-scoped Abroa inbox events from fees, plans, budgets, and syncs"
+
+deliver_abroa_pending_emails:
+  cron: "*/5 * * * *"
+  class: "Abroa::EmailOutboxSweepJob"
+  active_job: true
+  queue: "scheduled"
+  description: "Schedules permission-rechecked, deduplicated mail outbox deliveries"
+
+recover_uncertain_abroa_emails:
+  cron: "10 * * * *"
+  class: "Abroa::EmailOutboxRecoveryJob"
+  active_job: true
+  queue: "scheduled"
+  description: "Flags abandoned SMTP attempts as uncertain, without blind duplicate sends"
+
 
 weekly_cleanup:
   cron: "0 7 * * 1" # Mondays at 7:00 AM UTC, after the nightly jobs
