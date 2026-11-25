@@ -3,12 +3,14 @@ require "net/http"
 
 class Abroa::AiModelGatewayTest < ActiveSupport::TestCase
   FakeHttp = Struct.new(:response, :error,
-    :ipaddr, :use_ssl, :verify_mode, :open_timeout, :read_timeout, :write_timeout) do
+    :ipaddr, :use_ssl, :verify_mode, :open_timeout, :read_timeout, :write_timeout,
+    :last_request) do
     def use_ssl?
       !!use_ssl
     end
 
-    def request(_request)
+    def request(request)
+      self.last_request = request
       raise error if error
 
       yield response
@@ -24,11 +26,10 @@ class Abroa::AiModelGatewayTest < ActiveSupport::TestCase
       { "timeout_seconds" => 10, "max_output_tokens" => 32 })
   end
 
-  def chat_with(fake_http)
+  def chat_with(fake_http, selected_provider: provider, messages: [ { role: "user", content: "PONG" } ])
     Abroa::AiModelGateway.stub(:resolve_public_ips!, [ "8.8.8.8" ]) do
       Net::HTTP.stub(:new, fake_http) do
-        Abroa::AiModelGateway.chat(provider: provider,
-          messages: [ { role: "user", content: "PONG" } ])
+        Abroa::AiModelGateway.chat(provider: selected_provider, messages: messages)
       end
     end
   end
@@ -66,5 +67,57 @@ class Abroa::AiModelGatewayTest < ActiveSupport::TestCase
     assert_equal "PONG", result[:text]
     assert_equal 36, result[:input_tokens]
     assert_equal 15, result[:output_tokens]
+  end
+
+  test "provider permits full 384K output budget and rejects values above model ceiling" do
+    model = Abroa::AiModelProvider
+    assert_equal 16_384, model.capabilities!({}).fetch("max_output_tokens")
+    assert_equal 120, model.capabilities!({}).fetch("timeout_seconds")
+    assert_equal 393_216, model.capabilities!({ max_output_tokens: 393_216 }).fetch("max_output_tokens")
+    assert_equal 600, model.capabilities!({ timeout_seconds: 600 }).fetch("timeout_seconds")
+    assert_raises(ArgumentError) { model.capabilities!({ max_output_tokens: 393_217 }) }
+    assert_raises(ArgumentError) { model.capabilities!({ max_output_tokens: 16_384.5 }) }
+    assert_raises(ArgumentError) { model.capabilities!({ timeout_seconds: 601 }) }
+  end
+
+  test "large max_tokens is forwarded verbatim with extended timeout" do
+    details = {
+      choices: [ { finish_reason: "stop", message: { content: "PONG" } } ],
+      usage: { prompt_tokens: 30, completion_tokens: 10 }
+    }.to_json
+    http = FakeHttp.new(response_for(Net::HTTPOK, details))
+    selected_provider = provider
+    selected_provider.capabilities = {
+      "max_output_tokens" => 393_216, "timeout_seconds" => 600
+    }
+    result = chat_with(http, selected_provider: selected_provider)
+    assert_equal "PONG", result.fetch(:text)
+    assert_equal 393_216, JSON.parse(http.last_request.body).fetch("max_tokens")
+    assert_equal 600, http.read_timeout
+  end
+
+  test "long content and long input no longer hit legacy byte caps" do
+    long_text = "x" * 2_200_000
+    payload = {
+      choices: [ { finish_reason: "stop", message: { content: long_text } } ],
+      usage: { prompt_tokens: 30_000, completion_tokens: 200_000 }
+    }.to_json
+    http = FakeHttp.new(response_for(Net::HTTPOK, payload))
+    result = chat_with(http, messages: [ { role: "user", content: "y" * 40_000 } ])
+    assert_equal long_text.bytesize, result[:text].bytesize
+    assert_equal 200_000, result[:output_tokens]
+    assert_operator JSON.parse(http.last_request.body).dig("messages", 0, "content").bytesize, :>, 12_000
+  end
+
+  test "gateway explicitly marks provider length cutoff as incomplete" do
+    payload = {
+      choices: [ { finish_reason: "length", message: { content: "partial answer" } } ],
+      usage: { prompt_tokens: 100, completion_tokens: 16_384 }
+    }.to_json
+    result = chat_with(FakeHttp.new(response_for(Net::HTTPOK, payload)))
+    assert_equal "partial answer", result[:text]
+    assert_equal "length", result[:finish_reason]
+    assert_equal true, result[:incomplete]
+    assert_equal "success", result[:status]
   end
 end

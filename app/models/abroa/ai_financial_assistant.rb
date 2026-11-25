@@ -59,6 +59,7 @@ module Abroa
           input_tokens: result[:input_tokens], output_tokens: result[:output_tokens],
           cost_usd: nil, latency_ms: duration)
         { status: "success", text: result.fetch(:text),
+          incomplete: result[:incomplete] == true,
           usage: { id: usage.id, input_tokens: usage.input_tokens,
             output_tokens: usage.output_tokens, total_cost: usage.cost_usd } }
       rescue AiModelGateway::ModelFailure, AiModelGateway::Timeout,

@@ -50,6 +50,24 @@ class Api::V1::Abroa::AiControllerTest < ActionDispatch::IntegrationTest
     assert_equal true, response.parsed_body.dig("data", "disabled")
   end
 
+  test "custom model API accepts the model native 384K output ceiling" do
+    post "/api/v1/abroa/ai/provider", as: :json,
+      params: @config.merge(capabilities: {
+        max_output_tokens: 393_216, timeout_seconds: 600
+      }),
+      headers: api_headers(@write_key).merge("Idempotency-Key" => "a14-high-output")
+    assert_response :created
+    assert_equal 393_216, response.parsed_body.dig("data", "capabilities", "max_output_tokens")
+    assert_equal 600, response.parsed_body.dig("data", "capabilities", "timeout_seconds")
+    assert_not_includes response.body, @config.fetch(:api_key)
+
+    patch "/api/v1/abroa/ai/provider", as: :json,
+      params: { capabilities: { max_output_tokens: 393_217 }, lock_version: 0 },
+      headers: api_headers(@write_key)
+    assert_response :unprocessable_entity
+    assert_equal 393_216, Abroa::AiModelProvider.for_user(@user).first.capabilities.fetch("max_output_tokens")
+  end
+
   test "read-only AI chat cannot write ledger, usage counts expose unknown price as null" do
     post "/api/v1/abroa/ai/chat", as: :json,
       params: { question: "Can you explain my study budget?", project_id: @project.id },

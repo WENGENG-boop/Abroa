@@ -12,7 +12,10 @@ module Abroa
     UnsafeEndpoint = Class.new(StandardError)
     ModelFailure = Class.new(StandardError)
     Timeout = Class.new(StandardError)
-    MAX_BODY_BYTES = 2.megabytes
+    MAX_REQUEST_BYTES = 8.megabytes
+    MAX_MESSAGE_BYTES = 8.megabytes
+    MAX_BODY_BYTES = 32.megabytes
+    MAX_TEXT_BYTES = 16.megabytes
 
     BLOCKED_IPV4 = %w[
       0.0.0.0/8 10.0.0.0/8 100.64.0.0/10 127.0.0.0/8
@@ -63,16 +66,16 @@ module Abroa
         messages.all? { |row| row.is_a?(Hash) &&
           %w[system user assistant].include?(row[:role] || row["role"]) &&
           (row[:content] || row["content"]).is_a?(String) &&
-          (row[:content] || row["content"]).bytesize.between?(1, 12_000) }
+          (row[:content] || row["content"]).bytesize.between?(1, MAX_MESSAGE_BYTES) }
       body_data = {
         model: provider.model_identifier,
         messages: messages,
         temperature: 0,
-        max_tokens: provider.capabilities.fetch("max_output_tokens", 1024),
+        max_tokens: provider.capabilities.fetch("max_output_tokens", AiModelProvider::DEFAULT_MAX_OUTPUT_TOKENS),
         stream: false
       }
       body = JSON.generate(body_data)
-      raise ArgumentError, "Model request exceeds limit" if body.bytesize > 32_000
+      raise ArgumentError, "Model request exceeds limit" if body.bytesize > MAX_REQUEST_BYTES
       uri = URI.parse(base)
       endpoint_path = (uri.path || "") + "/chat/completions"
       endpoint_path = endpoint_path.sub(%r{//+}, "/")
@@ -82,7 +85,7 @@ module Abroa
       http.ipaddr = ips.first # pins IP; TLS SNI/certificate still use original DNS name
       http.use_ssl = uri.scheme == "https"
       http.verify_mode = OpenSSL::SSL::VERIFY_PEER if http.use_ssl?
-      timeout = provider.capabilities.fetch("timeout_seconds", 20)
+      timeout = provider.capabilities.fetch("timeout_seconds", AiModelProvider::DEFAULT_TIMEOUT_SECONDS)
       http.open_timeout = [ timeout, 6 ].min
       http.read_timeout = timeout
       http.write_timeout = [ timeout, 6 ].min
@@ -105,12 +108,15 @@ module Abroa
       parsed = JSON.parse(response_body)
       text = parsed.dig("choices", 0, "message", "content")
       raise ModelFailure, "Model response missing content" unless text.is_a?(String) &&
-        text.bytesize.between?(1, 15_000)
+        text.bytesize.between?(1, MAX_TEXT_BYTES)
       info = parsed["usage"].is_a?(Hash) ? parsed["usage"] : {}
+      finish_reason = parsed.dig("choices", 0, "finish_reason")
       {
         text: text,
         input_tokens: valid_token_count(info["prompt_tokens"]),
         output_tokens: valid_token_count(info["completion_tokens"]),
+        finish_reason: finish_reason,
+        incomplete: finish_reason == "length",
         total_cost: nil, status: "success"
       }
     rescue Net::OpenTimeout, Net::ReadTimeout, Net::WriteTimeout, ::Timeout::Error

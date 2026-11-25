@@ -8,6 +8,10 @@ module Abroa
     self.table_name = "abroa_ai_model_providers"
     Conflict = Class.new(StandardError)
     CAPABILITY_FIELDS = %w[chat_completions tool_calls responses_api timeout_seconds max_output_tokens].freeze
+    DEFAULT_MAX_OUTPUT_TOKENS = 16_384
+    MAX_OUTPUT_TOKENS = 393_216
+    DEFAULT_TIMEOUT_SECONDS = 120
+    MAX_TIMEOUT_SECONDS = 600
 
     belongs_to :family
     belongs_to :owner, class_name: "User"
@@ -172,14 +176,14 @@ module Abroa
       end
       if data.key?("timeout_seconds")
         raise ArgumentError, "Invalid timeout" unless data["timeout_seconds"].is_a?(Integer) &&
-          data["timeout_seconds"].between?(5, 60)
+          data["timeout_seconds"].between?(5, MAX_TIMEOUT_SECONDS)
       end
       if data.key?("max_output_tokens")
         raise ArgumentError, "Invalid output limit" unless data["max_output_tokens"].is_a?(Integer) &&
-          data["max_output_tokens"].between?(32, 4096)
+          data["max_output_tokens"].between?(32, MAX_OUTPUT_TOKENS)
       end
-      { "chat_completions" => true, "timeout_seconds" => 20,
-        "max_output_tokens" => 1024 }.merge(data)
+      { "chat_completions" => true, "timeout_seconds" => DEFAULT_TIMEOUT_SECONDS,
+        "max_output_tokens" => DEFAULT_MAX_OUTPUT_TOKENS }.merge(data)
     end
 
     private

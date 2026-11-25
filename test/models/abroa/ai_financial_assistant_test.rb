@@ -106,6 +106,22 @@ class Abroa::AiFinancialAssistantTest < ActiveSupport::TestCase
     assert_equal 38, usage.output_tokens
   end
 
+  test "financial answer exposes output truncation without writing any ledger" do
+    configured_provider
+    entries = Entry.count
+    stub_result = { status: "success", text: "Partial explanation",
+      input_tokens: 200, output_tokens: 16_384, incomplete: true }
+    Abroa::AiModelGateway.stub(:chat, ->(**_args) { stub_result }) do
+      answer = Abroa::AiFinancialAssistant.answer_for!(@student,
+        question: "Explain this budget")
+      assert_equal "success", answer[:status]
+      assert_equal "Partial explanation", answer[:text]
+      assert_equal true, answer[:incomplete]
+      assert_equal 16_384, answer.dig(:usage, :output_tokens)
+    end
+    assert_equal entries, Entry.count
+  end
+
   test "AI disabled or unconfigured does not impact normal finance requests" do
     unconfigured = Abroa::AiFinancialAssistant.answer_for!(@student,
       question: "Show my budget", project_id: @project.id)
