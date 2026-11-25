@@ -2,6 +2,7 @@ require "net/http"
 require "socket"
 require "ipaddr"
 require "json"
+require "timeout"
 
 module Abroa
   # Direct HTTPS, DNS-pinned transport for a user's OpenAI-compatible model.
@@ -112,7 +113,7 @@ module Abroa
         output_tokens: valid_token_count(info["completion_tokens"]),
         total_cost: nil, status: "success"
       }
-    rescue Net::OpenTimeout, Net::ReadTimeout, Net::WriteTimeout, Timeout::Error
+    rescue Net::OpenTimeout, Net::ReadTimeout, Net::WriteTimeout, ::Timeout::Error
       raise Timeout, "AI service timed out"
     rescue JSON::ParserError, OpenSSL::SSL::SSLError, EOFError, Errno::ECONNRESET,
       Errno::ECONNREFUSED, SocketError
