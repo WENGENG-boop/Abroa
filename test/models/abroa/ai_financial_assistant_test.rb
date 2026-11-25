@@ -160,6 +160,10 @@ class Abroa::AiFinancialAssistantTest < ActiveSupport::TestCase
     confirmed = Abroa::AiOperationProposal.confirm_for!(@student,
       proposal.id, token: token, version: proposal.lock_version)
     assert_equal "confirmed", confirmed.status
+    assert_raises(Abroa::AiOperationProposal::Conflict) do
+      Abroa::AiOperationProposal.confirm_for!(@student,
+        proposal.id, token: token, version: confirmed.lock_version)
+    end
     applied = Abroa::AiOperationProposal.execute_for!(@student, proposal.id)
     assert_equal "executed", applied.status
     assert_equal BigDecimal("1200"), @budget.reload.limit_amount
@@ -190,6 +194,21 @@ class Abroa::AiFinancialAssistantTest < ActiveSupport::TestCase
       Abroa::AiOperationProposal.execute_for!(@student, current.id)
     end
     assert_equal BigDecimal("1100"), @budget.reload.limit_amount
+  end
+
+  test "AI proposals cannot transfer real money, issue payment or run system commands" do
+    assert_equal %w[budget_update fee_adjust pool_allocate], Abroa::AiProposalAdapter::EXECUTABLE
+    old_entries = Entry.count
+    old_budget = @budget.reload.limit_amount
+    %w[bank_transfer execute_shell run_system_command pay_invoice update_account_balance].each do |operation|
+      assert_raises(ArgumentError) do
+        Abroa::AiOperationProposal.propose_for!(@student,
+          operation: operation, resource_id: @budget.id,
+          parameters: { amount: "9999" }, key: "disallowed-#{operation}")
+      end
+    end
+    assert_equal old_entries, Entry.count
+    assert_equal old_budget, @budget.reload.limit_amount
   end
 
   test "safe compensation restores prior budget only if subsequent edits did not intervene" do
