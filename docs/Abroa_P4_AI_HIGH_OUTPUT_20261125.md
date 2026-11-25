@@ -20,4 +20,6 @@
 
 - 先写失败测试：旧版在默认输出和较长输入测试中失败；新代码完成 Provider 上限/默认/非法值、API 控制器写入与越界拒绝、网关高 Token 透传、长请求与长回复、超时和截断标记、财务只读行为的覆盖。
 - 定向 Minitest 完成后以日志 `D:\开发\Abroa\.p4-env\logs\weo-gateway-green-20261125T111206Z.log` 为基线（后续修订详见验收输出）；6 份相关代码与测试文件经 RuboCop 检查 0 违规，日志 `D:\开发\Abroa\.p4-env\logs\fix-20261125T111240Z-81178.log`。
+- **最终完整 P1–P4 Rails 回归（代码提交 `e92483ecb`）：19,263 runs / 117,696 assertions / 0 failures / 0 errors / 10 skips / exit 0**。证据：`D:\开发\Abroa\.p4-env\logs\fix-20261125T111648Z-90023.log`。本次增加的测试纳入了原有测试集，使用 D-backed WSL 独立 Postgres/Redis 环境。
+- **Brakeman 7.1.2：240 controllers / 888 models / 847 templates / 0 errors / 0 active security warnings / 8 historical ignored / exit 0**；日志：`D:\开发\Abroa\.p4-env\logs\weo-p4-brakeman-20261125T111747Z.log`。6 个相关文件的 RuboCop：0 offenses，日志：`D:\开发\Abroa\.p4-env\logs\fix-20261125T111240Z-81178.log`。
 - 真实 WEO、HTTP Provider 配置与模拟长内容仅在 D 盘隔离测试环境执行；未修改 C 盘、P2/P3 预生产环境或任何真实账本记录。P4 预生产端仍通过本地临时 hosts 映射绕开 Mihomo Fake-IP；正式部署前需改成真实 DNS，并单独制作/测试新代码镜像。
