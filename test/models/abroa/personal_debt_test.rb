@@ -93,6 +93,23 @@ class Abroa::PersonalDebtTest < ActiveSupport::TestCase
     assert_equal count + 1, Entry.count
   end
 
+  test "a debt may be due in the future while its original expense must be historical" do
+    future = Date.current + 15
+    debt = Abroa::PersonalDebt.create_for!(@student,
+      attributes: { kind: "paid_for_other", contact_nickname: "Future payer",
+        source_entry_id: @purchase.id, currency: "GBP",
+        personal_amount: "200", other_amount: "600",
+        incurred_on: "2025-02-10", due_on: future.iso8601 }, key: "future-due")
+    assert_equal future, debt.due_on
+    assert_equal BigDecimal("600"), debt.outstanding_amount
+    assert_raises(ArgumentError) do
+      Abroa::PersonalDebt.create_for!(@student,
+        attributes: { kind: "paid_by_other", contact_nickname: "Not yet happened",
+          currency: "GBP", personal_amount: "200",
+          incurred_on: (Date.current + 1).iso8601 }, key: "future-incurred")
+    end
+  end
+
   test "outsiders cannot read or alter obligations even if they know IDs" do
     debt = paid_for_other
     assert_raises(ActiveRecord::RecordNotFound) { Abroa::PersonalDebt.for_user(@outsider).find(debt.id) }

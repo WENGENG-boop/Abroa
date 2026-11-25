@@ -41,7 +41,7 @@ module Abroa
       amount = personal + other
       raise ArgumentError, "Amount must be positive" unless amount.positive?
       incurred = parse_date!(attrs.fetch(:incurred_on))
-      due = attrs[:due_on].present? ? parse_date!(attrs[:due_on]) : nil
+      due = attrs[:due_on].present? ? parse_date!(attrs[:due_on], allow_future: true) : nil
       raise ArgumentError, "Invalid due date" if due && due < incurred
       direction = %w[paid_for_other lent].include?(kind) ? "receivable" : "payable"
       principal = case kind
@@ -82,9 +82,10 @@ module Abroa
       end
     end
 
-    def self.parse_date!(value)
+    def self.parse_date!(value, allow_future: false)
       date = value.is_a?(Date) ? value : Date.iso8601(value.to_s)
-      raise ArgumentError, "Invalid date" if date.year <= 0 || date > Date.current
+      raise ArgumentError, "Invalid date" if date.year <= 0 ||
+        date > (allow_future ? Date.current + 3650 : Date.current)
       date
     rescue Date::Error
       raise ArgumentError, "Invalid ISO date"
