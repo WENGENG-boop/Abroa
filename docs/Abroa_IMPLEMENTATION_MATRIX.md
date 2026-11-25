@@ -16,11 +16,11 @@
 |BUDGET-05/家长草稿提议|P3.2|A08-2,3,5|新增|VERIFIED|家长独立草稿、创建/修改预算与留学项目提议、学生审批、限定授权的直接预算修改、版本/幂等/审计；模型及 API 负向测试、完整 Rails 回归、预生产预算审批均通过，见 P3_BACKEND_ACCEPTANCE.md。|
 |FUND-03–06|P3.3|A09|新增|VERIFIED|拨款计划/周期/声明、学生建议、真实已入账 Sure Entry 唯一匹配、历史 FX、真实退款流水冲正与漂移检测；独立预生产净到账 300 GBP、账本未生成虚假现金，完整回归及并发测试通过，见 P3_BACKEND_ACCEPTANCE.md。|
 |家长汇总隔离|P3.4|A08/A09|新增|VERIFIED|项目/消费/预算/费用/资金池/现金/拨款的受限投影，账户流水默认脱敏；越权 404、授权撤销即时生效；真实 Web HTTP、Brakeman 0 安全警告及完整回归通过，见 P3_BACKEND_ACCEPTANCE.md。|
-|RECEIVABLE 个人代付|P4.1|A10|扩展|IN_PROGRESS|独立业务提交 95583376d；A10 专项 11/74、双 PG 并发 2/11、Abroa 联合回归 273/1705 均 0 失败；可逆迁移、RuboCop 0 违规、Brakeman 0 活跃警告，详见 P4_BACKEND_ACCEPTANCE.md。等待 P1–P4 联合验收。|
-|FORECAST 全部|P4.2|A11|扩展|IN_PROGRESS|确定性 30/90/180 天现金、资金缺口、计划拨款/压力/生活费/租金/FX、历史消费及已付固定费用去重、留学成本、异常消费、输入指纹；学生/家长实时 Grant 授权；A10–A11 阶段回归 288/1788 通过、RuboCop 5/0、Brakeman 0 活跃警告，见 P4_BACKEND_ACCEPTANCE.md；等待 P1–P4 联合验收。|
-|NOTIFY 站内/邮件|P4.3|A12|扩展|IN_PROGRESS|本人站内收件箱/已读/通知偏好、唯一事件键、邮件 Outbox/Sidekiq 调度/权限二次核验、时区静默、明确 SMTP 拒绝安全重试、Worker 中断不盲目重发、P2/P3/Sure 事件路由；A12 专项 17/88 和双 PostgreSQL 并发 2/8 全通过，可逆迁移，见 P4_BACKEND_ACCEPTANCE.md；尚待联合验收。|
-|REPORT 项目/家长/FX|P4.4|A13|扩展|IN_PROGRESS|Sure IncomeStatement/NetConsumption 与 P2 项目分配、预算、费用、资金池及 P3 拨款、P4 个人债权统一只读报表；历史 FX 缺失置 null；项目代付/商户退款/还款比例对账；家长整月/学期/学年小样本隐私抑制；私有 CSV/JSON 导出、幂等、撤权下载阻断、CSV 公式防注入与审计；A13 专项 12/91、RuboCop 8/0，阶段联合验收待完成。|
-|AI-01–07|P4.5|A14|复用+扩展|IN_PROGRESS|自定义加密模型/安全 URL 和自托管精确白名单；只读授权财务解释、分类建议、用量；Sure Chat/MCP 旧写工具拦截；预算/费用/资金池提案人工确认、版本/状态验证、补偿审计。专项 21/159、双 PostgreSQL 并发 1/7 全通过；外部真模型及 P1–P4 联合验收仍待执行。|
+|RECEIVABLE 个人代付|P4.1|A10|扩展|VERIFIED|基于 Sure 真实已入账 Entry 的个人代付、第三方债务、收款与退款/历史 FX，幂等和双 PostgreSQL 并发通过。P1–P4 Rails 全量 19253/117659 零失败、Docker P4 财务闭环及 P3 历史数据迁移已验证；详见 P4_BACKEND_ACCEPTANCE.md。|
+|FORECAST 全部|P4.2|A11|扩展|VERIFIED|确定性现金流、费用/拨款/租金/生活费/历史 FX 预测和异常消费监测，学生/家长实时 Grant 投影；全量 19253/117659、隔离 Docker 业务与 P3 迁移验证通过，详见 P4_BACKEND_ACCEPTANCE.md。|
+|NOTIFY 站内/邮件|P4.3|A12|扩展|VERIFIED|站内通知、已读/偏好、Email Outbox/静默、失败及 uncertain 处理；五个 Sidekiq Cron 在 P4 Docker Worker 重启前后正常。P1–P4 全量通过；真实 SMTP 收件不在此验收，详见 P4_BACKEND_ACCEPTANCE.md。|
+|REPORT 项目/家长/FX|P4.4|A13|扩展|VERIFIED|Sure Ledger 只读财务报表、历史 FX、第三方代付比例、家长小样本保护、CSV/JSON 导出与当前 Grant 再校验。修复 ActiveStorage signed blob 绕过后 134/1844 专项及 19253/117659 全量通过；P4 Docker 验收通过。|
+|AI-01–07|P4.5|A14|复用+扩展|VERIFIED|自定义加密模型配置与安全网络限制、授权财务解释/分类建议、用量；预算/费用/资金池提案人工确认、幂等/补偿、Sure旧 AI 写工具隔离。专项21/159、并发1/7、v14 backfill、19253/117659 全量与 Docker 通过；真实模型连通性未在范围内。|
 |ADMIN 权限/用户/审计|P5.1|A15-1|扩展|PLANNED|待填|
 |ADMIN 订阅/权益/用量|P5.2|A15-2,3|复用+扩展|PLANNED|待填|
 |ADMIN 运营/渠道/地区|P5.3|A15|扩展|PLANNED|待填|

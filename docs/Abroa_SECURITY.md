@@ -62,3 +62,7 @@ Outbox 在 PG 事务锁中独占标记 sending；已发出不重复发送；Work
 所有 AI 回答和分类提示都只读授权后的财务资料，父母只拿 P3 Grant 过滤后的聚合与小样本隐藏结果；任意聊天文本/导入说明均为不可信数据，模型输出不得传入 shell/SQL 或财务写方法。Abroa 用户的 Sure Chat/MCP 工具注册表会剔除原有写工具；ToolCaller 还会在实际调用时拒绝写操作（`confirmation_required`）。
 
 写入流程严格为：独立服务器白名单提案 → 生成随机一次性 token 的哈希存库 → 用户提供 token 和乐观锁版本确认 → 再次校验本人权限、project、资源版本和收支/资金证据 → 调用原有 P2 核验服务 → 幂等记录完整审计。15 分钟过期、重用键、错误 token、家长越权或确认后资源变动全部拒绝。补偿必须确认目标执行状态与证据摘要未再变化，不能倒退第三方已发生的资金占用/费用修改。不具备真实支付能力。没有用户配置的真实第三方模型凭证，不能把模拟响应称为真实模型连通性验收。
+
+## P4 联合安全验收补遗（2026-11-25）
+
+独立 P4 代码冻结 `121519198` 已修复两项完整回归发现的集成漏洞：`Abroa::ReportExport` 加入 ActiveStorage `PROTECTED_RECORD_TYPES`，所有 signed blob/variant 直接访问统一拒绝（包括所有者），文件只允许通过 Abroa ReportExport 的当次授权/摘要核验/审计下载接口访问；`Abroa::AiModelProvider#api_key` 纳入 `ActiveRecordEncryptionConfig::BACKFILL_MANIFEST`，将强制回填版本升至 **14**。已有部署升级后必须执行 `security:backfill_encryption`，并确认版本 14 完成，才可关闭旧明文兼容。P4 独立容器的 dry-run 和实际回填 0 失败，P3 只读备份至 P4 克隆库的历史加密数据升级也通过。无需且未操作任何真实生产密钥或银行凭证。

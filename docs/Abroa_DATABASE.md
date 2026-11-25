@@ -111,3 +111,7 @@ Forecasts are read-only computations over Sure's deposited-cash accounts and pos
 - `abroa_ai_operation_proposals`：单次确认 token SHA-256、用户/项目/操作固定目标、允许的参数、变更前事实快照、预期资源版本和财务证据摘要、执行事实摘要、状态与补偿信息；不可让模型直接伪造已确认状态。
 
 财务执行调用已有 `Abroa::BudgetNode.change_for!`、`FeeAdjustment.apply_for!/void_for!`、`PoolMovement.apply_for!`。资金池提前获取 P2 Goal 账户级 advisory lock，再取得 family/user 行锁，维持已有死锁避免顺序。所有 AI 操作不创建真实 Sure Entry，不新建资金/交易账本。未支持的写动作不会在生产执行。
+
+## P4 后端冻结数据库升级注意事项
+
+签收业务 SHA `121519198`：P4.1–P4.5 迁移全为独立 PostgreSQL 17 stage 中 `up`；P3 阶段历史测试库先只读复制后恢复至 `abroa-p4-upgrade`，保留 8 项目、6 家长关系、4 收款记录并应用 P4 迁移。自定义模型 Provider 新增的 `encrypts :api_key` 在版本 14 回填清单中，完整回填成功是退出明文兼容策略的前置条件。测试库、旧 P3 stage 和 P4 stage 均在独立卷；外部对象存储文件本体迁移未在本阶段验证。

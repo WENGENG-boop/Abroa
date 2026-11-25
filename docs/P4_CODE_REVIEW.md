@@ -52,5 +52,5 @@
 - 新 Provider 已纳入 `BACKFILL_MANIFEST`，回填门槛版本 13→14，固定对应 digest `c4dc059e1c9c118703e396f6c42addff747f6f060da38eeaf086d9dfadb256a6`，原旧版本 backfill 完成状态不得被误认为涵盖新敏感字段。
 - 涉及测试 `test/integration/active_storage_authorization_test.rb` 与 `test/lib/tasks/security_backfill_test.rb`；修复/环境归一化后的七组测试 134/1844、0 失败/错误、1 skip。修复后的完整 Rails 和 P4 Docker stage 复验仍待最终结果。
 
-## P1–P4 最终审查
-尚未签收，状态：**OPEN**。
+## P1–P4 后端最终代码审查
+**P4 后端范围：VERIFIED（自审，不等于独立第三方安全审计）**。最终业务 SHA `121519198`；修复后原版 Rails 19,253/117,659、0 failures/errors、10 skips；Brakeman 240 controllers、888 models、0 errors、0 active security warnings；修复后 ActiveStorage/加密 Manifest 134/1844、0 failures/errors；独立 P4 Docker Web/Worker/DB 及历史 P3 数据恢复升级均通过。真实外部模型、SMTP、SSO、银行接口和线上公网投放仍不在验收范围；源代码当前仍有两个与 P4 无关的未跟踪文件，未纳入冻结提交。

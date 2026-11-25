@@ -1,6 +1,6 @@
-# P4 后端验收记录（进行中）
+# Abroa P4 后端正式验收（2026-11-25）
 
-基线：`abroa/development`，P1–P3 联合验收提交 `c755b002f`。
+**P4 后端范围验收状态：VERIFIED。** 冻结业务代码 `121519198`，分支 `abroa/development`；P1–P3 联合验收基线 `c755b002f`，P3 业务基线 `119317b9c`。不包括真实第三方模型、SMTP、OIDC、银行连接、生产公开部署、P5/P6/P7/P8 及前端。下列 A10–A14 阶段性“待验收”描述保留为当时状态，最终依据以文末签收矩阵为准。
 验收要求：A10–A14 全部通过，完整 Rails 测试集、OpenAPI、Brakeman、安全、迁移、Docker 独立预生产及跨阶段联调全部完成后方可签署 `P4 BACKEND VERIFIED`。本文件不得代替实际日志。
 
 ## P4.1 / A10 应收应付
@@ -81,7 +81,22 @@
 - 修复后原版 Rails 全量四进程隔离复验已开始，日志 `D:\开发\Abroa\.p4-env\logs\fix-20261125T084924Z-167234.log`，尚待最终结果；生产容器 P4 加密 backfill v14 和最终冻结 SHA 复验待执行。
 - 未验证真实外部模型凭证；AI 对导入匹配和分类当前仅建议，后续仍须原用户审核，禁止自动过账。
 
-## P1–P4 联合验收
-尚未执行完毕。需最终记录逐模块结果、测试与断言、退出码、修复提交 SHA、数据库回滚、Docker 端点、授权撤销与外部验证缺口。
+## P1–P4 后端联合正式验收（2026-11-25）
 
-正式签署状态：**NOT VERIFIED**。
+**SIGNED — P4 BACKEND VERIFIED（仅 P4.1–P4.5 后端阶段与 P1–P4 集成范围）。** 冻结业务提交：`121519198`。P1/P2/P3 已冻结的历史提交及预生产数据不变；下方全部证据来自 D 盘隔离环境。完成验收不表示公开生产部署或者未配置的第三方服务已经验证。
+
+| 最终验收门槛 | 实际结果与证据 |
+|---|---|
+| Rails 原版全量 P1–P4 回归（修复后） | **19,253 tests / 117,659 assertions / 0 failures / 0 errors / 10 skips / exit 0**；`D:\开发\Abroa\.p4-env\logs\fix-20261125T084924Z-167234.log`。测试以四个独立进程运行，Windows 原始文件的 CRLF 差异仅在隔离测试副本归一化，正式源码未改。 |
+| 首轮回归问题及补救 | 首轮 19,252/117,251、9 failures/2 errors/10 skips；真实缺陷为 A13 私有导出 signed blob 授权遗漏及 A14 API Key backfill 未登记；其余为环境换行符；修复后涉及的七组测试 **134/1844/0 failures/0 errors/1 skip**，详见本文件前文记录。 |
+| A10–A14 及 Sure AI/MCP 组合回归 | 432 tests / 2,814 assertions / 0 failures / 0 errors；`D:\开发\Abroa\.p4-env\logs\20261125T081840Z-117651.log`。预算/费用/资金池写入二次确认和补偿、Grant 即时撤销、归档导出与只读投影覆盖。 |
+| PostgreSQL 真实并发与迁移 | A10 两连接 2/11、A12 两连接 2/8、A14 两连接 1/7 全通过；P4.1/P4.3/P4.4/P4.5 迁移往返、schema 同步。 |
+| 安全扫描/代码规范 | 最终 Brakeman **240 controllers / 888 models / 0 errors / 0 active warnings / 8 historical ignored**, exit 0，`D:\开发\Abroa\.p4-env\logs\20261125T085823Z-189229.log`；新增安全改动 RuboCop 4 files / 0 offenses，`D:\开发\Abroa\.p4-env\logs\20261125T084944Z-168011.log`。审查由实现代理进行，不等于独立第三方审计。 |
+| OpenAPI、端点一致性 | rswag **646 examples / 0 failures / 89 documentation-only pending**，`D:\开发\Abroa\.p4-env\logs\20261125T081508Z-113037.log`；最终端点一致性检查 exit 0，`D:\开发\Abroa\.p4-env\logs\20261125T085907Z-191047.log`。 |
+| 新 P4 独立 Docker 预生产 | 冻结镜像 `abroa-p4-overlay:121519198`（`sha256:5a4ca7f25dea...`）。独立 PostgreSQL/Redis/Web/Worker，Web 仅 `127.0.0.1:3044`；P1/P2/P3 合成金融账本、P4.1 债务/还款、P4.2 预测、P4.3 通知、P4.4 CSV、P4.5 AI 提案确认/补偿、家长 Grant 200→404；五项 Sidekiq Cron 在 Worker 重启前后均通过；`D:\开发\Abroa\.p4-stage\logs\docker-p4-acceptance.log` 记录 `P4_STAGE_ALL_CHECKS_PASSED sha=121519198`，exit 0。 |
+| 新的加密回填 v14 | 在 **仅 P4 隔离 stage** 中先 dry-run 后实际执行，均 0 失败；2 位用户、2 个 API Key、1 个 AI Model Provider 完成加密回填，状态版本 14、Web/Worker 重启通过；`D:\开发\Abroa\.p4-stage\logs\p4-v14-encryption-upgrade.log`。 |
+| P3 历史测试库升级 | 从 P3 原库只读 pg_dump，复制至新 `abroa-p4-upgrade` 项目（Web 仅 `127.0.0.1:3045`）；8 项目、6 关系、4 收款记录与来源计数一致；P4 迁移、旧 Grant/项目读取、v14 回填、Web 重启全部通过，`D:\开发\Abroa\.p4-upgrade\logs\p3-to-p4-upgrade.log` 记录 `P3_TO_P4_UPGRADE_ALL_CHECKS_PASSED sha=121519198 P3_source_modified=false`，exit 0。 |
+
+**明确不在此次验收范围**：生产公网发布、真实银行与支付通道、真实 SMTP 发信/外部收件、实际 Google/OIDC 配置、第三方模型及自托管推理服务真实联网、外部对象存储、独立安全审计、P5 管理运营/部署、P6 全后端终验及 P7/P8 前端发布。10 个 Rails skipped、89 个 Swagger pending 没有当作通过的测试。所有 HTTP/现金记录均为隔离合成数据；没有更改 P2/P3 冻结库。
+
+最终签署状态：**P4 BACKEND VERIFIED — SCOPE LIMITED**。源码冻结 SHA `121519198`；后续仅文档签收提交不改变此冻结业务镜像。
