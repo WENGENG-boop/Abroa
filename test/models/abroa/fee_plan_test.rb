@@ -64,6 +64,58 @@ class Abroa::FeePlanTest < ActiveSupport::TestCase
     assert_equal BigDecimal("100"), entry.reload.amount
   end
 
+  test "same client idempotency key is scoped separately to each fee installment" do
+    pool = Abroa::FundPool.create_for!(@user, @project.id, attributes: {
+      name: "Rent pot", kind: "rent", currency: "GBP" }, key: "review-installment-pool")
+    plan = create_plan(kind: "rent", gross: "200", discount: "0", pool_id: pool.id)
+    first = create_installment(plan, name: "January", gross: "100", discount: "0")
+    second = create_installment(plan, name: "February", gross: "100", discount: "0")
+    Abroa::PoolMovement.apply_for!(@user, pool.id, account_id: @account.id,
+      kind: "allocate", amount: "200", key: "review-fund")
+    _, a = posted_allocation(100, name: "January rent")
+    _, b = posted_allocation(100, name: "February rent")
+    @account.update!(balance: 19_800)
+    one = Abroa::FeeSettlement.pay_for!(@user, first.id, allocation_id: a.id,
+      amount: "100", key: "client-operation-1")
+    two = Abroa::FeeSettlement.pay_for!(@user, second.id, allocation_id: b.id,
+      amount: "100", key: "client-operation-1")
+    assert_not_equal one.id, two.id
+    assert_equal 2, Abroa::FeeSettlement.count
+    assert_equal BigDecimal("0"), pool.reload.native_allocated_for(@account)
+    assert_equal BigDecimal("100"), first.reload.paid_amount
+    assert_equal BigDecimal("100"), second.reload.paid_amount
+  end
+
+  test "legacy fee-settlement idempotency replay cannot consume a second pool movement" do
+    pool = Abroa::FundPool.create_for!(@user, @project.id, attributes: {
+      name: "Legacy source", kind: "rent", currency: "GBP" }, key: "review-legacy-pool")
+    plan = create_plan(kind: "rent", gross: "100", discount: "0", pool_id: pool.id)
+    due = create_installment(plan, name: "Legacy rent", gross: "100", discount: "0")
+    Abroa::PoolMovement.apply_for!(@user, pool.id, account_id: @account.id,
+      kind: "allocate", amount: "100", key: "review-legacy-fund")
+    entry, allocation = posted_allocation(100)
+    @account.update!(balance: 19_900)
+    key = "legacy-client-key"
+    Abroa::PoolMovement.apply_for!(@user, pool.id, account_id: @account.id,
+      kind: "consume", amount: "100", entry_id: entry.id, fee_installment_id: due.id,
+      key: "fee-settlement:#{key}")
+    amount = Abroa::Decimal.money!("100", positive: true)
+    digest = Digest::SHA256.hexdigest([ @user.id, due.id, key ].join(":"))
+    request = Digest::SHA256.hexdigest(JSON.generate({
+      source_id: allocation.id, amount: amount.to_s("F"), kind: "payment" }))
+    original = Abroa::FeeSettlement.perform_core!(@user, due.id,
+      source_id: allocation.id, value: amount, kind: "payment", digest: digest,
+      request: request, expected_pool_id: pool.id)
+    assert_no_difference "Abroa::PoolMovement.count" do
+      assert_no_difference "Abroa::FeeSettlement.count" do
+        replay = Abroa::FeeSettlement.pay_for!(@user, due.id,
+          allocation_id: allocation.id, amount: "100", key: key)
+        assert_equal original.id, replay.id
+      end
+    end
+    assert_equal BigDecimal("0"), pool.native_allocated_for(@account)
+  end
+
   test "refundable housing deposit is an asset not a budget expense" do
     plan = create_plan(kind: "deposit", gross: "1000", discount: "0")
     due = create_installment(plan, gross: "1000", discount: "0")
@@ -105,6 +157,21 @@ class Abroa::FeePlanTest < ActiveSupport::TestCase
     assert_equal BigDecimal("0"), report[:actual]
     assert_equal BigDecimal("1200"), report[:committed]
     assert_equal BigDecimal("800"), report[:uncommitted_remaining]
+  end
+
+  test "scheduled installments freeze fee currency kind and funding provenance before payment" do
+    pool = Abroa::FundPool.create_for!(@user, @project.id, attributes: {
+      name: "Escrow source", kind: "rent", currency: "GBP" }, key: "review-frozen-source")
+    plan = create_plan(kind: "visa", gross: "100", discount: "0")
+    create_installment(plan, gross: "100", discount: "0")
+    [ { currency: "USD" }, { kind: "rent" }, { fund_pool_id: pool.id } ].each do |fields|
+      assert_raises(Abroa::FeePlan::Conflict) do
+        Abroa::FeePlan.change_for!(@user, plan.id, version: plan.lock_version, attributes: fields)
+      end
+    end
+    assert_equal "GBP", plan.reload.currency
+    assert_equal "visa", plan.kind
+    assert_nil plan.fund_pool_id
   end
 
   test "a confirmed fee cannot be cancelled after payment and a stale version cannot edit" do

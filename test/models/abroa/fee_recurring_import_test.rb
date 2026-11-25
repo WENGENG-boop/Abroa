@@ -31,6 +31,15 @@ class Abroa::FeeRecurringImportTest < ActiveSupport::TestCase
     assert_equal 1, @plan.installments.count
   end
 
+  test "snoozed Sure occurrences are imported when the effective due date is in range" do
+    @occurrence.update!(snoozed_until: Date.new(2025, 10, 3))
+    imported = Abroa::FeeInstallment.import_recurring_for!(@user, @plan.id,
+      from_on: "2025-10-01", through_on: "2025-10-31")
+    assert_equal [ @occurrence.id ], imported.map(&:recurring_occurrence_id)
+    assert_equal Date.new(2025, 10, 3), imported.first.due_on
+    assert_equal 1, @plan.installments.count
+  end
+
   test "skipped occurrences do not create future liabilities" do
     @occurrence.update!(status: "skipped", closed_at: Time.current, closed_source: "user")
     imported = Abroa::FeeInstallment.import_recurring_for!(@user, @plan.id,

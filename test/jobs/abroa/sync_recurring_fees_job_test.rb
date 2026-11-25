@@ -40,12 +40,52 @@ class Abroa::SyncRecurringFeesJobTest < ActiveSupport::TestCase
     assert_equal 0, @plan.installments.count
   end
 
+  test "paused or ended Sure recurring sources never create automatic future fees" do
+    @source.update!(status: "paused")
+    if @source.recurring_occurrences.where(id: @occurrence.id).none?
+      @occurrence = RecurringOccurrence.create!(family: @user.family, recurring_transaction: @source,
+        original_due_on: Date.new(2026, 12, 1), due_on: Date.new(2026, 12, 1),
+        currency: "USD", expected_amount: 1200, status: "scheduled")
+    end
+    assert_no_difference "Abroa::FeeInstallment.count" do
+      Abroa::SyncRecurringFeesJob.new.perform(@plan.id, as_of: Date.new(2026, 11, 24))
+    end
+    assert_no_enqueued_jobs(only: Abroa::SyncRecurringFeesJob) do
+      Abroa::SyncRecurringFeesJob.new.perform
+    end
+    @source.update!(status: "ended")
+    assert_no_difference "Abroa::FeeInstallment.count" do
+      Abroa::SyncRecurringFeesJob.new.perform(@plan.id, as_of: Date.new(2026, 11, 24))
+    end
+  end
+
   test "revoked source-account access blocks background sync without bypassing authorization" do
     accounts(:depository).update!(owner: users(:family_member))
     assert_raises(ActiveRecord::RecordNotFound) do
       Abroa::SyncRecurringFeesJob.new.perform(@plan.id, as_of: Date.new(2026, 11, 24))
     end
     assert_equal 0, @plan.installments.count
+  end
+
+  test "dense daily recurring bills are synchronized in bounded batches" do
+    start_date = Date.new(2026, 10, 25)
+    (0..100).each do |offset|
+      date = start_date + offset
+      next if date == @occurrence.due_on
+      RecurringOccurrence.create!(family: @user.family, recurring_transaction: @source,
+        original_due_on: date, due_on: date, currency: "USD",
+        expected_amount: 1, status: "scheduled")
+    end
+    assert_equal 101, @source.recurring_occurrences.where(
+      due_on: start_date..Date.new(2027, 2, 22)).count
+    assert_no_difference "Entry.count" do
+      assert_difference "Abroa::FeeInstallment.count", 101 do
+        Abroa::SyncRecurringFeesJob.new.perform(@plan.id, as_of: Date.new(2026, 11, 24))
+      end
+      assert_no_difference "Abroa::FeeInstallment.count" do
+        Abroa::SyncRecurringFeesJob.new.perform(@plan.id, as_of: Date.new(2026, 11, 24))
+      end
+    end
   end
 
   test "fan-out enqueues eligible fee plans without directly importing" do

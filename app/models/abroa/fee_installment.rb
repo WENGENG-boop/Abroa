@@ -62,7 +62,11 @@ module Abroa
           recurring.account_id &&
           user.family.accounts.accessible_by(user).where(id: recurring.account_id).exists?
         raise ArgumentError, "Recurring bill currency differs from the fee" unless recurring.currency == plan.currency
-        occurrences = recurring.recurring_occurrences.where(due_on: first..last)
+        # Sure's snoozed_until is a presentation-level due-date change. Query
+        # the effective due date, not the original schedule date, or a bill
+        # snoozed into this window is silently omitted.
+        occurrences = recurring.recurring_occurrences
+          .where("GREATEST(recurring_occurrences.due_on, recurring_occurrences.snoozed_until) BETWEEN ? AND ?", first, last)
           .order(:due_on, :id).limit(101).to_a
         raise ArgumentError, "Too many recurring occurrences for one import" if occurrences.size > 100
         occurrences.filter_map do |occurrence|

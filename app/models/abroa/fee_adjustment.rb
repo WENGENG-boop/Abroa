@@ -56,6 +56,7 @@ module Abroa
       StudyProject.with_actor(user) do
         item = for_user(user).lock.find(id)
         item.fee_plan.project.ensure_writable!
+        raise FeePlan::Conflict, "Cannot change a cancelled fee" unless item.fee_plan.status == "active"
         raise Conflict, "Adjustment is already void" unless item.status == "approved"
         item.update!(status: "void", voided_at: Time.current)
         check_balances!(item.fee_plan, item.fee_installment)

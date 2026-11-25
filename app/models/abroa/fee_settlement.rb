@@ -52,12 +52,25 @@ module Abroa
           # Acquiring the Goal advisory lock before the family row lock
           # preserves the ordering enforced by Sure GoalAccount writers.
           Goal.lock_whole_account_claims!(movement[:account_id])
-          PoolMovement.apply_for!(user, pool_id, account_id: movement[:account_id],
-            kind: kind == "payment" ? "consume" : "refund",
-            amount: movement[:amount], entry_id: movement[:entry_id],
-            fee_installment_id: installment_id, key: "fee-settlement:#{key}")
-          perform_core!(user, installment_id, source_id: source_id, value: value,
-            kind: kind, digest: digest, request: request, expected_pool_id: pool_id)
+          StudyProject.with_actor(user) do
+            # Guard before any movement: older P2 settlements used the raw
+            # client key. Replaying them after switching to installment-scoped
+            # keys must not consume real Goal earmarks or Abroa funds twice.
+            if (existing = where(family: user.family, operation_key: digest).first)
+              raise Conflict, "Settlement idempotency key changed" unless
+                existing.request_digest == request && existing.fee_installment_id == installment_id
+              next existing
+            end
+            # The same client key on a DIFFERENT installment is a different
+            # operation. Hashing keeps the derived movement key <= 128 bytes.
+            scoped_key = "fee-settlement:#{Digest::SHA256.hexdigest([ installment_id, key ].join(':'))}"
+            PoolMovement.apply_for!(user, pool_id, account_id: movement[:account_id],
+              kind: kind == "payment" ? "consume" : "refund",
+              amount: movement[:amount], entry_id: movement[:entry_id],
+              fee_installment_id: installment_id, key: scoped_key)
+            perform_core!(user, installment_id, source_id: source_id, value: value,
+              kind: kind, digest: digest, request: request, expected_pool_id: pool_id)
+          end
         end
       else
         perform_core!(user, installment_id, source_id: source_id, value: value,

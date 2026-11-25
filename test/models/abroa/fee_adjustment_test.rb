@@ -34,6 +34,20 @@ class Abroa::FeeAdjustmentTest < ActiveSupport::TestCase
     end
   end
 
+  test "cancelled fee plans freeze approved adjustments and keep their historical obligations" do
+    adjustment = Abroa::FeeAdjustment.apply_for!(@user, @plan.id,
+      kind: "waiver", amount: "100", reason: "Approved discount", key: "cancel-freeze-waiver")
+    Abroa::FeePlan.cancel_for!(@user, @plan.id, version: @plan.lock_version)
+
+    assert_no_difference "Abroa::FeeAdjustment.where(status: 'approved').count" do
+      assert_raises(Abroa::FeePlan::Conflict) do
+        Abroa::FeeAdjustment.void_for!(@user, id: adjustment.id)
+      end
+    end
+    assert_equal "approved", adjustment.reload.status
+    assert_equal BigDecimal("900"), @plan.reload.amount_due
+  end
+
   test "installment waiver changes both installment net due and plan total exactly once" do
     due = Abroa::FeeInstallment.schedule_for!(@user, @plan.id, attributes: {
       name: "First term", due_on: "2026-10-01",

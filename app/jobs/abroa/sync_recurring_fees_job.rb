@@ -13,6 +13,7 @@ module Abroa
 
       plan = FeePlan.includes(:project, :recurring_transaction).find_by(id: fee_plan_id)
       return unless plan && plan.status == "active" && plan.recurring_transaction_id
+      return unless plan.recurring_transaction&.active?
       return unless plan.project.status.in?(%w[planning active])
       return if plan.family.recurring_transactions_disabled?
 
@@ -26,15 +27,29 @@ module Abroa
       end_on = [ today + LOOKAHEAD_DAYS, plan.project.end_on ].compact.min
       return if end_on < start_on
 
-      FeeInstallment.import_recurring_for!(user, plan.id,
-        from_on: start_on.iso8601, through_on: end_on.iso8601)
+      import_window!(user, plan.id, start_on, end_on)
     end
 
     private
+      # The manual import enforces a 100-occurrence request ceiling. A
+      # scheduled sweep must process a longer window without weakening that
+      # safety check; split only when a slice is genuinely too dense.
+      def import_window!(user, plan_id, first, last)
+        FeeInstallment.import_recurring_for!(user, plan_id,
+          from_on: first.iso8601, through_on: last.iso8601)
+      rescue ArgumentError => error
+        raise unless error.message == "Too many recurring occurrences for one import" && first < last
+
+        middle = first + ((last - first).to_i / 2)
+        import_window!(user, plan_id, first, middle)
+        import_window!(user, plan_id, middle + 1, last)
+      end
+
       def fan_out
         FeePlan.where(status: "active").where.not(recurring_transaction_id: nil)
           .find_each do |plan|
           next unless plan.project.status.in?(%w[planning active])
+          next unless plan.recurring_transaction&.active?
           next if plan.family.recurring_transactions_disabled?
 
           self.class.perform_later(plan.id)

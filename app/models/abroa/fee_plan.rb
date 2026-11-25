@@ -52,9 +52,12 @@ module Abroa
         fee.project.ensure_writable!
         raise Conflict, "Fee changed" unless version.is_a?(Integer) && fee.lock_version == version
         raise Conflict, "Cancelled fee" if fee.status == "cancelled"
-        if (fee.installments.joins(:settlements).exists? || fee.adjustments.exists?) &&
+        # Even unpaid installments have established the fee's currency,
+        # fund source and recurrence provenance. Changing them later would
+        # silently relabel already scheduled contractual obligations.
+        if (fee.installments.exists? || fee.adjustments.exists?) &&
             (values.keys & %i[currency kind fund_pool_id recurring_transaction_id]).any?
-          raise Conflict, "Cannot change settled fee sources"
+          raise Conflict, "Cannot change scheduled fee sources"
         end
         fee.update!(values)
         PlanningAuditEvent.record!(actor: user, event_type: "fee_plan.updated", resource: fee)
