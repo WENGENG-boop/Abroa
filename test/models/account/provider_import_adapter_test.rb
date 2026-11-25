@@ -647,7 +647,7 @@ class Account::ProviderImportAdapterTest < ActiveSupport::TestCase
     security = securities(:aapl)
 
     # Use a date that doesn't conflict with fixtures (fixtures use today and 1.day.ago)
-    holding_date = Date.today - 2.days
+    holding_date = Date.current - 2.days
 
     assert_difference "investment_account.holdings.count", 1 do
       holding = adapter.import_holding(
@@ -1560,18 +1560,40 @@ class Account::ProviderImportAdapterTest < ActiveSupport::TestCase
   end
 
   test "never claims a part of a split entry for a matching provider transaction" do
-    parent = @account.entries.create!(date: Date.today, amount: 37.50, currency: "USD", name: "Market", entryable: Transaction.new)
+    parent = @account.entries.create!(date: Date.current, amount: 37.50, currency: "USD", name: "Market", entryable: Transaction.new)
     parent.split!([ { name: "Groceries", amount: 25, category_id: nil }, { name: "Household", amount: 12.50, category_id: nil } ])
     household = parent.child_entries.find_by!(name: "Household")
 
     entry = nil
     assert_difference "@account.entries.count", 1 do
-      entry = @adapter.import_transaction(external_id: "lunchflow_678", amount: 12.50, currency: "USD", date: Date.today,
+      entry = @adapter.import_transaction(external_id: "lunchflow_678", amount: 12.50, currency: "USD", date: Date.current,
                                           name: "Hardware store", source: "lunchflow")
     end
 
     assert_not_equal household.id, entry.id
     assert_equal [ nil, nil, "Household", parent.id ], household.reload.values_at(:external_id, :source, :name, :parent_entry_id)
+  end
+
+  test "does not claim a future-dated split child as a scheduled provider transaction" do
+    due_on = Date.current
+    parent = nil
+    travel_to(10.days.ago) do
+      parent = @account.entries.create!(date: due_on, amount: 37.50, currency: "USD",
+        name: "Future split purchase", entryable: Transaction.new)
+      parent.split!([ { name: "Groceries", amount: 25.13, category_id: nil },
+                      { name: "Household", amount: 12.37, category_id: nil } ])
+    end
+    child = parent.child_entries.find_by!(name: "Household")
+
+    imported = nil
+    assert_difference "@account.entries.count", 1 do
+      imported = @adapter.import_transaction(external_id: "split_child_123",
+        amount: 12.37, currency: "USD", date: due_on,
+        name: "Separate posted purchase", source: "lunchflow")
+    end
+    assert_not_equal child.id, imported.id
+    assert_nil child.reload.external_id
+    assert_nil child.source
   end
 
   test "claims CSV imported transaction when provider syncs matching transaction" do

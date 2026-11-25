@@ -892,6 +892,7 @@ class Account::ProviderImportAdapter
 
     account.entries
       .where(entryable_type: "Transaction", external_id: nil, amount: amount, currency: currency)
+      .where(parent_entry_id: nil)
       .where(date: (date - date_window.days)..(date + date_window.days))
       .where("entries.created_at < entries.date")
       .to_a
