@@ -20,6 +20,18 @@ Validated on 2026-11-24 in isolated WSL distro `Abroa-P1-Test`, PostgreSQL 17 on
 - Security scan: `p2-remaining-brakeman.log` (0 unignored warnings, 8 pre-existing ignored warnings).
 - API endpoint consistency verifier passed. Existing baseline compliance notices: `financekit_spec.rb` uses OAuth in rswag; `transactions_spec.rb` and `transfers_spec.rb` contain rswag expectations. Those are pre-existing and not introduced by P2.
 
+## Independent code review and post-freeze repairs (2026-11-25)
+
+The previous automated acceptance was supplemented with a separate adversarial P2 code review. Eight issues were reproduced with failing tests, then repaired: cancelled fee adjustments, snoozed recurring due dates, fee settlement idempotency scope and legacy replay, paused sources, scheduled fee provenance, dense recurring windows, historical FX restoration for Goal-linked refunds, and Sure split-child provider auto-claim with cross-timezone test fixtures.
+
+- Final post-review Sure + Abroa regression: **1,189 tests, 4,599 assertions, 0 failures, 0 errors, 0 skips**, exit 0. Evidence: `D:\开发\Abroa\.p2-env\logs\p2-code-review-regression-reviewed-fx.log`.
+- RuboCop: **13 touched files, 0 offenses**. Evidence: `p2-review-final-lint.log`.
+- Brakeman: **0 security warnings, 0 scan errors, 8 pre-existing ignored warnings**. Evidence: `p2-review-final-brakeman.log`.
+- API endpoint consistency: passed. Evidence: `p2-review-final-consistency.log`.
+- Brand-new isolated PostgreSQL database `abroa_p2_review_fresh_test` loaded through `db:schema:load`: **77 tests, 446 assertions, 0 failures/errors/skips**; exited 0 without altering previous test databases. Evidence: `p2-code-review-fresh.log`.
+- P1 baseline `66b68eac4` independently reproduced the two Sure provider test failures in a separate database (`p1-original-two-isolated-review.log`). The test dates were made deterministic and a real split-child claim defect was corrected without weakening assertions.
+- Full findings, red/green test paths and repair trace: `docs/P2_CODE_REVIEW.md`.
+
 ## Boundary and follow-on work
 
 - Recurring bills are imported by both **explicit API action** and a **daily scheduled ActiveJob**. The schedule has been validated in code and isolated tests; no production worker runtime or actual cron fire has been certified. Sure remains the source of the recurrence schedule.
@@ -35,5 +47,6 @@ Validated on 2026-11-24 in isolated WSL distro `Abroa-P1-Test`, PostgreSQL 17 on
 - P2.4: `73d4eb91d`, `268e29f83`
 - P2.4 recurring bridge: `45a747ac0`, `3154c4ca7`.
 - P2 final completion: `ec4f19f54` (Sure Goal consumption/refund), `98461cc28` (scheduled recurring sync and fee reminders), `7b4edfde2` (audited fee adjustments, API and OpenAPI).
+- P2 independent code review repairs: `2b18987e6` (fee lifecycle, recurring and idempotency), `ba54fb31c` (historical Goal FX refunds), `78c086577` (safe Sure provider auto-claim and timezone-stable tests).
 
 The original Sure ledger remains authoritative. Virtual allocations, funds, budgets, fees and credits are references or projections of confirmed source facts, not replacement transactions.
