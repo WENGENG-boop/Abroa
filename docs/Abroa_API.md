@@ -89,3 +89,21 @@ P0 核实 API 路由、controller、认证方式及现有 serializer，再将精
 拨款 `frequency` 支持 `once`、`weekly`、`monthly`、`quarterly`、`yearly`，一次计划最多 120 期。仅引用学生家庭真实已入账、非 pending 的 Sure `Entry`，同一到账 Entry 有全局唯一索引防止二次匹配。拨款状态 `planned → confirmed → partially_received → received`，允许合法的 `rejected/cancelled`。家长汇款通知不是实际到账。历史外汇金额由匹配时保存的 `RateSnapshot` 固定；退款必须匹配真实流出 Entry，在原收款的历史价值上反向记账，且不修改原 Entry 或余额。已匹配的原始账务发生变化时，相关汇总标记 `incomplete`，不再声称金额可信。学生的建议由家长审核，通过之前不会修改拨款计划；已有真实到账时禁止通过建议更改历史币种或计费周期。
 
 验证入口：Minitest `test/models/abroa/{relationship,parent_planning,funding_plan,parent_overview,p3_concurrency}_test.rb` 以及对应 controller tests；rswag 文档专用规范 `spec/requests/api/v1/abroa/p3_parent_spec.rb`。完整验收结果与风险以 `docs/P3_BACKEND_ACCEPTANCE.md` 为准。
+
+
+## P4.1 个人应收应付 API（A10，开发验收中）
+
+所有路径以 `/api/v1/abroa` 为前缀，API Key 按 Sure 的认证与 read/read_write scope 执行，IDOR 返回 404。请求必须发送 `Content-Type: application/json`，写入请求还应传稳定的 `Idempotency-Key`；分页使用 `limit` / `cursor`。
+
+| 请求 | 路由 | 行为 |
+|---|---|---|
+| GET | `/personal_debts` | 仅本人债务，支持 `status`、`direction` 过滤 |
+| POST | `/personal_debts` | 创建有 Sure 账务证据的个人应收/应付，`kind=paid_for_other/paid_by_other/lent/borrowed` |
+| GET | `/personal_debts/{id}` | 本人详情、剩余本金、状态、债务关联账户 |
+| POST | `/personal_debts/{id}/cancel` | `lock_version` 乐观并发校验，已结算拒绝取消 |
+| GET | `/personal_debts/{id}/settlements` | 仅本人结算列表 |
+| POST | `/personal_debts/{id}/settlements` | `kind=payment` 结算；`kind=refund` 返还已核销款并引用 `refunded_settlement_id`；`kind=source_refund` 关联 Sure `refund_link_id` 记账消减原始代付债权 |
+
+`POST /personal_debts` 常用字段为 `kind, contact_nickname, purpose, source_entry_id, currency, personal_amount, other_amount, incurred_on, due_on, project_id`。源交易必须是真实已入账、可见、方向和金额正确的 Sure Entry；`paid_by_other` 记录个人尚未支付而形成的应付款，可无源 Entry。结算需要引用已经存在的真实现金 `entry_id`、该交易原币金额 `amount`，同币种不需要新增汇率；跨币种使用 Entry 发生日的历史汇率快照。`source_refund` 必须先存在有效的 P1 Sure RefundLink，不直接修改余额。写入返回 201，重复请求同参数返回原对象；错误参数 422、状态/版本冲突 409、无权 404、凭证缺失 401/403。
+
+`OtherAsset` / `OtherLiability` 表示应收应付的非现金权益；其 Valuation Entry 不是银行存款和个人消费。P4.1 验收文件：`docs/P4_BACKEND_ACCEPTANCE.md`；详细行为定义见 `app/models/abroa/personal_debt.rb`、`debt_settlement.rb`。该阶段仍处于联合验收前，不能称为 P4 完成。

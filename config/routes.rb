@@ -822,6 +822,10 @@ Rails.application.routes.draw do
   namespace :api do
     namespace :v1 do
       namespace :abroa do
+        resources :personal_debts, only: %i[index show create] do
+          member { post :cancel }
+          resources :settlements, controller: "debt_settlements", only: %i[index create]
+        end
         resources :relationship_invites, only: %i[index show create destroy] do
           collection do
             post :accept

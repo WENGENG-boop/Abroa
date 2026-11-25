@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_25_105000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_25_110500) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -80,6 +80,37 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_25_105000) do
     t.index ["budget_node_id"], name: "index_abroa_budget_versions_on_budget_node_id"
     t.index ["family_id", "operation_key"], name: "idx_abroa_budget_operation", unique: true, where: "(operation_key IS NOT NULL)"
     t.index ["family_id"], name: "index_abroa_budget_versions_on_family_id"
+  end
+
+  create_table "abroa_debt_settlements", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "family_id", null: false
+    t.uuid "actor_id", null: false
+    t.uuid "personal_debt_id", null: false
+    t.uuid "entry_id", null: false
+    t.uuid "rate_snapshot_id"
+    t.uuid "refunded_settlement_id"
+    t.string "kind", default: "payment", null: false
+    t.decimal "native_amount", precision: 19, scale: 4, null: false
+    t.string "native_currency", null: false
+    t.decimal "applied_amount", precision: 19, scale: 4, null: false
+    t.date "entry_date", null: false
+    t.decimal "entry_amount", precision: 19, scale: 4, null: false
+    t.string "creation_key_digest", null: false
+    t.string "creation_request_digest", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.uuid "refund_link_id"
+    t.index ["actor_id"], name: "index_abroa_debt_settlements_on_actor_id"
+    t.index ["entry_id"], name: "idx_abroa_debt_settlement_entry", unique: true
+    t.index ["entry_id"], name: "index_abroa_debt_settlements_on_entry_id"
+    t.index ["family_id"], name: "index_abroa_debt_settlements_on_family_id"
+    t.index ["personal_debt_id", "creation_key_digest"], name: "idx_abroa_debt_settlement_idempotency", unique: true
+    t.index ["personal_debt_id", "refund_link_id"], name: "idx_abroa_debt_source_refund_unique", unique: true, where: "(refund_link_id IS NOT NULL)"
+    t.index ["personal_debt_id"], name: "index_abroa_debt_settlements_on_personal_debt_id"
+    t.index ["rate_snapshot_id"], name: "index_abroa_debt_settlements_on_rate_snapshot_id"
+    t.index ["refund_link_id"], name: "index_abroa_debt_settlements_on_refund_link_id"
+    t.index ["refunded_settlement_id"], name: "index_abroa_debt_settlements_on_refunded_settlement_id"
+    t.check_constraint "(kind::text = ANY (ARRAY['payment'::character varying::text, 'refund'::character varying::text, 'source_refund'::character varying::text])) AND native_amount > 0::numeric AND applied_amount > 0::numeric AND entry_amount > 0::numeric AND native_amount <> 'NaN'::numeric AND applied_amount <> 'NaN'::numeric AND entry_amount <> 'NaN'::numeric AND (kind::text = 'payment'::text AND refunded_settlement_id IS NULL AND refund_link_id IS NULL OR kind::text = 'refund'::text AND refunded_settlement_id IS NOT NULL AND refund_link_id IS NULL OR kind::text = 'source_refund'::text AND refunded_settlement_id IS NULL AND refund_link_id IS NOT NULL)", name: "abroa_debt_settlement_valid"
   end
 
   create_table "abroa_entry_allocations", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -264,7 +295,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_25_105000) do
     t.index ["family_id"], name: "index_abroa_funding_notices_on_family_id"
     t.index ["funding_plan_id", "creation_key_digest"], name: "idx_abroa_funding_notice_idempotency", unique: true
     t.index ["funding_plan_id"], name: "index_abroa_funding_notices_on_funding_plan_id"
-    t.check_constraint "amount > 0::numeric AND amount <> 'NaN'::numeric AND (status::text = ANY (ARRAY['active'::character varying, 'revoked'::character varying]::text[]))", name: "abroa_funding_notice_valid"
+    t.check_constraint "amount > 0::numeric AND amount <> 'NaN'::numeric AND (status::text = ANY (ARRAY['active'::character varying::text, 'revoked'::character varying::text]))", name: "abroa_funding_notice_valid"
   end
 
   create_table "abroa_funding_plans", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -305,9 +336,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_25_105000) do
     t.index ["source_account_id"], name: "index_abroa_funding_plans_on_source_account_id"
     t.index ["student_user_id", "status"], name: "index_abroa_funding_plans_on_student_user_id_and_status"
     t.index ["student_user_id"], name: "index_abroa_funding_plans_on_student_user_id"
-    t.check_constraint "amount > 0::numeric AND amount <> 'NaN'::numeric AND (frequency::text = ANY (ARRAY['once'::character varying, 'weekly'::character varying, 'monthly'::character varying, 'quarterly'::character varying, 'yearly'::character varying]::text[]))", name: "abroa_funding_plan_amount_frequency"
+    t.check_constraint "amount > 0::numeric AND amount <> 'NaN'::numeric AND (frequency::text = ANY (ARRAY['once'::character varying::text, 'weekly'::character varying::text, 'monthly'::character varying::text, 'quarterly'::character varying::text, 'yearly'::character varying::text]))", name: "abroa_funding_plan_amount_frequency"
     t.check_constraint "frequency::text = 'once'::text AND ends_on IS NULL OR frequency::text <> 'once'::text AND ends_on IS NOT NULL AND ends_on >= scheduled_on", name: "abroa_funding_plan_schedule"
-    t.check_constraint "status::text = ANY (ARRAY['planned'::character varying, 'confirmed'::character varying, 'partially_received'::character varying, 'received'::character varying, 'cancelled'::character varying, 'rejected'::character varying]::text[])", name: "abroa_funding_plan_state"
+    t.check_constraint "status::text = ANY (ARRAY['planned'::character varying::text, 'confirmed'::character varying::text, 'partially_received'::character varying::text, 'received'::character varying::text, 'cancelled'::character varying::text, 'rejected'::character varying::text])", name: "abroa_funding_plan_state"
   end
 
   create_table "abroa_funding_receipts", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -382,7 +413,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_25_105000) do
     t.index ["resolved_by_id"], name: "index_abroa_funding_suggestions_on_resolved_by_id"
     t.index ["student_user_id", "creation_key_digest"], name: "idx_abroa_funding_suggestion_idempotency", unique: true
     t.index ["student_user_id"], name: "index_abroa_funding_suggestions_on_student_user_id"
-    t.check_constraint "(status::text = ANY (ARRAY['pending'::character varying, 'accepted'::character varying, 'rejected'::character varying, 'cancelled'::character varying]::text[])) AND expected_version >= 0", name: "abroa_funding_suggestion_state"
+    t.check_constraint "(status::text = ANY (ARRAY['pending'::character varying::text, 'accepted'::character varying::text, 'rejected'::character varying::text, 'cancelled'::character varying::text])) AND expected_version >= 0", name: "abroa_funding_suggestion_state"
   end
 
   create_table "abroa_fx_details", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -441,9 +472,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_25_105000) do
     t.index ["project_id"], name: "index_abroa_grants_on_project_id"
     t.index ["relationship_id", "project_id", "capability", "resource_kind", "resource_id"], name: "idx_abroa_grants_scoped_active", unique: true, where: "((status)::text = 'active'::text)", nulls_not_distinct: true
     t.index ["relationship_id"], name: "index_abroa_grants_on_relationship_id"
-    t.check_constraint "capability::text = ANY (ARRAY['summary'::character varying, 'account_balance'::character varying, 'transaction_details'::character varying, 'budget_read'::character varying, 'fees_read'::character varying, 'forecasts_read'::character varying, 'propose'::character varying, 'budget_manage'::character varying, 'fees_manage'::character varying, 'pool_manage'::character varying]::text[])", name: "abroa_grant_capabilities"
-    t.check_constraint "resource_kind::text = 'project'::text AND resource_id IS NULL OR (resource_kind::text = ANY (ARRAY['budget_node'::character varying, 'fee_plan'::character varying, 'fund_pool'::character varying]::text[])) AND resource_id IS NOT NULL", name: "abroa_grant_exact_resource"
-    t.check_constraint "status::text = ANY (ARRAY['active'::character varying, 'revoked'::character varying, 'expired'::character varying]::text[])", name: "abroa_grant_states"
+    t.check_constraint "capability::text = ANY (ARRAY['summary'::character varying::text, 'account_balance'::character varying::text, 'transaction_details'::character varying::text, 'budget_read'::character varying::text, 'fees_read'::character varying::text, 'forecasts_read'::character varying::text, 'propose'::character varying::text, 'budget_manage'::character varying::text, 'fees_manage'::character varying::text, 'pool_manage'::character varying::text])", name: "abroa_grant_capabilities"
+    t.check_constraint "resource_kind::text = 'project'::text AND resource_id IS NULL OR (resource_kind::text = ANY (ARRAY['budget_node'::character varying::text, 'fee_plan'::character varying::text, 'fund_pool'::character varying::text])) AND resource_id IS NOT NULL", name: "abroa_grant_exact_resource"
+    t.check_constraint "status::text = ANY (ARRAY['active'::character varying::text, 'revoked'::character varying::text, 'expired'::character varying::text])", name: "abroa_grant_states"
   end
 
   create_table "abroa_operation_records", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -459,6 +490,43 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_25_105000) do
     t.index ["actor_id", "operation", "key_digest"], name: "idx_abroa_operation_replay", unique: true
     t.index ["actor_id"], name: "index_abroa_operation_records_on_actor_id"
     t.index ["family_id"], name: "index_abroa_operation_records_on_family_id"
+  end
+
+  create_table "abroa_personal_debts", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "family_id", null: false
+    t.uuid "owner_id", null: false
+    t.uuid "project_id"
+    t.uuid "debt_account_id", null: false
+    t.uuid "source_entry_id"
+    t.string "kind", null: false
+    t.string "direction", null: false
+    t.string "contact_nickname", null: false
+    t.string "purpose"
+    t.string "currency", null: false
+    t.decimal "personal_amount", precision: 19, scale: 4, default: "0.0", null: false
+    t.decimal "other_amount", precision: 19, scale: 4, default: "0.0", null: false
+    t.decimal "principal_amount", precision: 19, scale: 4, null: false
+    t.decimal "source_amount", precision: 19, scale: 4
+    t.string "source_currency"
+    t.date "source_date"
+    t.date "incurred_on", null: false
+    t.date "due_on"
+    t.string "status", default: "open", null: false
+    t.datetime "cancelled_at"
+    t.string "creation_key_digest", null: false
+    t.string "creation_request_digest", null: false
+    t.integer "lock_version", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["debt_account_id"], name: "index_abroa_personal_debts_on_debt_account_id"
+    t.index ["family_id", "status", "due_on"], name: "index_abroa_personal_debts_on_family_id_and_status_and_due_on"
+    t.index ["family_id"], name: "index_abroa_personal_debts_on_family_id"
+    t.index ["owner_id", "creation_key_digest"], name: "idx_abroa_debt_idempotency", unique: true
+    t.index ["owner_id"], name: "index_abroa_personal_debts_on_owner_id"
+    t.index ["project_id"], name: "index_abroa_personal_debts_on_project_id"
+    t.index ["source_entry_id"], name: "idx_abroa_debt_unique_source", unique: true, where: "(source_entry_id IS NOT NULL)"
+    t.index ["source_entry_id"], name: "index_abroa_personal_debts_on_source_entry_id"
+    t.check_constraint "(kind::text = ANY (ARRAY['paid_for_other'::character varying::text, 'paid_by_other'::character varying::text, 'lent'::character varying::text, 'borrowed'::character varying::text])) AND (direction::text = ANY (ARRAY['receivable'::character varying::text, 'payable'::character varying::text])) AND (status::text = ANY (ARRAY['open'::character varying::text, 'partially_settled'::character varying::text, 'settled'::character varying::text, 'cancelled'::character varying::text])) AND principal_amount > 0::numeric AND personal_amount >= 0::numeric AND other_amount >= 0::numeric AND principal_amount <> 'NaN'::numeric AND personal_amount <> 'NaN'::numeric AND other_amount <> 'NaN'::numeric", name: "abroa_debt_valid"
   end
 
   create_table "abroa_planning_audit_events", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -493,7 +561,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_25_105000) do
     t.index ["parent_user_id", "creation_key_digest"], name: "idx_abroa_draft_idempotency", unique: true
     t.index ["parent_user_id", "status"], name: "index_abroa_planning_drafts_on_parent_user_id_and_status"
     t.index ["parent_user_id"], name: "index_abroa_planning_drafts_on_parent_user_id"
-    t.check_constraint "(kind::text = ANY (ARRAY['budget'::character varying, 'study_project'::character varying, 'funding'::character varying]::text[])) AND (status::text = ANY (ARRAY['draft'::character varying, 'cancelled'::character varying, 'submitted'::character varying, 'accepted'::character varying, 'rejected'::character varying]::text[]))", name: "abroa_draft_states"
+    t.check_constraint "(kind::text = ANY (ARRAY['budget'::character varying::text, 'study_project'::character varying::text, 'funding'::character varying::text])) AND (status::text = ANY (ARRAY['draft'::character varying::text, 'cancelled'::character varying::text, 'submitted'::character varying::text, 'accepted'::character varying::text, 'rejected'::character varying::text]))", name: "abroa_draft_states"
   end
 
   create_table "abroa_pool_movements", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -597,8 +665,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_25_105000) do
     t.index ["relationship_id"], name: "index_abroa_proposals_on_relationship_id"
     t.index ["resolved_by_id"], name: "index_abroa_proposals_on_resolved_by_id"
     t.check_constraint "expected_version >= 0", name: "abroa_proposal_version"
-    t.check_constraint "operation::text = ANY (ARRAY['budget_create'::character varying, 'budget_update'::character varying, 'study_project_update'::character varying]::text[])", name: "abroa_proposal_ops"
-    t.check_constraint "status::text = ANY (ARRAY['draft'::character varying, 'pending'::character varying, 'accepted'::character varying, 'rejected'::character varying, 'cancelled'::character varying, 'expired'::character varying]::text[])", name: "abroa_proposal_states"
+    t.check_constraint "operation::text = ANY (ARRAY['budget_create'::character varying::text, 'budget_update'::character varying::text, 'study_project_update'::character varying::text])", name: "abroa_proposal_ops"
+    t.check_constraint "status::text = ANY (ARRAY['draft'::character varying::text, 'pending'::character varying::text, 'accepted'::character varying::text, 'rejected'::character varying::text, 'cancelled'::character varying::text, 'expired'::character varying::text])", name: "abroa_proposal_states"
   end
 
   create_table "abroa_rate_snapshots", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -680,8 +748,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_25_105000) do
     t.index ["inviter_id"], name: "index_abroa_relationship_invites_on_inviter_id"
     t.index ["relationship_id"], name: "index_abroa_relationship_invites_on_relationship_id"
     t.index ["token_digest"], name: "index_abroa_relationship_invites_on_token_digest", unique: true
-    t.check_constraint "inviter_role::text = ANY (ARRAY['student'::character varying, 'parent'::character varying]::text[])", name: "abroa_invite_roles"
-    t.check_constraint "status::text = ANY (ARRAY['pending'::character varying, 'accepted'::character varying, 'rejected'::character varying, 'revoked'::character varying, 'expired'::character varying]::text[])", name: "abroa_invite_states"
+    t.check_constraint "inviter_role::text = ANY (ARRAY['student'::character varying::text, 'parent'::character varying::text])", name: "abroa_invite_roles"
+    t.check_constraint "status::text = ANY (ARRAY['pending'::character varying::text, 'accepted'::character varying::text, 'rejected'::character varying::text, 'revoked'::character varying::text, 'expired'::character varying::text])", name: "abroa_invite_states"
   end
 
   create_table "abroa_relationships", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -705,7 +773,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_25_105000) do
     t.index ["student_user_id", "parent_user_id"], name: "idx_abroa_unique_active_parent_pair", unique: true, where: "((status)::text = 'active'::text)"
     t.index ["student_user_id", "status"], name: "index_abroa_relationships_on_student_user_id_and_status"
     t.index ["student_user_id"], name: "index_abroa_relationships_on_student_user_id"
-    t.check_constraint "status::text = ANY (ARRAY['active'::character varying, 'revoked'::character varying, 'expired'::character varying]::text[])", name: "abroa_relation_states"
+    t.check_constraint "status::text = ANY (ARRAY['active'::character varying::text, 'revoked'::character varying::text, 'expired'::character varying::text])", name: "abroa_relation_states"
     t.check_constraint "student_user_id <> parent_user_id AND student_family_id <> parent_family_id AND family_id = student_family_id", name: "abroa_relation_tenant_bounds"
   end
 
@@ -4035,6 +4103,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_25_105000) do
   add_foreign_key "abroa_budget_versions", "abroa_budget_nodes", column: "budget_node_id"
   add_foreign_key "abroa_budget_versions", "families", on_delete: :cascade
   add_foreign_key "abroa_budget_versions", "users", column: "actor_id"
+  add_foreign_key "abroa_debt_settlements", "abroa_debt_settlements", column: "refunded_settlement_id", on_delete: :restrict
+  add_foreign_key "abroa_debt_settlements", "abroa_personal_debts", column: "personal_debt_id", on_delete: :restrict
+  add_foreign_key "abroa_debt_settlements", "abroa_rate_snapshots", column: "rate_snapshot_id", on_delete: :restrict
+  add_foreign_key "abroa_debt_settlements", "abroa_refund_links", column: "refund_link_id", on_delete: :restrict
+  add_foreign_key "abroa_debt_settlements", "entries", on_delete: :restrict
+  add_foreign_key "abroa_debt_settlements", "families", on_delete: :cascade
+  add_foreign_key "abroa_debt_settlements", "users", column: "actor_id", on_delete: :cascade
   add_foreign_key "abroa_entry_allocations", "abroa_study_projects", column: "project_id", on_delete: :cascade
   add_foreign_key "abroa_entry_allocations", "categories", on_delete: :nullify
   add_foreign_key "abroa_entry_allocations", "entries", on_delete: :nullify
@@ -4102,6 +4177,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_25_105000) do
   add_foreign_key "abroa_grants", "users", column: "actor_id", on_delete: :cascade
   add_foreign_key "abroa_operation_records", "families", on_delete: :cascade
   add_foreign_key "abroa_operation_records", "users", column: "actor_id", on_delete: :cascade
+  add_foreign_key "abroa_personal_debts", "abroa_study_projects", column: "project_id", on_delete: :restrict
+  add_foreign_key "abroa_personal_debts", "accounts", column: "debt_account_id", on_delete: :restrict
+  add_foreign_key "abroa_personal_debts", "entries", column: "source_entry_id", on_delete: :restrict
+  add_foreign_key "abroa_personal_debts", "families", on_delete: :cascade
+  add_foreign_key "abroa_personal_debts", "users", column: "owner_id", on_delete: :cascade
   add_foreign_key "abroa_planning_audit_events", "families", on_delete: :cascade
   add_foreign_key "abroa_planning_audit_events", "users", column: "actor_id", on_delete: :nullify
   add_foreign_key "abroa_planning_drafts", "families", on_delete: :cascade

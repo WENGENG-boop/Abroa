@@ -9631,6 +9631,154 @@ paths:
               schema:
                 type: object
                 additionalProperties: true
+  "/api/v1/abroa/personal_debts":
+    get:
+      summary: P4 personal obligation GET /api/v1/abroa/personal_debts
+      tags:
+      - Abroa P4 receivables
+      security:
+      - apiKeyAuth: []
+      responses:
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+    post:
+      summary: P4 personal obligation POST /api/v1/abroa/personal_debts
+      tags:
+      - Abroa P4 receivables
+      security:
+      - apiKeyAuth: []
+      parameters:
+      - name: Idempotency-Key
+        in: header
+        required: false
+        schema:
+          type: string
+      responses:
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+        required: true
+  "/api/v1/abroa/personal_debts/{id}":
+    parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    get:
+      summary: P4 personal obligation GET /api/v1/abroa/personal_debts/{id}
+      tags:
+      - Abroa P4 receivables
+      security:
+      - apiKeyAuth: []
+      responses:
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  "/api/v1/abroa/personal_debts/{id}/cancel":
+    parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    post:
+      summary: P4 personal obligation POST /api/v1/abroa/personal_debts/{id}/cancel
+      tags:
+      - Abroa P4 receivables
+      security:
+      - apiKeyAuth: []
+      parameters:
+      - name: Idempotency-Key
+        in: header
+        required: false
+        schema:
+          type: string
+      responses:
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+        required: true
+  "/api/v1/abroa/personal_debts/{personal_debt_id}/settlements":
+    parameters:
+    - name: personal_debt_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    get:
+      summary: P4 personal obligation GET /api/v1/abroa/personal_debts/{personal_debt_id}/settlements
+      tags:
+      - Abroa P4 receivables
+      security:
+      - apiKeyAuth: []
+      responses:
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+    post:
+      summary: P4 personal obligation POST /api/v1/abroa/personal_debts/{personal_debt_id}/settlements
+      tags:
+      - Abroa P4 receivables
+      security:
+      - apiKeyAuth: []
+      parameters:
+      - name: Idempotency-Key
+        in: header
+        required: false
+        schema:
+          type: string
+      responses:
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+        required: true
   "/api/v1/abroa/profile":
     get:
       summary: Read own Abroa preferences

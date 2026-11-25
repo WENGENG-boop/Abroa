@@ -71,14 +71,22 @@ module Abroa
         buckets[key][:unallocated_inflows] -= link.refund_amount
       end
 
+      debt_adjustments = DebtConsumption.for_user(user, entries: entries, account_ids: ids,
+        start_on: start_on, end_on: end_on)
+      debt_adjustments.each do |key, values|
+        buckets[key][:unallocated_inflows] -= values[:matched_credit]
+      end
+
       totals = FIELDS.index_with { ZERO }
+      debt_net_adjustment = ZERO
       incomplete_fields = Set.new
       rates = []
       buckets.sort.each do |(date, from), amounts|
         if invalid.include?([ date, from ])
           incomplete_fields.merge(%i[refunds unallocated_inflows])
         end
-        next if amounts.values.all?(&:zero?)
+        adjustment = debt_adjustments.dig([ date, from ], :net) || ZERO
+        next if amounts.values.all?(&:zero?) && adjustment.zero?
         quote = RateSnapshot.quote(from: from, to: currency, date: date)
         rates << quote.payload
         FIELDS.each do |field|
@@ -87,6 +95,13 @@ module Abroa
             incomplete_fields.add(field)
           else
             totals[field] += quote.convert(amounts[field])
+          end
+        end
+        unless adjustment.zero?
+          if quote.missing?
+            incomplete_fields.add(:debt_adjustment)
+          else
+            debt_net_adjustment += quote.convert(adjustment)
           end
         end
       end
@@ -99,10 +114,10 @@ module Abroa
       values = FIELDS.to_h do |field|
         [ field, incomplete_fields.include?(field) ? nil : display.call(totals[field]) ]
       end
-      values[:net_consumption] = if incomplete_fields.intersect?(Set[:gross_consumption, :refunds])
+      values[:net_consumption] = if incomplete_fields.intersect?(Set[:gross_consumption, :refunds, :debt_adjustment])
         nil
       else
-        display.call(gross - refunds)
+        display.call(gross - refunds + debt_net_adjustment)
       end
       {
         start_on: start_on.iso8601, end_on: end_on.iso8601, currency: currency,

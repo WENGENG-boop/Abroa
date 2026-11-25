@@ -75,3 +75,12 @@
 - 所有可重试新增操作都有摘要形式的幂等键及请求摘要；单一真实到账/退款流水有 PostgreSQL 唯一索引，且事务中使用行锁与乐观锁。
 
 跨家庭数据引用仅存在明确的 `Relationship / Grant / FundingPlan` 对象上；Sure 原 `families`、`accounts`、`entries`、`transactions` 均不扩大权限或更改资金来源语义。数据升版以迁移及测试证明为准。
+
+
+## P4.1 应收应付 Schema（A10，开发验收中）
+
+`abroa_personal_debts` 持有 `family_id`、`owner_id`、可选 `project_id`、关联不可直接当现金使用的 Sure `debt_account_id`（`OtherAsset` / `OtherLiability`）、可选真实源 `source_entry_id`、来源金额/原币/发生日快照、用途与联系人昵称、方向、承担份额、本金、状态/截止日/乐观锁和创建幂等哈希。数据库 CHECK 限制金额与方向；唯一键禁止同一源 Entry 重复声明代付。
+
+`abroa_debt_settlements` 通过真实 Sure `entry_id` 和 `rate_snapshot_id` 保存付款/返款；`kind=payment/refund/source_refund` 分别表示收回/偿还、返还先前核销款和原始商户退款。后一种要求 P1 `abroa_refund_links` 的 `refund_link_id`，将已退款原消费按他人承担比例减记债权；历史结算不能直接改写 Sure Entry。唯一键覆盖 Entry 与租户内幂等请求，部分结算、跨币种保存原币/汇率/映射金额和日期。
+
+可逆迁移：`20261125110000_create_abroa_personal_debts.rb`、`20261125110500_add_source_refunds_to_abroa_debt_settlements.rb`；不修改 P1–P3 历史迁移。开发验证数据库 `abroa_p4_isolated_test`，PostgreSQL 17 独立集群 `abroap4` 端口 55435；不得指向 P2/P3 stage 或生产。

@@ -28,3 +28,12 @@ IDOR（读写、列表、批量、导出、附件）、跨 family scope、平台
 资金安全：拨款计划、草稿、预算、汇款声明均不写 Sure 原始账本；学生本人以独立 `EntryAllocation.locked_entry!` 校验 `Entry`，完成凭证、币种、账户归属和入账状态核验，写入独立唯一匹配记录。冲正引用真实退款流水，不直接调整原账本。父母端默认隐藏学生银行账户 ID、支付对象、流水详情；额外授权才可返回裁剪后的交易投影。父母账户 ID 不出现在学生端。
 
 并发及审计：所有资金匹配、提议审批和授权撤销记录真实操作者与不可变操作历史；重要状态机使用行锁、`lock_version`、PostgreSQL 唯一索引和幂等请求摘要。跨币种历史匹配持久化 RateSnapshot；核对原始流水后若源账务发生漂移，汇总拒绝输出看似可信的金额。待办关联、预算、拨款的全业务执行必须在有效权限之下，不能仅检查对象 ID 或原 Family 权限。
+
+
+## P4.1 应收应付安全边界（2026-11-25）
+
+用户只可读取本人的 `family_id + owner_id` 债务；账户/Entry 权限通过 Sure `AccountPolicy` 与 P3 `EntryAllocation.locked_entry!` 实时校验；写入使用 `StudyProject.with_actor`、事务、行锁、唯一约束和 `lock_version`，防止重复结算与竞争。不能调用直接更新 Cash Account.balance；创建的 Sure `OtherAsset` 和 `OtherLiability` 不是现金账户。净消费仅在统计投影中剔除他人承担部分、重复偿还和借款流入。
+
+`RateSnapshot` 固化历史 FX，缺失或错误汇率拒绝核销；源商户退款必须引用 P1 `RefundLink`，以不可复用的退款 Entry 和比例上限防止重复退回。失效源交易/链接被检测为 inconsistent，拒绝继续结算。Idempotency-Key 哈希与请求内容绑定。审计记录只保存必要的非私密金额/标识，不包含联系人和凭证。父母不能从当前个人债务 API 获得他人应收应付（未开放个人债务 Grant）。
+
+真实并发、旧 Schema 升级、完整回归及 Docker 独立预生产结果必须以 `docs/P4_BACKEND_ACCEPTANCE.md` 实际日志为准；未经全部验收不得宣称安全保证已获最终认证。
