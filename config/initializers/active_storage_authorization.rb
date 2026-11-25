@@ -3,7 +3,7 @@ Rails.application.config.to_prepare do
   module ActiveStorageAttachmentAuthorization
     extend ActiveSupport::Concern
     # STI subclasses (PdfImport, SureImport, ...) are stored under their base class, "Import".
-    PROTECTED_RECORD_TYPES = %w[Transaction AccountStatement FamilyExport Import FamilyDocument].freeze
+    PROTECTED_RECORD_TYPES = %w[Transaction AccountStatement FamilyExport Import FamilyDocument Abroa::ReportExport].freeze
 
     included do
       include Authentication
@@ -43,6 +43,10 @@ Rails.application.config.to_prepare do
           import_attachment_authorized?(attachment)
         when "FamilyDocument"
           family_record_attachment_authorized?(attachment)
+        when "Abroa::ReportExport"
+          # Exports require their own fresh Grant/account check and download
+          # audit. Even the owner must use the Abroa download controller.
+          false
         else
           false
         end

@@ -46,5 +46,11 @@
 - 写操作每步独立服务端权限验证、随机 token hash/有效期/版本/状态 digest、幂等、审计和可确认的补偿；预算调用 P2 BudgetNode、费用 FeeAdjustment、资金池 PoolMovement，未实现类别和导入匹配写入口。资金池先获取 Goal advisory lock 再获取 family 锁避免反向死锁。
 - 专项 21/159、双 PostgreSQL 会话并发 1/7、Abroa+Sure AI/MCP 扩大回归 432/2814、RuboCop 14/0、Brakeman 240 controllers / 888 models / 0 活跃警告、rswag 646/0 已通过。第三方真模型连通性、原版 Rails 全量和完整 Docker 端到端不在这些阶段测试所覆盖范围。
 
+### P4 联合安全增补审查（2026-11-25）
+- 首轮 19,252/117,251 全量测试报告 9 failures、2 errors（另 10 skips），未通过，不能作为冻结证据。真正的新业务问题为私有 ReportExport 附件未加入 ActiveStorage protected list，以及新 Provider 的 `encrypts :api_key` 未登记版本化回填清单。
+- 已新增 `Abroa::ReportExport` 受保护附件类型和默认拒绝任何 signed blob 直连（本人和跨租户均拒绝），继续由 Abroa 安全下载接口实时核验项目/账户权限、有效期、内容摘要并记录审计。
+- 新 Provider 已纳入 `BACKFILL_MANIFEST`，回填门槛版本 13→14，固定对应 digest `c4dc059e1c9c118703e396f6c42addff747f6f060da38eeaf086d9dfadb256a6`，原旧版本 backfill 完成状态不得被误认为涵盖新敏感字段。
+- 涉及测试 `test/integration/active_storage_authorization_test.rb` 与 `test/lib/tasks/security_backfill_test.rb`；修复/环境归一化后的七组测试 134/1844、0 失败/错误、1 skip。修复后的完整 Rails 和 P4 Docker stage 复验仍待最终结果。
+
 ## P1–P4 最终审查
 尚未签收，状态：**OPEN**。

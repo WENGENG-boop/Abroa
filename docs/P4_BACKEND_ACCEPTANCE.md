@@ -74,8 +74,12 @@
 - Brakeman 全库 240 controllers / 888 models / 0 errors / 0 active warnings / 8 历史 ignored；`D:\开发\Abroa\.p4-env\logs\20261125T082005Z-119725.log`，退出码 0。
 - rswag OpenAPI：646 examples / 0 failures / 89 documentation-only pending；`D:\开发\Abroa\.p4-env\logs\20261125T081508Z-113037.log`，退出码 0。
 - 最新 Schema 同步完成；`D:\开发\Abroa\.p4-env\logs\20261125T081945Z-119134.log`，退出码 0。
+- 首轮原版 Rails 全量测试：19,252 runs / 117,251 assertions / **9 failures + 2 errors** / 10 skips，`D:\开发\Abroa\.p4-env\logs\20261125T082127Z-121508.log`，退出码 1。9/2 均已定位：AI Provider 未纳入加密 backfill manifest、ReportExport blob 未纳入受保护 ActiveStorage、以及 D 盘 Windows 源文件 CRLF 导致原版换行敏感测试失败；不能宣称本次全量测试通过。
+- 修复了两项真正的安全遗漏：`Abroa::AiModelProvider#api_key` 纳入 `ActiveRecordEncryptionConfig::BACKFILL_MANIFEST`，加密回填版本 13→14 并记录 SHA-256 manifest 摘要；`Abroa::ReportExport` 直接 signed blob 访问（包括本人）由 ActiveStorage 统一拒绝，必须经 Abroa 当前授权审核/审计的下载 API。
+- 修复后 7 个失败相关测试家族共 134 runs / 1844 assertions / **0 failures, 0 errors, 1 skip**；`D:\开发\Abroa\.p4-env\logs\fix-20261125T084643Z-162424.log`，退出码 0。CRLF 仅在 D 盘隔离 Linux 工作副本转换，不修改 Git 源文件；安全相关改动写入代码和新增 Blob API 负向测试。新增改动 RuboCop 4 files / 0 offenses，`D:\开发\Abroa\.p4-env\logs\20261125T084944Z-168011.log`。
+- 首次独立 Docker P4 预生产：冻结 `d4334f3be`、`abroa-p4-overlay:d4334f3be`，Web `127.0.0.1:3044/up` HTTP 200，P1–P4 合成账户/预算/项目/家长拨款和退款、A10 代付/还款、A11 预测、A12 站内通知、A13 CSV 私有导出、A14 预算提案确认与安全补偿，家长授权 200→404；5 个 Sidekiq Cron 重启前后执行成功。日志 `D:\开发\Abroa\.p4-stage\logs\docker-p4-acceptance.log`，退出码 0；该冻结镜像尚不含后续安全修复，必须在新 SHA 上复验。
+- 修复后原版 Rails 全量四进程隔离复验已开始，日志 `D:\开发\Abroa\.p4-env\logs\fix-20261125T084924Z-167234.log`，尚待最终结果；生产容器 P4 加密 backfill v14 和最终冻结 SHA 复验待执行。
 - 未验证真实外部模型凭证；AI 对导入匹配和分类当前仅建议，后续仍须原用户审核，禁止自动过账。
-- 原版 Rails 全量套件已启动、等待退出码，日志 `D:\开发\Abroa\.p4-env\logs\20261125T082127Z-121508.log`；完整 Docker P4 独立阶段验收待执行。
 
 ## P1–P4 联合验收
 尚未执行完毕。需最终记录逐模块结果、测试与断言、退出码、修复提交 SHA、数据库回滚、Docker 端点、授权撤销与外部验证缺口。

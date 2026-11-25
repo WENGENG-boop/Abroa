@@ -471,6 +471,24 @@ class ActiveStorageAuthorizationTest < ActionDispatch::IntegrationTest
     assert_response :not_found
   end
 
+  test "Abroa report export signed blob remains inaccessible even to its owner" do
+    bank = Account.create!(family: @user_a.family, owner: @user_a,
+      accountable: Depository.new, name: "Private export test account",
+      currency: "GBP", balance: 100)
+    export = Abroa::ReportExport.create_for!(@user_a,
+      attributes: { scope: "personal", start_on: "2025-02-01",
+        end_on: "2025-02-28", currency: "GBP", account_ids: [ bank.id ] },
+      format: "csv", key: "authorization-signed-blob-test")
+    sign_in @user_a
+    get rails_blob_path(export.file)
+    assert_response :not_found
+    sign_out @user_a
+    sign_in @user_b
+    get rails_blob_path(export.file)
+    assert_response :not_found
+    assert Abroa::ReportExport.download_for!(@user_a, export.id)[:content].include?("net_consumption")
+  end
+
   test "every attachment is either access-checked or intentionally public" do
     # Logos and avatars are not sensitive. Archived exports have no owning family;
     # ArchivedExportsController releases them by download token.
