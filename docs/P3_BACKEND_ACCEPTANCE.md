@@ -1,46 +1,50 @@
-# Abroa P3 Backend Acceptance — execution evidence
+# Abroa P3 Backend — Formal Acceptance (2026-11-25)
 
-Date: 2026-11-25
-Repository: `D:\开发\Abroa\Abroa`
-Branch: `abroa/development`
-P2 frozen HEAD at start: `2f9152daaf976e9f9bd30bed82361d98061522b2`
-Status: **IN_PROGRESS**. Do not interpret implemented source or isolated unit success as formal P3 verification.
+**Status: VERIFIED for P3.1–P3.4 backend scope.** This is not public-production or P5/P6 end-to-end sign-off.
 
-## P3 execution and behavior
+- Repository: `D:\开发\Abroa\Abroa`
+- Branch: `abroa/development`
+- P2 frozen parent: `2f9152daaf976e9f9bd30bed82361d98061522b2`
+- **Accepted P3 business-code Git commit: `119317b9c`** — `Add P3 parent collaboration and real-ledger funding`
+- Test WSL `Abroa-P1-Test` and all P3 test/stage files: D-backed. No P1/P2 staged data, production database, live bank, or payment connection was changed.
 
-| Work package | Delivered code | Focused actual execution (not full stage sign-off) |
+## Executed evidence
+
+| Gate | Actual result | Evidence |
 |---|---|---|
-| P3.1 A08 | Isolated parent/student relation, hashed single-use invite, accepted/rejected/revoked state, student-scoped resource Grant, role-checked API | Early focused suite 7 tests, 51 assertions, 0 fail, 0 error, exit 0 |
-| P3.2 A08 / BUDGET-05 | Independent parent drafts, budget-create/update and study-project-update proposals, student approval/rejection, revoke/expiry/version and budget-node direct edit, audit history | Expanded focused suite 10 tests, 61 assertions, 0 fail, 0 error, exit 0 |
-| P3.3 A09 / FUND-03–06 | Parent funding plans and recurrence, student confirmation, separate bank-sent notices, student changes to parent's plan, real posted Entry matching and historical FX, refund ledger reversals | Prior full package-focused suite 15 tests, 105 assertions, 0 fail, 0 error, exit 0; later additional refund-drift negative test awaiting verification |
-| P3.4 A08/A09 | Parent-scoped project listings, budget/fee/pool/cash/cost/funding aggregates, filtered entry visibility | Focused suite 7 tests, 62 assertions, 0 fail, 0 error, exit 0 |
-| Concurrent PostgreSQL | Independent PG17 sessions and row locks for relation invite, grant revoke, proposal race, duplicate receipt, duplicate reversal | 5 tests, 26 assertions, 0 fail, 0 error, exit 0 |
+| Full clean Rails suite (isolated PG17 database `abroa_p3_full_clean`) | **19,164 tests, 116,966 assertions; 0 failures, 0 errors, 10 skips; exit 0** | `D:\开发\Abroa\.p3-env\logs\20261125T034319Z-153906.log` |
+| Follow-up API negative cases added after full-suite run | **21 tests, 215 assertions; 0 failures/errors/skips; exit 0** | `D:\开发\Abroa\.p3-env\logs\20261125T044218Z-188240.log` |
+| P1/P2/P3 critical financial and identity regression | **1,232 tests, 4,903 assertions; 0 failures/errors/skips; exit 0** | `D:\开发\Abroa\.p3-env\logs\20261125T033937Z-150490.log` |
+| Real PostgreSQL concurrent transactions | **5 tests, 26 assertions; 0 failures/errors/skips; exit 0** | `D:\开发\Abroa\.p3-env\logs\20261125T034108Z-151630.log` |
+| P3 documentation-only rswag | 52 examples, 0 failures; exit 0 | `D:\开发\Abroa\.p3-env\logs\20261125T034150Z-152298.log` |
+| Full OpenAPI regeneration | 618 examples, 0 failures; 89 documentation-only pending; exit 0, generated `docs/api/openapi.yaml` | `D:\开发\Abroa\.p3-env\logs\20261125T034218Z-152819.log` |
+| Endpoint consistency after Git commit | Pass, exit 0 | `D:\开发\Abroa\.p3-env\logs\20261125T044855Z-192549.log` |
+| Ruby lint | RuboCop 61 changed/relevant files, no offenses, exit 0, including late API test additions | `D:\开发\Abroa\.p3-env\logs\p3-rubocop.log` |
+| Brakeman full app | 234 controllers, 871 models, 0 errors, 0 security warnings, exit 0; eight ignored historical warnings | `D:\开发\Abroa\.p3-env\logs\p3-brakeman.txt` |
+| PG17 schema/migrations | Six P3 migrations `20261125100000` through `20261125105000` all `up`; `db/schema.rb` synchronized | P3 Docker stage `rails db:migrate:status`, same acceptance log |
+| Independent Docker P3 stage after encryption backfill | **All checks passed, process exit 0**: PG, Redis, Web healthy; HTTP `/up=200`; real synthetic parent/student API flow; after revocation `200→404`; real ledger receipt 400 GBP and posted refund 100 GBP, net 300 GBP without creating synthetic Entries; Worker two cron jobs processed before **and** after restart | `D:\开发\Abroa\.p3-stage\logs\docker-p3-acceptance.log`, `P3_STAGE_ALL_CHECKS_PASSED sha=119317b9c` |
 
-These are distinct targeted suite files; initial cumulative completed test cases were 44 and assertions 305, **not** a substitute for the final suite. Logs are under `D:\开发\Abroa\.p3-env\logs\`. Final numbers are to be copied from the actual last green command and must not be inferred.
+## P3 feature acceptance
 
-## Data and environmental isolation
+- **P3.1 — Parent/student independent identities, invitation, relationship and grants**: One-time email-bound invite; reject/revoke/replay and cross-family IDOR checks; no implied permission; effective scope expiry/revoke; immediate API 404 after revocation.
+- **P3.2 — Independent parent drafts, proposals, direct budget edit**: Draft-to-proposal snapshot and status synchronization; budget creation/adjustment and study project amendments effective only after student approval, except the explicitly granted bounded direct-budget-edit scope; optimistic versions, cross-project checks and audit history.
+- **P3.3 — Parent funding and actual bank-backed receipts**: Parent funding plans, recurrence, bank-sent notices that never count as receipt, student-proposed modifications with parent approval, student-confirmed destination, one-to-one real posted Sure Entry allocation, immutable historical FX quote, real refund Entry reversal, source-ledger drift invalidation. New funding plans do **not** mint money.
+- **P3.4 — Parent-only scoped project aggregation**: Read-only project, budgets, fees, pools, expense and funding summaries; private account/entry identifiers are not leaked without separate authorization. Scope and relationship revocation take effect immediately.
 
-- Test WSL distribution `Abroa-P1-Test` is backed by a VHDX on D, and P3 uses new PostgreSQL 17 cluster `abroap3`, port 55434, with `abroa_p3_test` and a separately allocated full regression database. Redis port 56381 DB 1. P1/P2 frozen databases, P2 Docker environment, and production databases are untouched.
-- P3 new migrations: `20261125100000`, `20261125101000`, `20261125102000`, `20261125103000`, `20261125104000`; migrations completed successfully on P3 DB. If additional safety migrations are added, record their actual result here.
-- All funds used in tests are synthetic local fixtures and posted mock Sure transactions. No real bank connections, external payments, or production credentials are used.
-- Test runner: `D:\开发\Abroa\.p3-env\scripts\run-p3.sh`; creates a byte-accurate P2 `git archive` worktree and overlays only P3 modifications; Windows CRLF test fixture issue identified and corrected within isolated runner, source fixtures left unchanged.
-- Full test and isolated Docker stage have not yet been signed off. Web/Worker 200/healthy is insufficient without test parent/student API and state transitions.
+## Stage build and isolation
 
-## Code and security audit
+The accepted stage image **`abroa-p3-overlay:119317b9c`**, ID `sha256:2755fe3799e0f531a1fddf859526e763922ddf9b735aecf249947738c5afc051`, is built with `Dockerfile.p3-overlay` from the previously verified immutable P2 image `abroa-p2-stage:2f9152daa`, then **copies the complete frozen P3 Git archive** from `/var/lib/abroa-p3-stage/source`. `bundle check` passed. Dependencies were not changed by P3. This is an **incremental overlay image**, **not** a fully from-scratch image build; the latter was started but stopped during lengthy dependency downloads and is not claimed to have passed.
 
-- Brakeman full-tree scan exit 0 with zero security warnings and zero errors; report `D:\开发\Abroa\.p3-env\logs\p3-brakeman.txt` (eight existing ignored warnings).
-- RuboCop 40 Ruby files, initially 52 formatting errors; safe automatic correction completed, a fresh lint pass pending.
-- Source review covers cross-tenant IDOR, revocation, stale historical ledger evidence and source/currency immutability, plus unique-index race protections. Findings in `docs/P3_CODE_REVIEW.md`.
+Staging files are `D:\开发\Abroa\.p3-stage`; Compose project `abroa-p3-stage`; isolated named PostgreSQL, Redis and app-storage volumes; Web bound only to `127.0.0.1:3043`. `P2` continues in its separate `abroa-p2-stage` project. All staging identities and financial entries are synthetic.
 
-## Remaining formal acceptance gates
+## Encryption warning resolved in P3 stage
 
-1. Confirm full Rails run on LF-normalized Git baseline ends with actual final counts, no new P3 failures and known baseline exception classification.
-2. Finish refund evidence drift repair and rerun all P3 tests + PostgreSQL concurrency against a fresh isolated database.
-3. Complete P3 rswag documentation tests, generate and validate OpenAPI and endpoint consistency.
-4. Confirm RuboCop clean and Brakeman no security warnings after final modifications.
-5. Generate repository `db/schema.rb` from migrated P3 schema; ensure P2→P3 upgrade and fresh schema load both work.
-6. Commit feature groups, freeze a final SHA; build **independent** P3 Docker image from that SHA and start isolated DB, Redis, Web, Worker.
-7. Exercise test-only P3 HTTP API and real task processing/restart in staging; record logs, exit codes, image and SHA.
-8. Update implementation matrix to VERIFIED only after all gates are evidenced. State any unresolved external/noncritical risks explicitly.
+Initial P3 stage boot showed the upstream Sure `ActiveRecord Encryption` backfill-completion warning. A **dry run** of `security:backfill_encryption[100,true]` passed with zero failed rows. The **actual write pass** `[100,false]` was then performed **only on the P3 stage database**, encrypting 2 synthetic user rows and 1 synthetic API-key row with zero failures, followed by P3 Web/Worker restart. Logs: `D:\开发\Abroa\.p3-stage\logs\p3-encryption-backfill-dryrun.log` and `p3-encryption-backfill-apply.log`. The complete P3 stage API/cron/restart acceptance was subsequently rerun with success, and the earlier backfill-incomplete warning did not recur. No other database was backfilled.
 
-P4+ work not required for P3: receivables, forecasts, notification-channel delivery, AI workflow, operational admin/paid plans, Web/PWA frontend, public deployment.
+## Scope exclusions and qualifications
+
+- Full Rails suite has **10 skips**, and rswag has **89 documentation-only pending** examples; these are not counted as passes.
+- The source review (`docs/P3_CODE_REVIEW.md`) was performed by the implementation agent, not an independent human audit.
+- No live Google OIDC/SSO credentials, real banking or external-provider callbacks, live payments, actual production deployment, real notification delivery or public traffic were exercised. Isolated stage logs intentionally note unavailable SSO/Posthog/Skylight configurations.
+- The accepted image remains the pinned business-code SHA `119317b9c`. A later documentation-only sign-off commit must not be confused with a new business-code build.
+- P4+ (receivables, forecasting, notification channels, AI, operational admin), P5 infrastructure/public deployment, P6 system-wide acceptance and P7/P8 frontend/release remain outside this phase. Do not infer their verification from P3 completion.
