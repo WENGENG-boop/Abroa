@@ -9937,6 +9937,185 @@ paths:
               required:
               - lock_version
         required: true
+  "/api/v1/abroa/reports":
+    get:
+      summary: Read personal or study-project financial facts from Sure entries
+      tags:
+      - Abroa P4 reports
+      security:
+      - apiKeyAuth: []
+      parameters:
+      - name: scope
+        in: query
+        required: true
+        schema:
+          type: string
+          enum:
+          - personal
+          - project
+      - name: project_id
+        in: query
+        required: false
+        schema:
+          type: string
+          format: uuid
+      - name: period_id
+        in: query
+        required: false
+        schema:
+          type: string
+          format: uuid
+      - name: start_on
+        in: query
+        required: false
+        schema:
+          type: string
+          format: date
+      - name: end_on
+        in: query
+        required: false
+        schema:
+          type: string
+          format: date
+      - name: currency
+        in: query
+        required: false
+        schema:
+          type: string
+      responses:
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  "/api/v1/abroa/parent/projects/{id}/report":
+    parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    get:
+      summary: Read authorized, privacy-suppressed whole-month or academic-period
+        report
+      tags:
+      - Abroa P4 reports
+      security:
+      - apiKeyAuth: []
+      parameters:
+      - name: month
+        in: query
+        required: false
+        schema:
+          type: string
+          pattern: "^\\d{4}-(0[1-9]|1[0-2])$"
+      - name: period_id
+        in: query
+        required: false
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  "/api/v1/abroa/report_exports":
+    post:
+      summary: Produce an expiring, private, audited CSV/JSON report snapshot
+      tags:
+      - Abroa P4 reports
+      security:
+      - apiKeyAuth: []
+      parameters:
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+      responses:
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                scope:
+                  type: string
+                  enum:
+                  - personal
+                  - project
+                  - parent
+                format:
+                  type: string
+                  enum:
+                  - csv
+                  - json
+                project_id:
+                  type: string
+                  format: uuid
+                period_id:
+                  type: string
+                  format: uuid
+                start_on:
+                  type: string
+                  format: date
+                end_on:
+                  type: string
+                  format: date
+                month:
+                  type: string
+                currency:
+                  type: string
+                account_ids:
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
+              required:
+              - scope
+              - format
+        required: true
+  "/api/v1/abroa/report_exports/{id}/download":
+    parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    get:
+      summary: Download private blob with current access, integrity and expiry checks
+      tags:
+      - Abroa P4 reports
+      security:
+      - apiKeyAuth: []
+      responses:
+        '401':
+          description: Authentication required
+          content:
+            text/csv:
+              schema:
+                type: object
+                additionalProperties: true
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
   "/api/v1/abroa/profile":
     get:
       summary: Read own Abroa preferences

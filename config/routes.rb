@@ -822,6 +822,10 @@ Rails.application.routes.draw do
   namespace :api do
     namespace :v1 do
       namespace :abroa do
+        get "reports", to: "reports#show"
+        get "parent/projects/:id/report", to: "reports#parent"
+        post "report_exports", to: "reports#create_export"
+        get "report_exports/:id/download", to: "reports#download"
         get "notifications", to: "notifications#index"
         post "notifications/:id/read", to: "notifications#read"
         get "notification_preferences", to: "notifications#preferences"

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_25_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_25_130000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -129,7 +129,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_25_120000) do
     t.index ["inbox_notification_id"], name: "index_abroa_email_outboxes_on_inbox_notification_id", unique: true
     t.index ["recipient_id"], name: "index_abroa_email_outboxes_on_recipient_id"
     t.index ["status", "next_retry_at"], name: "index_abroa_email_outboxes_on_status_and_next_retry_at"
-    t.check_constraint "(status::text = ANY (ARRAY['pending'::character varying, 'sending'::character varying, 'sent'::character varying, 'failed'::character varying, 'cancelled'::character varying, 'uncertain'::character varying]::text[])) AND attempt_count >= 0", name: "abroa_outbox_delivery_state"
+    t.check_constraint "(status::text = ANY (ARRAY['pending'::character varying::text, 'sending'::character varying::text, 'sent'::character varying::text, 'failed'::character varying::text, 'cancelled'::character varying::text, 'uncertain'::character varying::text])) AND attempt_count >= 0", name: "abroa_outbox_delivery_state"
   end
 
   create_table "abroa_entry_allocations", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -512,7 +512,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_25_120000) do
     t.index ["recipient_id", "created_at"], name: "idx_abroa_inbox_recency"
     t.index ["recipient_id", "event_key_digest"], name: "idx_abroa_inbox_event_dedup", unique: true
     t.index ["recipient_id"], name: "index_abroa_inbox_notifications_on_recipient_id"
-    t.check_constraint "state::text = ANY (ARRAY['unread'::character varying, 'read'::character varying]::text[])", name: "abroa_inbox_state"
+    t.check_constraint "state::text = ANY (ARRAY['unread'::character varying::text, 'read'::character varying::text])", name: "abroa_inbox_state"
   end
 
   create_table "abroa_notification_preferences", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -829,6 +829,31 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_25_120000) do
     t.index ["student_user_id"], name: "index_abroa_relationships_on_student_user_id"
     t.check_constraint "status::text = ANY (ARRAY['active'::character varying::text, 'revoked'::character varying::text, 'expired'::character varying::text])", name: "abroa_relation_states"
     t.check_constraint "student_user_id <> parent_user_id AND student_family_id <> parent_family_id AND family_id = student_family_id", name: "abroa_relation_tenant_bounds"
+  end
+
+  create_table "abroa_report_exports", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "family_id", null: false
+    t.uuid "owner_id", null: false
+    t.uuid "project_id"
+    t.string "scope", null: false
+    t.string "file_format", null: false
+    t.string "status", default: "ready", null: false
+    t.jsonb "filters", default: {}, null: false
+    t.string "creation_key_digest", null: false
+    t.string "creation_request_digest", null: false
+    t.string "grant_scope_digest"
+    t.string "sha256", null: false
+    t.bigint "byte_size", null: false
+    t.datetime "expires_at", null: false
+    t.integer "lock_version", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["family_id"], name: "index_abroa_report_exports_on_family_id"
+    t.index ["owner_id", "created_at"], name: "index_abroa_report_exports_on_owner_id_and_created_at"
+    t.index ["owner_id", "creation_key_digest"], name: "idx_abroa_report_export_idempotency", unique: true
+    t.index ["owner_id"], name: "index_abroa_report_exports_on_owner_id"
+    t.index ["project_id"], name: "index_abroa_report_exports_on_project_id"
+    t.check_constraint "(scope::text = ANY (ARRAY['personal'::character varying, 'project'::character varying, 'parent'::character varying]::text[])) AND (file_format::text = ANY (ARRAY['json'::character varying, 'csv'::character varying]::text[])) AND (status::text = ANY (ARRAY['ready'::character varying, 'failed'::character varying]::text[])) AND byte_size >= 1 AND byte_size <= 2097152", name: "abroa_report_export_limits"
   end
 
   create_table "abroa_source_actions", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -4279,6 +4304,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_25_120000) do
   add_foreign_key "abroa_relationships", "families", on_delete: :cascade
   add_foreign_key "abroa_relationships", "users", column: "parent_user_id", on_delete: :cascade
   add_foreign_key "abroa_relationships", "users", column: "student_user_id", on_delete: :cascade
+  add_foreign_key "abroa_report_exports", "abroa_study_projects", column: "project_id", on_delete: :restrict
+  add_foreign_key "abroa_report_exports", "families", on_delete: :cascade
+  add_foreign_key "abroa_report_exports", "users", column: "owner_id", on_delete: :cascade
   add_foreign_key "abroa_source_actions", "abroa_source_records", column: "source_record_id", on_delete: :cascade
   add_foreign_key "abroa_source_actions", "abroa_source_reviews", column: "source_review_id", on_delete: :cascade
   add_foreign_key "abroa_source_actions", "entries", on_delete: :nullify

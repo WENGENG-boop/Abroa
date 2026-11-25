@@ -49,3 +49,8 @@ Parent forecast requires an active student-parent relation plus effective projec
 站内通知的唯一 ID、事件键不可用作他人数据访问凭证；收件人必须为当前登录的用户且 family 匹配。查询和已读再次检测源资源（P3 Grant/关系撤销后失去详情权限）；邮件 Worker 执行前重新读取用户、偏好和源权限，拒绝错配 recipient/family/source、跨租户与已撤销授权。邮件正文和主题完全通用，不包含姓名、银行账户、项目、交易、金额、API Key、原始导入文本；收到邮件时仍须在 Abroa 登录后访问收件箱。邮件默认 opt-out；静默时段按用户 timezone 处理。
 
 Outbox 在 PG 事务锁中独占标记 sending；已发出不重复发送；Worker 重启时弃置不确定的旧 sending 为 uncertain（需要人工核实 SMTP 接收情况），明确拒绝的 SMTP 响应才进入安全重试 failed。记录错误类别，不回显 SMTP 响应正文或凭证。真实第三方 SMTP 验证列为外部缺口；本地投递器/真实隔离 PG、Sidekiq 模拟任务属于可执行验收。
+
+## P4.4 A13 安全导出与聚合推断限制
+
+学生报表仅可使用本人所属、可访问 Sure Depository 现金账户及本人持有的项目；验证 period/project 归属，所有读聚合基于真实入账 Entry、历史汇率。不可使用预算或资金池目标冒充银行余额。每个下载首先按 owner+family+未到期的私有 Export 查找，然后重新执行源报表的 AccountPolicy/StudyProject 或家长 Grant 检查，核实完整 SHA-256 和文件大小，并追加可审计下载事件。包含其他用户交易、越权项目或过期的文件均不返回。
+家长仅固定自然月或已建立学年/学期聚合，不接受任意小窗、任意账户/项目/交易 ID；对交易笔数小于 5 的项目消费保持 suppression，预算/费用字段另要求对应有效 Grant。导出创建时锁定家长当前 Grant 摘要，任一授权变更都会拒绝下载旧快照及幂等重放，避免撤销后保留更高权限历史文件。CSV 内所有单元格，包括导入数据，带等号/加减号/at/控制字符等公式起始字符的均使用安全前缀；HTTP 下载 `no-store`、`nosniff`、`sandbox` 和附件 disposition。

@@ -97,3 +97,8 @@ Forecasts are read-only computations over Sure's deposited-cash accounts and pos
 `abroa_inbox_notifications`：收件人及其家庭、稳定事件键 SHA-256（收件人+键唯一索引）、事件类型、源资源指针、发生时间、已读状态；API 不返回私人内容或源对象。对源资源采用类允许表及现时授权检查，不使用来自用户的 dynamic constantize。
 `abroa_email_outboxes`：唯一 `inbox_notification_id`、收件人/租户、pending/sending/sent/failed/cancelled/uncertain、重试次数、下次时间、错误类别、完成时间；不存储收件人邮箱副本、交易内容或凭证，邮件发送前重新读取用户和 Grant。
 唯一新增可逆迁移：`db/migrate/20261125120000_create_abroa_notifications.rb`；复用原 Sure Sidekiq/Redis、ActionMailer 和 P2/P3 历史事件，不另建账本。定时任务在 `config/schedule.yml`。
+
+## P4.4 A13 导出与报表数据
+
+`Abroa::FinancialReport` 和 `Abroa::ProjectDebtRecognition` 是无持久化只读聚合，在 Sure `IncomeStatement` 与历史 `Entry` 上关联已有 P1–P4 账务事实；不建立额外收入/支出总账。项目中的第三方借贷与商户退款仍引用真实 P2 分配 Entry、P4 DebtSettlement 和历史汇率。
+`abroa_report_exports`：owner/family 严格租户主键、可选 project、个人/项目/家长范围、已校验筛选、csv/json、创建幂等 SHA-256、请求内容 SHA-256、家长授权摘要、文件 SHA-256 与字节数、状态、有效期。私有数据存 Rails 现有 ActiveStorage，强制 2MB 上限；下载从不返回 ActiveStorage signed ID。所有访问经过当前用户/account/Grant 重新验证及 `PlanningAuditEvent` 追加审计。迁移 `20261125130000_create_abroa_report_exports.rb` 可逆，历史 P1–P3 数据和迁移保持不变。

@@ -128,3 +128,14 @@ P0 核实 API 路由、controller、认证方式及现有 serializer，再将精
 | PATCH | `/api/v1/abroa/notification_preferences` | `lock_version` + 变更字段，版本冲突 409，不支持未知字段 422 |
 
 通知由 `Abroa::NotificationEventSweepJob` 从 P2 费用事件、P3 Grant/拨款/邀请审计及 Sure 待确认交易、同步失败生成；稳定事件键按收件人唯一。邮箱默认关闭，不默认发送敏感财务信息。邮件由 `EmailOutboxSweepJob`/ `EmailOutboxDeliveryJob` 异步发送，发送前再次核对权限/偏好；GMT/用户 timezone 静默时段重试。Worker 意外中断可能已被 SMTP 接受的 `sending` 被恢复为 `uncertain`，不会盲目重发。明确收到 SMTP 拒绝的 `failed` 可安全重试，最多五次。该阶段只使用本地/模拟邮箱执行验收，真实生产 SMTP 需独立验证。
+
+## P4.4 A13 财务报表与安全文件导出
+
+| 方法 | 路径 | 权限与作用 |
+|---|---|---|
+| GET | `/api/v1/abroa/reports` | 学生本人 personal/project；可选账号、项目、学年/学期 study period 或自定义起止日期（不能越权筛选账号） |
+| GET | `/api/v1/abroa/parent/projects/{id}/report` | 仅有效 P3 `summary` Grant 的家长，支持固定 `YYYY-MM` 整月或预先创建的学年/学期，拒绝任意时间和账户过滤；小于 5 笔独立分配交易的项目净消费隐藏为 null，其他字段按细粒度 Grant 判断 |
+| POST | `/api/v1/abroa/report_exports` | 需要 read_write、`Idempotency-Key`；body 包含学生/家长报告筛选字段与 `format=csv|json`。生成独立私有文件，回应仅含受控 ID、格式、大小和有效期 |
+| GET | `/api/v1/abroa/report_exports/{id}/download` | 当前登录人本人拥有文件、文件未过期且原始项目/账号/Grant 仍可访问；重新鉴权并写入下载审计后返回带 `Content-Disposition: attachment` 的 Blob 内容；不返回公开/signed URL |
+
+报表由 `Abroa::FinancialReport` 读取 Sure `IncomeStatement` 和 `Entry`、P1 `NetConsumption`/RefundLink、P2 `ProjectSummary`/预算/费用/资金池和 P3 `FundingPlan`、P4 应收应付，分别标明已发生现金与未收拨款、非现金资金池目标；不相加重复统计。项目 `personal_allocated_consumption` 仅调整已有 P2 项目分配的第三方承担、商户退款、借贷/偿还；`ledger_allocated_consumption` 仍保留原账本数字。历史 FX 不全、源事实失效时 `incomplete=true` 并置 null，不能将跨币种原数直接相加。CSV 每个单元格均做公式注入净化，导出文件限 2 MB，7 天过期。外部真实对象存储尚未验证。
