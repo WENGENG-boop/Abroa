@@ -55,6 +55,37 @@ module Abroa
       end
     end
 
+    def self.parent_change_for!(parent, id, version:, attributes:)
+      fields = checked(attributes)
+      raise ArgumentError, "Direct budget edit only permits bounded fields" unless
+        (fields.keys - %i[name limit_amount warning_threshold]).empty? && fields.any?
+      raise ActiveRecord::RecordNotFound unless parent&.active? && !parent.guest? &&
+        Profile.for_user(parent).parent_enabled?
+      # Discover an authorized student through the grant, not the private budget table.
+      candidate = Grant.scoped_to_parent(parent, capability: "budget_manage")
+        .where("abroa_grants.project_id IN (SELECT project_id FROM abroa_budget_nodes WHERE id = ?)", id)
+        .where("(abroa_grants.resource_kind = 'project' AND abroa_grants.resource_id IS NULL) OR
+          (abroa_grants.resource_kind = 'budget_node' AND abroa_grants.resource_id = ?)", id).first!
+      student = candidate.relationship.student_user
+      StudyProject.with_actor(student) do
+        grant = Grant.scoped_to_parent(parent, capability: "budget_manage").where(id: candidate.id)
+          .where("abroa_grants.project_id IN (SELECT project_id FROM abroa_budget_nodes WHERE id = ?)", id)
+          .where("(abroa_grants.resource_kind = 'project' AND abroa_grants.resource_id IS NULL) OR
+            (abroa_grants.resource_kind = 'budget_node' AND abroa_grants.resource_id = ?)", id).lock.first!
+        node = where(id: id, family_id: grant.family_id, project_id: grant.project_id).lock.first!
+        raise Conflict, "Budget changed" unless version.is_a?(Integer) && node.lock_version == version
+        raise Conflict, "Budget not editable" unless node.status == "active"
+        node.project.ensure_writable!
+        before = node.version_data
+        node.update!(fields)
+        node.versions.create!(family: node.family, actor: parent, kind: "parent_direct",
+          from_data: before, to_data: node.version_data)
+        PlanningAuditEvent.record!(actor: parent, event_type: "budget.parent_direct", resource: node,
+          safe_data: { project_id: node.project_id })
+        node
+      end
+    end
+
     def self.for_user(user)
       StudyProject.for_user(user)
       where(project_id: StudyProject.for_user(user).select(:id), family_id: user.family_id)

@@ -5,31 +5,31 @@ class Api::V1::Abroa::FeeInstallmentsController < Api::V1::Abroa::BaseController
 
   def index
     page = ::Abroa::Page.fetch(fee.installments, limit: params[:limit], cursor: params[:cursor])
-    render_json({ data: page[:rows].map { |period| period.payload_for(Current.user) }, meta: { next_cursor: page[:next_cursor] } })
+    render_json({ data: page[:rows].map { |period| period.payload_for(current_resource_owner) }, meta: { next_cursor: page[:next_cursor] } })
   end
 
   def show
-    render_json({ data: installment.payload_for(Current.user) })
+    render_json({ data: installment.payload_for(current_resource_owner) })
   end
 
   def create
     fields = body_fields!(*::Abroa::FeeInstallment::FIELDS)
-    record = ::Abroa::FeeInstallment.schedule_for!(Current.user, fee.id,
+    record = ::Abroa::FeeInstallment.schedule_for!(current_resource_owner, fee.id,
       attributes: fields, key: require_idempotency_key!)
-    render_json({ data: record.payload_for(Current.user) }, status: :created)
+    render_json({ data: record.payload_for(current_resource_owner) }, status: :created)
   end
 
   def update
     fields = body_fields!(*::Abroa::FeeInstallment::FIELDS, :lock_version)
-    record = ::Abroa::FeeInstallment.change_for!(Current.user, installment.id,
+    record = ::Abroa::FeeInstallment.change_for!(current_resource_owner, installment.id,
       version: fields.delete(:lock_version), attributes: fields)
-    render_json({ data: record.payload_for(Current.user) })
+    render_json({ data: record.payload_for(current_resource_owner) })
   end
 
   private
     def project
       raise ActiveRecord::RecordNotFound unless valid_uuid?(params[:project_id])
-      @project ||= ::Abroa::StudyProject.find_for!(Current.user, params[:project_id])
+      @project ||= ::Abroa::StudyProject.find_for!(current_resource_owner, params[:project_id])
     end
 
     def fee

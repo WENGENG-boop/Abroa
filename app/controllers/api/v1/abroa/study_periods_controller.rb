@@ -14,27 +14,27 @@ class Api::V1::Abroa::StudyPeriodsController < Api::V1::Abroa::BaseController
 
   def create
     fields = body_fields!(*::Abroa::StudyPeriod::FIELDS)
-    record = ::Abroa::StudyPeriod.create_for!(Current.user, project.id, attributes: fields, key: require_idempotency_key!)
+    record = ::Abroa::StudyPeriod.create_for!(current_resource_owner, project.id, attributes: fields, key: require_idempotency_key!)
     render_json({ data: period_payload(record) }, status: :created)
   end
 
   def update
     fields = body_fields!(*::Abroa::StudyPeriod::FIELDS, :lock_version)
-    record = ::Abroa::StudyPeriod.change_for!(Current.user, project.id, params[:id],
+    record = ::Abroa::StudyPeriod.change_for!(current_resource_owner, project.id, params[:id],
       version: fields.delete(:lock_version), attributes: fields)
     render_json({ data: period_payload(record) })
   end
 
   def destroy
     fields = body_fields!(:lock_version)
-    record = ::Abroa::StudyPeriod.remove_for!(Current.user, project.id, params[:id], version: fields[:lock_version])
+    record = ::Abroa::StudyPeriod.remove_for!(current_resource_owner, project.id, params[:id], version: fields[:lock_version])
     render_json({ data: period_payload(record) })
   end
 
   private
     def project
       raise ActiveRecord::RecordNotFound unless valid_uuid?(params[:project_id])
-      @project ||= ::Abroa::StudyProject.find_for!(Current.user, params[:project_id])
+      @project ||= ::Abroa::StudyProject.find_for!(current_resource_owner, params[:project_id])
     end
 
     def periods

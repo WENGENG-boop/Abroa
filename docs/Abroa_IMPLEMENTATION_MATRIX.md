@@ -12,10 +12,10 @@
 |BUDGET-01–04,06|P2.2|A05|扩展|VERIFIED|app/models/abroa/{budget_node,budget_version}.rb、预算执行 API；test/models/abroa/budget_node_test.rb；含费用承诺、跨期退款及滚存；1043/1043 组合回归通过。|
 |FUND-01,02|P2.3|A06|Goal扩展|VERIFIED|app/models/abroa/{fund_pool,pool_movement,allocation_guard,goal_fund_bridge}.rb；app/models/{goal,goal_account}.rb；test/models/abroa/{fund_pool,fund_pool_concurrency}_test.rb；真实 PostgreSQL 并发、Goal consume/refund 通过，1043/1043 组合回归通过。|
 |FEE-01–05|P2.4|A07|Recurring扩展|VERIFIED|app/models/abroa/{fee_plan,fee_installment,fee_settlement,fee_adjustment,fee_reminder_event}.rb；app/jobs/abroa/{sync_recurring_fees_job,fee_reminder_sweep_job}.rb；费用 API、定时任务及测试；1043/1043 组合回归、68/68 全新库、566 OpenAPI 示例及 Brakeman 通过；提醒投递渠道属于 P4.3。|
-|家长独立注册/关联/授权|P3.1|A08-1,3,4,5|新增|PLANNED|待填|
-|BUDGET-05/家长草稿提议|P3.2|A08-2,3,5|新增|PLANNED|待填|
-|FUND-03–06|P3.3|A09|新增|PLANNED|待填|
-|家长汇总隔离|P3.4|A08/A09|新增|PLANNED|待填|
+|家长独立注册/关联/授权|P3.1|A08-1,3,4,5|新增|IN_PROGRESS|关系、邀请、Grant/API、撤销、隔离负向测试已实现；首轮 7/51 通过；完整回归及 Docker 预生产待签收，见 P3_BACKEND_ACCEPTANCE.md。|
+|BUDGET-05/家长草稿提议|P3.2|A08-2,3,5|新增|IN_PROGRESS|独立草稿、预算创建/更新、留学项目提议审批、指定预算编辑、版本/幂等已实现；扩展组合 10/61 通过，最终待验。|
+|FUND-03–06|P3.3|A09|新增|IN_PROGRESS|拨款计划、周期、汇款声明、学生调整建议、真实 Entry 归集、FX 快照、退款冲正已实现；组合 15/105 通过；退款漂移附加测试及最终验收待签。|
+|家长汇总隔离|P3.4|A08/A09|新增|IN_PROGRESS|授权项目摘要、消费/预算/费用/资金池/拨款汇总及负向权限用例已实现；组合 7/62 通过；完整安全审查与预生产待签。|
 |RECEIVABLE 个人代付|P4.1|A10|扩展|PLANNED|待填|
 |FORECAST 全部|P4.2|A11|扩展|PLANNED|待填|
 |NOTIFY 站内/邮件|P4.3|A12|扩展|PLANNED|待填|

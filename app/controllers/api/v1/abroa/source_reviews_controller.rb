@@ -4,11 +4,11 @@ class Api::V1::Abroa::SourceReviewsController < Api::V1::Abroa::BaseController
   rescue_from ArgumentError, with: :render_invalid_input
 
   def index
-    account_ids = Current.user.family.accounts.accessible_by(Current.user).select(:id)
-    sources = ::Abroa::SourceRecord.where(family: Current.user.family, account_id: account_ids)
-    visible_statements = Current.user.family.account_statements.where(account_id: account_ids).select(:id)
+    account_ids = current_resource_owner.family.accounts.accessible_by(current_resource_owner).select(:id)
+    sources = ::Abroa::SourceRecord.where(family: current_resource_owner.family, account_id: account_ids)
+    visible_statements = current_resource_owner.family.account_statements.where(account_id: account_ids).select(:id)
     sources = sources.where(statement_id: nil).or(sources.where(statement_id: visible_statements))
-    scope = ::Abroa::SourceReview.where(family: Current.user.family, source_record_id: sources.select(:id))
+    scope = ::Abroa::SourceReview.where(family: current_resource_owner.family, source_record_id: sources.select(:id))
     status = params[:status]
     if status.present?
       raise ArgumentError, "Unknown review status" unless %w[pending resolved dismissed].include?(status)
@@ -23,7 +23,7 @@ class Api::V1::Abroa::SourceReviewsController < Api::V1::Abroa::BaseController
   def create
     fields = body_fields!(:source_record_id)
     require_uuid!(fields[:source_record_id])
-    review = ::Abroa::SourceReview.open_for!(Current.user, fields[:source_record_id])
+    review = ::Abroa::SourceReview.open_for!(current_resource_owner, fields[:source_record_id])
     render_json({ data: review.payload }, status: :created)
   end
 
@@ -31,7 +31,7 @@ class Api::V1::Abroa::SourceReviewsController < Api::V1::Abroa::BaseController
     require_uuid!(params[:id])
     fields = body_fields!(:account_id, :funding_kind, :expected_version)
     require_uuid!(fields[:account_id])
-    review = ::Abroa::SourceReview.assign_account_for!(Current.user, review_id: params[:id],
+    review = ::Abroa::SourceReview.assign_account_for!(current_resource_owner, review_id: params[:id],
       account_id: fields[:account_id], funding_kind: fields[:funding_kind], expected_version: fields[:expected_version])
     render_json({ data: review.payload })
   end
@@ -40,7 +40,7 @@ class Api::V1::Abroa::SourceReviewsController < Api::V1::Abroa::BaseController
     require_uuid!(params[:id])
     fields = body_fields!(:resolution, :expected_version, :target_entry_id, :movement_kind)
     require_uuid!(fields[:target_entry_id]) if fields.key?(:target_entry_id) && fields[:target_entry_id].present?
-    action = ::Abroa::SourceReview.resolve_for!(Current.user, review_id: params[:id],
+    action = ::Abroa::SourceReview.resolve_for!(current_resource_owner, review_id: params[:id],
       resolution: fields[:resolution], expected_version: fields[:expected_version],
       key: request.headers["Idempotency-Key"], target_entry_id: fields[:target_entry_id], movement_kind: fields[:movement_kind])
     render_json({ data: action.payload })
@@ -49,7 +49,7 @@ class Api::V1::Abroa::SourceReviewsController < Api::V1::Abroa::BaseController
   def reverse
     require_uuid!(params[:id])
     body_fields!
-    action = ::Abroa::SourceReview.reverse_for!(Current.user, action_id: params[:id])
+    action = ::Abroa::SourceReview.reverse_for!(current_resource_owner, action_id: params[:id])
     render_json({ data: action.payload })
   end
 

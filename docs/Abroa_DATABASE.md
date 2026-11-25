@@ -60,3 +60,18 @@
 |region_configs|country_code,locale?, defaults json,enabled|平台表；地区模板不得承诺实际银行可用|
 ## 3. 约束与迁移
 跨记录金额上限/同租户/父子无环不是普通 CHECK 可解决：使用授权 scope + 同事务锁 + 外键/唯一约束，必要时 composite FK；对真实 ledger entry 删除/编辑设 restrict 或受控解绑/重算，不级联误删事实。所有金额累计以规范化 entry 或分摊为准；计划/投影禁止直接写 accounts.balance。先 additive migrations、可空兼容字段、幂等 backfill、验证约束、再收紧；保留原用户/账户 ID；P0 核查重名/已有同等实体后合并实现。迁移须在明确授权的隔离环境验证新库、旧库升级及恢复；生产不得自动执行。 
+
+## P3 Schema 扩展（2026-11-25）
+
+新增迁移 `20261125100000_create_abroa_parent_access.rb`、`20261125101000_create_abroa_parent_planning.rb`、`20261125102000_create_abroa_funding_plans.rb`、`20261125103000_expand_abroa_parent_planning_proposals.rb`、`20261125104000_create_abroa_funding_suggestions.rb`。
+
+- `abroa_relationships` 保存 `student_user_id`、`parent_user_id`、`student_family_id`、`parent_family_id`、状态和乐观锁；限制学生与家长不能同账户、同家庭。
+- `abroa_relationship_invites` 保存不可逆 token / 目标邮箱摘要、原始邀请角色、截止时间及一次性消费状态；原始 token 不入库。
+- `abroa_grants` 保存学生授予家长的 project/resource/capability、期限和 revocation；唯一部分索引防止同时存在多个相同活动授权，支持 project 与指定预算/费用/资金池粒度。
+- `abroa_planning_drafts` 保存在家长自身家庭；`abroa_proposals` 保存在学生家庭，并引用当前跨租户 Relation、StudyProject、目标及被接受的 `applied_resource_id`。
+- `abroa_funding_plans` 保存项目、关系、父母与学生、两边账户引用、资金池、周期计划、审批状态、版本；不创建 Sure `Entry`。
+- `abroa_funding_receipts` 用唯一 `entry_id` 引用已存在的学生账务，保存原币金额与固定汇率快照；`abroa_funding_reversals` 引用另一条真实退款 Entry 并保存原币/快照。
+- `abroa_funding_notices` 仅家长汇款声明，绝不更新 Account.balance；`abroa_funding_suggestions` 保存学生修改请求、计划预期版本和家长审批状态。
+- 所有可重试新增操作都有摘要形式的幂等键及请求摘要；单一真实到账/退款流水有 PostgreSQL 唯一索引，且事务中使用行锁与乐观锁。
+
+跨家庭数据引用仅存在明确的 `Relationship / Grant / FundingPlan` 对象上；Sure 原 `families`、`accounts`、`entries`、`transactions` 均不扩大权限或更改资金来源语义。数据升版以迁移及测试证明为准。

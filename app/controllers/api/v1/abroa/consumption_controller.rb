@@ -5,7 +5,7 @@ class Api::V1::Abroa::ConsumptionController < Api::V1::Abroa::BaseController
     start_on = parse_date(params[:start_on])
     end_on = parse_date(params[:end_on])
     raise ArgumentError, "start_on and end_on must be YYYY-MM-DD" unless start_on && end_on
-    result = ::Abroa::NetConsumption.for_user(Current.user, start_on: start_on, end_on: end_on,
+    result = ::Abroa::NetConsumption.for_user(current_resource_owner, start_on: start_on, end_on: end_on,
       currency: params[:currency], account_ids: params[:account_ids])
     render_json({ data: result })
   end

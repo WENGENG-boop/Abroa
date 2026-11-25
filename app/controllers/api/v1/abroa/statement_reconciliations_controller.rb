@@ -5,18 +5,18 @@ class Api::V1::Abroa::StatementReconciliationsController < Api::V1::Abroa::BaseC
 
   def preview
     body_fields!
-    render_json({ data: ::Abroa::StatementReconciliation.preview_for!(Current.user, statement_id: statement_id!) })
+    render_json({ data: ::Abroa::StatementReconciliation.preview_for!(current_resource_owner, statement_id: statement_id!) })
   end
 
   def confirm
     fields = body_fields!(:digest)
-    render_json({ data: ::Abroa::StatementReconciliation.confirm_for!(Current.user,
+    render_json({ data: ::Abroa::StatementReconciliation.confirm_for!(current_resource_owner,
       statement_id: statement_id!, digest: fields[:digest]) })
   end
 
   def undo
     body_fields!
-    render_json({ data: ::Abroa::StatementReconciliation.undo_for!(Current.user, statement_id: statement_id!) })
+    render_json({ data: ::Abroa::StatementReconciliation.undo_for!(current_resource_owner, statement_id: statement_id!) })
   end
 
   private

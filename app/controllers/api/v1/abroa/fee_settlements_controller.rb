@@ -4,7 +4,7 @@ class Api::V1::Abroa::FeeSettlementsController < Api::V1::Abroa::BaseController
   rescue_from ArgumentError, with: :render_invalid_input
 
   def index
-    page = ::Abroa::Page.fetch(installment.settlements.visible_to(Current.user),
+    page = ::Abroa::Page.fetch(installment.settlements.visible_to(current_resource_owner),
       limit: params[:limit], cursor: params[:cursor])
     render_json({ data: page[:rows].map(&:payload), meta: { next_cursor: page[:next_cursor] } })
   end
@@ -15,11 +15,11 @@ class Api::V1::Abroa::FeeSettlementsController < Api::V1::Abroa::BaseController
     record = case fields[:kind]
     when "payment"
       raise ArgumentError, "Expected allocation_id only" if fields[:refund_link_id].present?
-      ::Abroa::FeeSettlement.pay_for!(Current.user, installment.id,
+      ::Abroa::FeeSettlement.pay_for!(current_resource_owner, installment.id,
         allocation_id: fields[:allocation_id], amount: fields[:amount], key: key)
     when "refund"
       raise ArgumentError, "Expected refund_link_id only" if fields[:allocation_id].present?
-      ::Abroa::FeeSettlement.refund_for!(Current.user, installment.id,
+      ::Abroa::FeeSettlement.refund_for!(current_resource_owner, installment.id,
         refund_link_id: fields[:refund_link_id], amount: fields[:amount], key: key)
     else
       raise ArgumentError, "Expected payment or refund"
@@ -30,7 +30,7 @@ class Api::V1::Abroa::FeeSettlementsController < Api::V1::Abroa::BaseController
   private
     def project
       raise ActiveRecord::RecordNotFound unless valid_uuid?(params[:project_id])
-      @project ||= ::Abroa::StudyProject.find_for!(Current.user, params[:project_id])
+      @project ||= ::Abroa::StudyProject.find_for!(current_resource_owner, params[:project_id])
     end
 
     def fee

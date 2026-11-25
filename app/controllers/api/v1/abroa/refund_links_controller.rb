@@ -5,7 +5,7 @@ class Api::V1::Abroa::RefundLinksController < Api::V1::Abroa::BaseController
 
   def show
     require_uuid!(params[:id])
-    link = ::Abroa::RefundLink.visible_to!(Current.user, params[:id])
+    link = ::Abroa::RefundLink.visible_to!(current_resource_owner, params[:id])
     render_json({ data: public_payload(link) })
   end
 
@@ -13,14 +13,14 @@ class Api::V1::Abroa::RefundLinksController < Api::V1::Abroa::BaseController
     fields = body_fields!(:original_entry_id, :refund_entry_id, :applied_amount, :refund_amount, :rate_snapshot_id)
     %i[original_entry_id refund_entry_id].each { |field| require_uuid!(fields[field]) }
     require_uuid!(fields[:rate_snapshot_id]) if fields[:rate_snapshot_id].present?
-    link = ::Abroa::RefundLink.link_for!(Current.user, **fields)
+    link = ::Abroa::RefundLink.link_for!(current_resource_owner, **fields)
     render_json({ data: public_payload(link) }, status: :created)
   end
 
   def destroy
     require_uuid!(params[:id])
     body_fields!
-    link = ::Abroa::RefundLink.unlink_for!(Current.user, params[:id])
+    link = ::Abroa::RefundLink.unlink_for!(current_resource_owner, params[:id])
     render_json({ data: public_payload(link) })
   end
 

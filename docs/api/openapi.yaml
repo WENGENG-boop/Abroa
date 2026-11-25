@@ -32,6 +32,609 @@ components:
             read: Read access
             read_write: Read and write access
   schemas:
+    AbroaReconciliationPreviewResponse:
+      type: object
+      required:
+      - data
+      properties:
+        data:
+          type: object
+          required:
+          - status
+          - digest
+          - entry_count
+          - issues
+          - balance_checks
+          properties:
+            status:
+              type: string
+              enum:
+              - ready
+              - review
+            digest:
+              type: string
+            entry_count:
+              type: integer
+              minimum: 0
+            issues:
+              type: array
+              items:
+                type: string
+            balance_checks:
+              type: array
+              items:
+                type: object
+                required:
+                - key
+                - statement_amount
+                - ledger_amount
+                - difference
+                - status
+                properties:
+                  key:
+                    type: string
+                  statement_amount:
+                    type: string
+                  ledger_amount:
+                    type: string
+                  difference:
+                    type: string
+                  status:
+                    type: string
+                    enum:
+                    - matched
+                    - mismatched
+    AbroaReconciliationResultResponse:
+      type: object
+      required:
+      - data
+      properties:
+        data:
+          type: object
+          required:
+          - status
+          - digest
+          - entry_count
+          - confirmed_at
+          - reversed_at
+          properties:
+            status:
+              type: string
+              enum:
+              - reconciled
+              - reversed
+            digest:
+              type: string
+            entry_count:
+              type: integer
+              minimum: 0
+            confirmed_at:
+              type: string
+              format: date-time
+            reversed_at:
+              type: string
+              format: date-time
+              nullable: true
+    AbroaConsumptionResponse:
+      type: object
+      required:
+      - data
+      properties:
+        data:
+          type: object
+          required:
+          - start_on
+          - end_on
+          - currency
+          - account_ids
+          - totals
+          - incomplete
+          - inconsistent_refund_count
+          - rates
+          properties:
+            start_on:
+              type: string
+              format: date
+            end_on:
+              type: string
+              format: date
+            currency:
+              type: string
+            account_ids:
+              type: array
+              items:
+                type: string
+                format: uuid
+            totals:
+              type: object
+              required:
+              - gross_consumption
+              - refunds
+              - net_consumption
+              - unallocated_inflows
+              properties:
+                gross_consumption:
+                  type: string
+                  nullable: true
+                refunds:
+                  type: string
+                  nullable: true
+                net_consumption:
+                  type: string
+                  nullable: true
+                unallocated_inflows:
+                  type: string
+                  nullable: true
+            incomplete:
+              type: boolean
+            inconsistent_refund_count:
+              type: integer
+            rates:
+              type: array
+              items:
+                type: object
+    AbroaIntakeInput:
+      type: object
+      required:
+      - source_kind
+      additionalProperties: false
+      properties:
+        source_kind:
+          type: string
+          enum:
+          - bank_statement
+          - alipay_statement
+          - wechat_statement
+          - generic_csv
+          - generic_xlsx
+          - generic_pdf
+        mapping:
+          type: object
+          nullable: true
+          additionalProperties:
+            type: string
+        separator:
+          type: string
+        pdf_import_id:
+          type: string
+          format: uuid
+          nullable: true
+    AbroaIntakePublish:
+      type: object
+      required:
+      - source_kind
+      - preview_digest
+      additionalProperties: false
+      properties:
+        source_kind:
+          type: string
+          enum:
+          - bank_statement
+          - alipay_statement
+          - wechat_statement
+          - generic_csv
+          - generic_xlsx
+          - generic_pdf
+        mapping:
+          type: object
+          nullable: true
+          additionalProperties:
+            type: string
+        separator:
+          type: string
+        pdf_import_id:
+          type: string
+          format: uuid
+          nullable: true
+        preview_digest:
+          type: string
+          minLength: 64
+          maxLength: 64
+        accept_invalid_rows:
+          type: boolean
+    AbroaIntakePreviewResponse:
+      type: object
+      required:
+      - data
+      properties:
+        data:
+          type: object
+          required:
+          - statement_id
+          - account_id
+          - source_kind
+          - file_sha256
+          - preview_digest
+          - record_count
+          - issue_count
+          - rows
+          - issues
+          properties:
+            statement_id:
+              type: string
+              format: uuid
+            account_id:
+              type: string
+              format: uuid
+            source_kind:
+              type: string
+            file_sha256:
+              type: string
+            preview_digest:
+              type: string
+            record_count:
+              type: integer
+            issue_count:
+              type: integer
+            rows:
+              type: array
+              items:
+                type: object
+            issues:
+              type: array
+              items:
+                type: object
+                required:
+                - row_number
+                - code
+                - message
+                properties:
+                  row_number:
+                    type: integer
+                  code:
+                    type: string
+                  message:
+                    type: string
+    AbroaIntakeReceiptResponse:
+      type: object
+      required:
+      - data
+      properties:
+        data:
+          type: object
+          required:
+          - id
+          - statement_id
+          - account_id
+          - source_kind
+          - file_sha256
+          - preview_digest
+          - status
+          - summary
+          properties:
+            id:
+              type: string
+              format: uuid
+            statement_id:
+              type: string
+              format: uuid
+            account_id:
+              type: string
+              format: uuid
+            source_kind:
+              type: string
+            file_sha256:
+              type: string
+            preview_digest:
+              type: string
+            status:
+              type: string
+              enum:
+              - staged
+              - reversed
+            summary:
+              type: object
+              required:
+              - record_count
+              - issue_count
+              - review_count
+              - ignored_count
+              - existing_count
+              - accepted_invalid_rows
+              properties:
+                record_count:
+                  type: integer
+                issue_count:
+                  type: integer
+                review_count:
+                  type: integer
+                ignored_count:
+                  type: integer
+                existing_count:
+                  type: integer
+                auto_linked_count:
+                  type: integer
+                  minimum: 0
+                reversed_source_count:
+                  type: integer
+                  minimum: 0
+                reversed_at:
+                  type: string
+                  format: date-time
+                accepted_invalid_rows:
+                  type: boolean
+    AbroaSourceReview:
+      type: object
+      required:
+      - id
+      - source_record_id
+      - reason_code
+      - candidate_ids
+      - status
+      - lock_version
+      - proposed_action
+      properties:
+        id:
+          type: string
+          format: uuid
+        source_record_id:
+          type: string
+          format: uuid
+        reason_code:
+          type: string
+        candidate_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+        status:
+          type: string
+          enum:
+          - pending
+          - resolved
+          - dismissed
+        lock_version:
+          type: integer
+        proposed_action:
+          type: string
+        account_id:
+          type: string
+          format: uuid
+          nullable: true
+        funding_kind:
+          type: string
+          nullable: true
+    AbroaSourceActionResponse:
+      type: object
+      required:
+      - data
+      properties:
+        data:
+          type: object
+          required:
+          - id
+          - source_record_id
+          - review_id
+          - operation
+          - entry_id
+          - reversed_at
+          properties:
+            id:
+              type: string
+              format: uuid
+            source_record_id:
+              type: string
+              format: uuid
+            review_id:
+              type: string
+              format: uuid
+            operation:
+              type: string
+            entry_id:
+              type: string
+              format: uuid
+              nullable: true
+            reversed_at:
+              type: string
+              format: date-time
+              nullable: true
+    AbroaRefundResponse:
+      type: object
+      required:
+      - data
+      properties:
+        data:
+          type: object
+          required:
+          - id
+          - original_entry_id
+          - refund_entry_id
+          - applied_amount
+          - refund_amount
+          - currency
+          - refund_currency
+          - refund_date
+          - rate_snapshot_id
+          - revoked_at
+          - consistent
+          properties:
+            id:
+              type: string
+              format: uuid
+            original_entry_id:
+              type: string
+              format: uuid
+            refund_entry_id:
+              type: string
+              format: uuid
+            applied_amount:
+              type: string
+            refund_amount:
+              type: string
+            currency:
+              type: string
+            refund_currency:
+              type: string
+            refund_date:
+              type: string
+              format: date
+            rate_snapshot_id:
+              type: string
+              format: uuid
+              nullable: true
+            revoked_at:
+              type: string
+              format: date-time
+              nullable: true
+            consistent:
+              type: boolean
+    AbroaRateResponse:
+      type: object
+      required:
+      - data
+      properties:
+        data:
+          type: object
+          required:
+          - from_currency
+          - to_currency
+          - rate
+          - rate_date
+          - as_of
+          - source
+          - quality
+          - incomplete
+          properties:
+            from_currency:
+              type: string
+            to_currency:
+              type: string
+            rate:
+              type: string
+              nullable: true
+            rate_date:
+              type: string
+              format: date
+              nullable: true
+            as_of:
+              type: string
+              format: date
+            source:
+              type: string
+              nullable: true
+            quality:
+              type: string
+            incomplete:
+              type: boolean
+            original_amount:
+              type: string
+            converted_amount:
+              type: string
+              nullable: true
+            display_amount:
+              type: string
+              nullable: true
+    AbroaRegionResponse:
+      type: object
+      required:
+      - data
+      properties:
+        data:
+          type: object
+          required:
+          - country_code
+          - currency
+          - locale
+          - connection_kinds
+          - configured
+          properties:
+            country_code:
+              type: string
+            currency:
+              type: string
+              nullable: true
+            locale:
+              type: string
+              nullable: true
+            connection_kinds:
+              type: array
+              items:
+                type: string
+            configured:
+              type: boolean
+    AbroaAccountProfileResponse:
+      type: object
+      required:
+      - data
+      properties:
+        data:
+          type: object
+          required:
+          - account_id
+          - country
+          - wallet_kind
+          - lock_version
+          properties:
+            account_id:
+              type: string
+              format: uuid
+            country:
+              type: string
+              nullable: true
+            wallet_kind:
+              type: string
+              nullable: true
+            lock_version:
+              type: integer
+    AbroaExchangeResponse:
+      type: object
+      required:
+      - data
+      properties:
+        data:
+          type: object
+          required:
+          - id
+          - transfer_id
+          - debit_entry_id
+          - credit_entry_id
+          - fee_entry_id
+          - debit_amount
+          - credit_amount
+          - debit_currency
+          - credit_currency
+          - fee_amount
+          - fee_currency
+          - actual_rate
+          - exchanged_on
+          - consistent
+          properties:
+            id:
+              type: string
+              format: uuid
+            transfer_id:
+              type: string
+              format: uuid
+            debit_entry_id:
+              type: string
+              format: uuid
+            credit_entry_id:
+              type: string
+              format: uuid
+            fee_entry_id:
+              type: string
+              format: uuid
+              nullable: true
+            debit_amount:
+              type: string
+            credit_amount:
+              type: string
+            debit_currency:
+              type: string
+            credit_currency:
+              type: string
+            fee_amount:
+              type: string
+            fee_currency:
+              type: string
+              nullable: true
+            actual_rate:
+              type: string
+            exchanged_on:
+              type: string
+              format: date
+            consistent:
+              type: boolean
     AbroaFeeAdjustment:
       type: object
       required:
@@ -125,15 +728,6 @@ components:
           type: string
           format: uuid
           nullable: true
-    AbroaFeeInstallmentImportResponse:
-      type: object
-      required:
-      - data
-      properties:
-        data:
-          type: array
-          items:
-            "$ref": "#/components/schemas/AbroaFeeInstallment"
     AbroaFeePlan:
       type: object
       required:
@@ -403,6 +997,15 @@ components:
       properties:
         data:
           "$ref": "#/components/schemas/AbroaFeeInstallment"
+    AbroaFeeInstallmentImportResponse:
+      type: object
+      required:
+      - data
+      properties:
+        data:
+          type: array
+          items:
+            "$ref": "#/components/schemas/AbroaFeeInstallment"
     AbroaFeeInstallmentListResponse:
       type: object
       required:
@@ -1527,609 +2130,6 @@ components:
               type: array
               items:
                 type: object
-    AbroaReconciliationPreviewResponse:
-      type: object
-      required:
-      - data
-      properties:
-        data:
-          type: object
-          required:
-          - status
-          - digest
-          - entry_count
-          - issues
-          - balance_checks
-          properties:
-            status:
-              type: string
-              enum:
-              - ready
-              - review
-            digest:
-              type: string
-            entry_count:
-              type: integer
-              minimum: 0
-            issues:
-              type: array
-              items:
-                type: string
-            balance_checks:
-              type: array
-              items:
-                type: object
-                required:
-                - key
-                - statement_amount
-                - ledger_amount
-                - difference
-                - status
-                properties:
-                  key:
-                    type: string
-                  statement_amount:
-                    type: string
-                  ledger_amount:
-                    type: string
-                  difference:
-                    type: string
-                  status:
-                    type: string
-                    enum:
-                    - matched
-                    - mismatched
-    AbroaReconciliationResultResponse:
-      type: object
-      required:
-      - data
-      properties:
-        data:
-          type: object
-          required:
-          - status
-          - digest
-          - entry_count
-          - confirmed_at
-          - reversed_at
-          properties:
-            status:
-              type: string
-              enum:
-              - reconciled
-              - reversed
-            digest:
-              type: string
-            entry_count:
-              type: integer
-              minimum: 0
-            confirmed_at:
-              type: string
-              format: date-time
-            reversed_at:
-              type: string
-              format: date-time
-              nullable: true
-    AbroaConsumptionResponse:
-      type: object
-      required:
-      - data
-      properties:
-        data:
-          type: object
-          required:
-          - start_on
-          - end_on
-          - currency
-          - account_ids
-          - totals
-          - incomplete
-          - inconsistent_refund_count
-          - rates
-          properties:
-            start_on:
-              type: string
-              format: date
-            end_on:
-              type: string
-              format: date
-            currency:
-              type: string
-            account_ids:
-              type: array
-              items:
-                type: string
-                format: uuid
-            totals:
-              type: object
-              required:
-              - gross_consumption
-              - refunds
-              - net_consumption
-              - unallocated_inflows
-              properties:
-                gross_consumption:
-                  type: string
-                  nullable: true
-                refunds:
-                  type: string
-                  nullable: true
-                net_consumption:
-                  type: string
-                  nullable: true
-                unallocated_inflows:
-                  type: string
-                  nullable: true
-            incomplete:
-              type: boolean
-            inconsistent_refund_count:
-              type: integer
-            rates:
-              type: array
-              items:
-                type: object
-    AbroaIntakeInput:
-      type: object
-      required:
-      - source_kind
-      additionalProperties: false
-      properties:
-        source_kind:
-          type: string
-          enum:
-          - bank_statement
-          - alipay_statement
-          - wechat_statement
-          - generic_csv
-          - generic_xlsx
-          - generic_pdf
-        mapping:
-          type: object
-          nullable: true
-          additionalProperties:
-            type: string
-        separator:
-          type: string
-        pdf_import_id:
-          type: string
-          format: uuid
-          nullable: true
-    AbroaIntakePublish:
-      type: object
-      required:
-      - source_kind
-      - preview_digest
-      additionalProperties: false
-      properties:
-        source_kind:
-          type: string
-          enum:
-          - bank_statement
-          - alipay_statement
-          - wechat_statement
-          - generic_csv
-          - generic_xlsx
-          - generic_pdf
-        mapping:
-          type: object
-          nullable: true
-          additionalProperties:
-            type: string
-        separator:
-          type: string
-        pdf_import_id:
-          type: string
-          format: uuid
-          nullable: true
-        preview_digest:
-          type: string
-          minLength: 64
-          maxLength: 64
-        accept_invalid_rows:
-          type: boolean
-    AbroaIntakePreviewResponse:
-      type: object
-      required:
-      - data
-      properties:
-        data:
-          type: object
-          required:
-          - statement_id
-          - account_id
-          - source_kind
-          - file_sha256
-          - preview_digest
-          - record_count
-          - issue_count
-          - rows
-          - issues
-          properties:
-            statement_id:
-              type: string
-              format: uuid
-            account_id:
-              type: string
-              format: uuid
-            source_kind:
-              type: string
-            file_sha256:
-              type: string
-            preview_digest:
-              type: string
-            record_count:
-              type: integer
-            issue_count:
-              type: integer
-            rows:
-              type: array
-              items:
-                type: object
-            issues:
-              type: array
-              items:
-                type: object
-                required:
-                - row_number
-                - code
-                - message
-                properties:
-                  row_number:
-                    type: integer
-                  code:
-                    type: string
-                  message:
-                    type: string
-    AbroaIntakeReceiptResponse:
-      type: object
-      required:
-      - data
-      properties:
-        data:
-          type: object
-          required:
-          - id
-          - statement_id
-          - account_id
-          - source_kind
-          - file_sha256
-          - preview_digest
-          - status
-          - summary
-          properties:
-            id:
-              type: string
-              format: uuid
-            statement_id:
-              type: string
-              format: uuid
-            account_id:
-              type: string
-              format: uuid
-            source_kind:
-              type: string
-            file_sha256:
-              type: string
-            preview_digest:
-              type: string
-            status:
-              type: string
-              enum:
-              - staged
-              - reversed
-            summary:
-              type: object
-              required:
-              - record_count
-              - issue_count
-              - review_count
-              - ignored_count
-              - existing_count
-              - accepted_invalid_rows
-              properties:
-                record_count:
-                  type: integer
-                issue_count:
-                  type: integer
-                review_count:
-                  type: integer
-                ignored_count:
-                  type: integer
-                existing_count:
-                  type: integer
-                auto_linked_count:
-                  type: integer
-                  minimum: 0
-                reversed_source_count:
-                  type: integer
-                  minimum: 0
-                reversed_at:
-                  type: string
-                  format: date-time
-                accepted_invalid_rows:
-                  type: boolean
-    AbroaSourceReview:
-      type: object
-      required:
-      - id
-      - source_record_id
-      - reason_code
-      - candidate_ids
-      - status
-      - lock_version
-      - proposed_action
-      properties:
-        id:
-          type: string
-          format: uuid
-        source_record_id:
-          type: string
-          format: uuid
-        reason_code:
-          type: string
-        candidate_ids:
-          type: array
-          items:
-            type: string
-            format: uuid
-        status:
-          type: string
-          enum:
-          - pending
-          - resolved
-          - dismissed
-        lock_version:
-          type: integer
-        proposed_action:
-          type: string
-        account_id:
-          type: string
-          format: uuid
-          nullable: true
-        funding_kind:
-          type: string
-          nullable: true
-    AbroaSourceActionResponse:
-      type: object
-      required:
-      - data
-      properties:
-        data:
-          type: object
-          required:
-          - id
-          - source_record_id
-          - review_id
-          - operation
-          - entry_id
-          - reversed_at
-          properties:
-            id:
-              type: string
-              format: uuid
-            source_record_id:
-              type: string
-              format: uuid
-            review_id:
-              type: string
-              format: uuid
-            operation:
-              type: string
-            entry_id:
-              type: string
-              format: uuid
-              nullable: true
-            reversed_at:
-              type: string
-              format: date-time
-              nullable: true
-    AbroaRefundResponse:
-      type: object
-      required:
-      - data
-      properties:
-        data:
-          type: object
-          required:
-          - id
-          - original_entry_id
-          - refund_entry_id
-          - applied_amount
-          - refund_amount
-          - currency
-          - refund_currency
-          - refund_date
-          - rate_snapshot_id
-          - revoked_at
-          - consistent
-          properties:
-            id:
-              type: string
-              format: uuid
-            original_entry_id:
-              type: string
-              format: uuid
-            refund_entry_id:
-              type: string
-              format: uuid
-            applied_amount:
-              type: string
-            refund_amount:
-              type: string
-            currency:
-              type: string
-            refund_currency:
-              type: string
-            refund_date:
-              type: string
-              format: date
-            rate_snapshot_id:
-              type: string
-              format: uuid
-              nullable: true
-            revoked_at:
-              type: string
-              format: date-time
-              nullable: true
-            consistent:
-              type: boolean
-    AbroaRateResponse:
-      type: object
-      required:
-      - data
-      properties:
-        data:
-          type: object
-          required:
-          - from_currency
-          - to_currency
-          - rate
-          - rate_date
-          - as_of
-          - source
-          - quality
-          - incomplete
-          properties:
-            from_currency:
-              type: string
-            to_currency:
-              type: string
-            rate:
-              type: string
-              nullable: true
-            rate_date:
-              type: string
-              format: date
-              nullable: true
-            as_of:
-              type: string
-              format: date
-            source:
-              type: string
-              nullable: true
-            quality:
-              type: string
-            incomplete:
-              type: boolean
-            original_amount:
-              type: string
-            converted_amount:
-              type: string
-              nullable: true
-            display_amount:
-              type: string
-              nullable: true
-    AbroaRegionResponse:
-      type: object
-      required:
-      - data
-      properties:
-        data:
-          type: object
-          required:
-          - country_code
-          - currency
-          - locale
-          - connection_kinds
-          - configured
-          properties:
-            country_code:
-              type: string
-            currency:
-              type: string
-              nullable: true
-            locale:
-              type: string
-              nullable: true
-            connection_kinds:
-              type: array
-              items:
-                type: string
-            configured:
-              type: boolean
-    AbroaAccountProfileResponse:
-      type: object
-      required:
-      - data
-      properties:
-        data:
-          type: object
-          required:
-          - account_id
-          - country
-          - wallet_kind
-          - lock_version
-          properties:
-            account_id:
-              type: string
-              format: uuid
-            country:
-              type: string
-              nullable: true
-            wallet_kind:
-              type: string
-              nullable: true
-            lock_version:
-              type: integer
-    AbroaExchangeResponse:
-      type: object
-      required:
-      - data
-      properties:
-        data:
-          type: object
-          required:
-          - id
-          - transfer_id
-          - debit_entry_id
-          - credit_entry_id
-          - fee_entry_id
-          - debit_amount
-          - credit_amount
-          - debit_currency
-          - credit_currency
-          - fee_amount
-          - fee_currency
-          - actual_rate
-          - exchanged_on
-          - consistent
-          properties:
-            id:
-              type: string
-              format: uuid
-            transfer_id:
-              type: string
-              format: uuid
-            debit_entry_id:
-              type: string
-              format: uuid
-            credit_entry_id:
-              type: string
-              format: uuid
-            fee_entry_id:
-              type: string
-              format: uuid
-              nullable: true
-            debit_amount:
-              type: string
-            credit_amount:
-              type: string
-            debit_currency:
-              type: string
-            credit_currency:
-              type: string
-            fee_amount:
-              type: string
-            fee_currency:
-              type: string
-              nullable: true
-            actual_rate:
-              type: string
-            exchanged_on:
-              type: string
-              format: date
-            consistent:
-              type: boolean
     AbroaProfileResponse:
       type: object
       required:
@@ -7264,6 +7264,468 @@ components:
         error:
           type: string
 paths:
+  "/api/v1/abroa/projects/{project_id}/budgets":
+    parameters:
+    - name: project_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    get:
+      summary: List project budget nodes with pagination
+      tags:
+      - Abroa planning
+      security:
+      - apiKeyAuth: []
+      parameters:
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+      - name: cursor
+        in: query
+        required: false
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Project budgets
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AbroaBudgetListResponse"
+    post:
+      summary: Create a budget node without writing to Sure's ledger
+      tags:
+      - Abroa planning
+      security:
+      - apiKeyAuth: []
+      parameters:
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AbroaBudgetResponse"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/AbroaBudgetCreate"
+        required: true
+  "/api/v1/abroa/projects/{project_id}/budgets/{id}":
+    parameters:
+    - name: project_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    get:
+      summary: Read an authorized budget node
+      tags:
+      - Abroa planning
+      security:
+      - apiKeyAuth: []
+      responses:
+        '200':
+          description: Budget
+    patch:
+      summary: Update budget attributes with optimistic version control
+      tags:
+      - Abroa planning
+      security:
+      - apiKeyAuth: []
+      parameters: []
+      responses:
+        '200':
+          description: Updated
+      requestBody:
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/AbroaBudgetUpdate"
+        required: true
+  "/api/v1/abroa/projects/{project_id}/budgets/{id}/execution":
+    parameters:
+    - name: project_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    get:
+      summary: Read layered budget actual, committed and remaining amounts
+      tags:
+      - Abroa planning
+      security:
+      - apiKeyAuth: []
+      responses:
+        '200':
+          description: Budget execution
+  "/api/v1/abroa/projects/{project_id}/budgets/{id}/versions":
+    parameters:
+    - name: project_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    get:
+      summary: Read immutable budget change history
+      tags:
+      - Abroa planning
+      security:
+      - apiKeyAuth: []
+      responses:
+        '200':
+          description: Budget versions
+  "/api/v1/abroa/projects/{project_id}/budgets/{id}/adjust":
+    parameters:
+    - name: project_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    post:
+      summary: Adjust a budget without changing past transactions
+      tags:
+      - Abroa planning
+      security:
+      - apiKeyAuth: []
+      parameters: []
+      responses:
+        '200':
+          description: Adjusted
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - lock_version
+              additionalProperties: false
+              properties:
+                limit_amount:
+                  type: string
+                warning_threshold:
+                  type: string
+                lock_version:
+                  type: integer
+        required: true
+  "/api/v1/abroa/projects/{project_id}/budgets/{id}/rollover":
+    parameters:
+    - name: project_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    post:
+      summary: Apply remaining closed budget once to a compatible future period
+      tags:
+      - Abroa planning
+      security:
+      - apiKeyAuth: []
+      parameters:
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Rolled over
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - target_id
+              additionalProperties: false
+              properties:
+                target_id:
+                  type: string
+                  format: uuid
+        required: true
+  "/api/v1/abroa/reports/consumption":
+    get:
+      summary: Report gross and net standard spending with linked refunds at receipt
+        date
+      tags:
+      - Abroa imports
+      security:
+      - apiKeyAuth: []
+      parameters:
+      - name: start_on
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date
+      - name: end_on
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date
+      - name: currency
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: account_ids[]
+        in: query
+        required: false
+        schema:
+          type: array
+          items:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Consumption and refund projection
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AbroaConsumptionResponse"
+  "/api/v1/abroa/fx/rates":
+    get:
+      summary: Read a historical exchange rate
+      tags:
+      - Abroa FX
+      security:
+      - apiKeyAuth: []
+      parameters:
+      - name: from
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: to
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: date
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date
+      - name: lookback_days
+        in: query
+        schema:
+          type: integer
+          minimum: 0
+          maximum: 365
+      - name: amount
+        in: query
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Historical quote or incomplete rate
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AbroaRateResponse"
+  "/api/v1/abroa/regions/{country_code}":
+    parameters:
+    - name: country_code
+      in: path
+      required: true
+      schema:
+        type: string
+    get:
+      summary: Read country defaults (not a connectivity guarantee)
+      tags:
+      - Abroa FX
+      security:
+      - apiKeyAuth: []
+      responses:
+        '200':
+          description: Region defaults
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AbroaRegionResponse"
+  "/api/v1/abroa/accounts/{account_id}/profile":
+    parameters:
+    - name: account_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    get:
+      summary: Read visible account region and wallet metadata
+      tags:
+      - Abroa FX
+      security:
+      - apiKeyAuth: []
+      responses:
+        '200':
+          description: Account profile
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AbroaAccountProfileResponse"
+    patch:
+      summary: Update writable account metadata
+      tags:
+      - Abroa FX
+      security:
+      - apiKeyAuth: []
+      parameters: []
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AbroaAccountProfileResponse"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+              - lock_version
+              properties:
+                country:
+                  type: string
+                  nullable: true
+                wallet_kind:
+                  type: string
+                  nullable: true
+                  enum:
+                  - alipay
+                  - wechat
+                  - other
+                  -
+                lock_version:
+                  type: integer
+                  minimum: 0
+        required: true
+  "/api/v1/abroa/fx/exchanges":
+    post:
+      summary: Record an actual exchange, with separate fee
+      tags:
+      - Abroa FX
+      security:
+      - apiKeyAuth: []
+      parameters:
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+          maxLength: 128
+      responses:
+        '201':
+          description: Recorded or same-request replay
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AbroaExchangeResponse"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+              - source_account_id
+              - destination_account_id
+              - date
+              - debit_amount
+              - credit_amount
+              properties:
+                source_account_id:
+                  type: string
+                  format: uuid
+                destination_account_id:
+                  type: string
+                  format: uuid
+                date:
+                  type: string
+                  format: date
+                debit_amount:
+                  type: string
+                  description: Source principal, excluding separate fee
+                credit_amount:
+                  type: string
+                  description: Destination principal, before a separately debited
+                    fee
+                fee_amount:
+                  type: string
+                fee_currency:
+                  type: string
+                  nullable: true
+        required: true
+  "/api/v1/abroa/fx/exchanges/{id}":
+    parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    get:
+      summary: Read actual exchange metadata and ledger consistency
+      tags:
+      - Abroa FX
+      security:
+      - apiKeyAuth: []
+      responses:
+        '200':
+          description: Exchange
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AbroaExchangeResponse"
   "/api/v1/abroa/projects/{project_id}/fees/{fee_id}/adjustments":
     parameters:
     - name: project_id
@@ -7349,52 +7811,6 @@ paths:
             application/json:
               schema:
                 "$ref": "#/components/schemas/AbroaFeeAdjustmentResponse"
-  "/api/v1/abroa/projects/{project_id}/fees/{fee_id}/import_recurring":
-    parameters:
-    - name: project_id
-      in: path
-      required: true
-      schema:
-        type: string
-        format: uuid
-    - name: fee_id
-      in: path
-      required: true
-      schema:
-        type: string
-        format: uuid
-    post:
-      summary: Import matching Sure bill occurrences once, without creating any bank
-        transaction
-      tags:
-      - Abroa study fees
-      security:
-      - apiKeyAuth: []
-      parameters: []
-      responses:
-        '200':
-          description: Bill occurrences linked as unique fee installments
-          content:
-            application/json:
-              schema:
-                "$ref": "#/components/schemas/AbroaFeeInstallmentImportResponse"
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-              - from_on
-              - through_on
-              additionalProperties: false
-              properties:
-                from_on:
-                  type: string
-                  format: date
-                through_on:
-                  type: string
-                  format: date
-        required: true
   "/api/v1/abroa/projects/{project_id}/fees":
     parameters:
     - name: project_id
@@ -7479,6 +7895,52 @@ paths:
           application/json:
             schema:
               "$ref": "#/components/schemas/AbroaFeePlanUpdate"
+        required: true
+  "/api/v1/abroa/projects/{project_id}/fees/{fee_id}/import_recurring":
+    parameters:
+    - name: project_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    - name: fee_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    post:
+      summary: Import matching Sure bill occurrences once, without creating any bank
+        transaction
+      tags:
+      - Abroa study fees
+      security:
+      - apiKeyAuth: []
+      parameters: []
+      responses:
+        '200':
+          description: Bill occurrences linked as unique fee installments
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AbroaFeeInstallmentImportResponse"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - from_on
+              - through_on
+              additionalProperties: false
+              properties:
+                from_on:
+                  type: string
+                  format: date
+                through_on:
+                  type: string
+                  format: date
         required: true
   "/api/v1/abroa/projects/{project_id}/fees/{fee_id}/cancel":
     parameters:
@@ -7867,924 +8329,6 @@ paths:
             schema:
               "$ref": "#/components/schemas/AbroaPoolMovementCreate"
         required: true
-  "/api/v1/abroa/projects/{project_id}/budgets":
-    parameters:
-    - name: project_id
-      in: path
-      required: true
-      schema:
-        type: string
-        format: uuid
-    get:
-      summary: List project budget nodes with pagination
-      tags:
-      - Abroa planning
-      security:
-      - apiKeyAuth: []
-      parameters:
-      - name: limit
-        in: query
-        required: false
-        schema:
-          type: integer
-      - name: cursor
-        in: query
-        required: false
-        schema:
-          type: string
-      responses:
-        '200':
-          description: Project budgets
-          content:
-            application/json:
-              schema:
-                "$ref": "#/components/schemas/AbroaBudgetListResponse"
-    post:
-      summary: Create a budget node without writing to Sure's ledger
-      tags:
-      - Abroa planning
-      security:
-      - apiKeyAuth: []
-      parameters:
-      - name: Idempotency-Key
-        in: header
-        required: true
-        schema:
-          type: string
-      responses:
-        '201':
-          description: Created
-          content:
-            application/json:
-              schema:
-                "$ref": "#/components/schemas/AbroaBudgetResponse"
-      requestBody:
-        content:
-          application/json:
-            schema:
-              "$ref": "#/components/schemas/AbroaBudgetCreate"
-        required: true
-  "/api/v1/abroa/projects/{project_id}/budgets/{id}":
-    parameters:
-    - name: project_id
-      in: path
-      required: true
-      schema:
-        type: string
-        format: uuid
-    - name: id
-      in: path
-      required: true
-      schema:
-        type: string
-        format: uuid
-    get:
-      summary: Read an authorized budget node
-      tags:
-      - Abroa planning
-      security:
-      - apiKeyAuth: []
-      responses:
-        '200':
-          description: Budget
-    patch:
-      summary: Update budget attributes with optimistic version control
-      tags:
-      - Abroa planning
-      security:
-      - apiKeyAuth: []
-      parameters: []
-      responses:
-        '200':
-          description: Updated
-      requestBody:
-        content:
-          application/json:
-            schema:
-              "$ref": "#/components/schemas/AbroaBudgetUpdate"
-        required: true
-  "/api/v1/abroa/projects/{project_id}/budgets/{id}/execution":
-    parameters:
-    - name: project_id
-      in: path
-      required: true
-      schema:
-        type: string
-        format: uuid
-    - name: id
-      in: path
-      required: true
-      schema:
-        type: string
-        format: uuid
-    get:
-      summary: Read layered budget actual, committed and remaining amounts
-      tags:
-      - Abroa planning
-      security:
-      - apiKeyAuth: []
-      responses:
-        '200':
-          description: Budget execution
-  "/api/v1/abroa/projects/{project_id}/budgets/{id}/versions":
-    parameters:
-    - name: project_id
-      in: path
-      required: true
-      schema:
-        type: string
-        format: uuid
-    - name: id
-      in: path
-      required: true
-      schema:
-        type: string
-        format: uuid
-    get:
-      summary: Read immutable budget change history
-      tags:
-      - Abroa planning
-      security:
-      - apiKeyAuth: []
-      responses:
-        '200':
-          description: Budget versions
-  "/api/v1/abroa/projects/{project_id}/budgets/{id}/adjust":
-    parameters:
-    - name: project_id
-      in: path
-      required: true
-      schema:
-        type: string
-        format: uuid
-    - name: id
-      in: path
-      required: true
-      schema:
-        type: string
-        format: uuid
-    post:
-      summary: Adjust a budget without changing past transactions
-      tags:
-      - Abroa planning
-      security:
-      - apiKeyAuth: []
-      parameters: []
-      responses:
-        '200':
-          description: Adjusted
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-              - lock_version
-              additionalProperties: false
-              properties:
-                limit_amount:
-                  type: string
-                warning_threshold:
-                  type: string
-                lock_version:
-                  type: integer
-        required: true
-  "/api/v1/abroa/projects/{project_id}/budgets/{id}/rollover":
-    parameters:
-    - name: project_id
-      in: path
-      required: true
-      schema:
-        type: string
-        format: uuid
-    - name: id
-      in: path
-      required: true
-      schema:
-        type: string
-        format: uuid
-    post:
-      summary: Apply remaining closed budget once to a compatible future period
-      tags:
-      - Abroa planning
-      security:
-      - apiKeyAuth: []
-      parameters:
-      - name: Idempotency-Key
-        in: header
-        required: true
-        schema:
-          type: string
-      responses:
-        '200':
-          description: Rolled over
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-              - target_id
-              additionalProperties: false
-              properties:
-                target_id:
-                  type: string
-                  format: uuid
-        required: true
-  "/api/v1/abroa/projects":
-    get:
-      summary: List own study projects
-      tags:
-      - Abroa study
-      security:
-      - apiKeyAuth: []
-      responses:
-        '200':
-          description: Own projects
-          content:
-            application/json:
-              schema:
-                "$ref": "#/components/schemas/AbroaStudyProjectListResponse"
-    post:
-      summary: Create a study project with an idempotency key
-      tags:
-      - Abroa study
-      security:
-      - apiKeyAuth: []
-      parameters:
-      - name: Idempotency-Key
-        in: header
-        required: true
-        schema:
-          type: string
-      responses:
-        '201':
-          description: Created
-          content:
-            application/json:
-              schema:
-                "$ref": "#/components/schemas/AbroaStudyProjectResponse"
-      requestBody:
-        content:
-          application/json:
-            schema:
-              "$ref": "#/components/schemas/AbroaStudyProjectCreate"
-        required: true
-  "/api/v1/abroa/projects/{id}":
-    parameters:
-    - name: id
-      in: path
-      required: true
-      schema:
-        type: string
-        format: uuid
-    get:
-      summary: Read an owned study project
-      tags:
-      - Abroa study
-      security:
-      - apiKeyAuth: []
-      responses:
-        '200':
-          description: Project
-          content:
-            application/json:
-              schema:
-                "$ref": "#/components/schemas/AbroaStudyProjectResponse"
-    patch:
-      summary: Change project fields or state
-      tags:
-      - Abroa study
-      security:
-      - apiKeyAuth: []
-      parameters: []
-      responses:
-        '200':
-          description: Updated
-          content:
-            application/json:
-              schema:
-                "$ref": "#/components/schemas/AbroaStudyProjectResponse"
-      requestBody:
-        content:
-          application/json:
-            schema:
-              "$ref": "#/components/schemas/AbroaStudyProjectUpdate"
-        required: true
-  "/api/v1/abroa/projects/{id}/archive":
-    parameters:
-    - name: id
-      in: path
-      required: true
-      schema:
-        type: string
-        format: uuid
-    post:
-      summary: Archive project without modifying ledger facts
-      tags:
-      - Abroa study
-      security:
-      - apiKeyAuth: []
-      parameters: []
-      responses:
-        '200':
-          description: Archived
-          content:
-            application/json:
-              schema:
-                "$ref": "#/components/schemas/AbroaStudyProjectResponse"
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-              - lock_version
-              properties:
-                lock_version:
-                  type: integer
-        required: true
-  "/api/v1/abroa/projects/{id}/restore":
-    parameters:
-    - name: id
-      in: path
-      required: true
-      schema:
-        type: string
-        format: uuid
-    post:
-      summary: Restore archived project state
-      tags:
-      - Abroa study
-      security:
-      - apiKeyAuth: []
-      parameters: []
-      responses:
-        '200':
-          description: Restored
-          content:
-            application/json:
-              schema:
-                "$ref": "#/components/schemas/AbroaStudyProjectResponse"
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-              - lock_version
-              properties:
-                lock_version:
-                  type: integer
-        required: true
-  "/api/v1/abroa/projects/{id}/summary":
-    parameters:
-    - name: id
-      in: path
-      required: true
-      schema:
-        type: string
-        format: uuid
-    get:
-      summary: Report project allocations without duplicating the personal ledger
-      tags:
-      - Abroa study
-      security:
-      - apiKeyAuth: []
-      parameters:
-      - name: start_on
-        in: query
-        required: true
-        schema:
-          type: string
-          format: date
-      - name: end_on
-        in: query
-        required: true
-        schema:
-          type: string
-          format: date
-      - name: currency
-        in: query
-        required: true
-        schema:
-          type: string
-      responses:
-        '200':
-          description: Project ledger projection
-          content:
-            application/json:
-              schema:
-                "$ref": "#/components/schemas/AbroaStudySummaryResponse"
-  "/api/v1/abroa/projects/{id}/periods":
-    parameters:
-    - name: id
-      in: path
-      required: true
-      schema:
-        type: string
-        format: uuid
-    get:
-      summary: List study periods
-      tags:
-      - Abroa study
-      security:
-      - apiKeyAuth: []
-      responses:
-        '200':
-          description: Study periods
-          content:
-            application/json:
-              schema:
-                "$ref": "#/components/schemas/AbroaStudyPeriodListResponse"
-    post:
-      summary: Add a study period
-      tags:
-      - Abroa study
-      security:
-      - apiKeyAuth: []
-      parameters:
-      - name: Idempotency-Key
-        in: header
-        required: true
-        schema:
-          type: string
-      responses:
-        '201':
-          description: Created
-          content:
-            application/json:
-              schema:
-                "$ref": "#/components/schemas/AbroaStudyPeriodResponse"
-      requestBody:
-        content:
-          application/json:
-            schema:
-              "$ref": "#/components/schemas/AbroaStudyPeriodCreate"
-        required: true
-  "/api/v1/abroa/projects/{id}/periods/{period_id}":
-    parameters:
-    - name: id
-      in: path
-      required: true
-      schema:
-        type: string
-        format: uuid
-    - name: period_id
-      in: path
-      required: true
-      schema:
-        type: string
-        format: uuid
-    get:
-      summary: Read study period
-      tags:
-      - Abroa study
-      security:
-      - apiKeyAuth: []
-      responses:
-        '200':
-          description: Period
-    patch:
-      summary: Change study period
-      tags:
-      - Abroa study
-      security:
-      - apiKeyAuth: []
-      parameters: []
-      responses:
-        '200':
-          description: Updated
-      requestBody:
-        content:
-          application/json:
-            schema:
-              "$ref": "#/components/schemas/AbroaStudyPeriodUpdate"
-        required: true
-    delete:
-      summary: Remove an unreferenced study period
-      tags:
-      - Abroa study
-      security:
-      - apiKeyAuth: []
-      parameters: []
-      responses:
-        '200':
-          description: Deleted
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-              - lock_version
-              properties:
-                lock_version:
-                  type: integer
-        required: true
-  "/api/v1/abroa/projects/{id}/accounts":
-    parameters:
-    - name: id
-      in: path
-      required: true
-      schema:
-        type: string
-        format: uuid
-    get:
-      summary: List project linked accounts
-      tags:
-      - Abroa study
-      security:
-      - apiKeyAuth: []
-      responses:
-        '200':
-          description: Account IDs
-    post:
-      summary: Attach accessible account to project
-      tags:
-      - Abroa study
-      security:
-      - apiKeyAuth: []
-      parameters:
-      - name: Idempotency-Key
-        in: header
-        required: true
-        schema:
-          type: string
-      responses:
-        '201':
-          description: Linked
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-              - account_id
-              properties:
-                account_id:
-                  type: string
-                  format: uuid
-        required: true
-  "/api/v1/abroa/projects/{id}/accounts/{account_id}":
-    parameters:
-    - name: id
-      in: path
-      required: true
-      schema:
-        type: string
-        format: uuid
-    - name: account_id
-      in: path
-      required: true
-      schema:
-        type: string
-        format: uuid
-    delete:
-      summary: Unlink account without deleting its ledger
-      tags:
-      - Abroa study
-      security:
-      - apiKeyAuth: []
-      responses:
-        '200':
-          description: Unlinked
-  "/api/v1/abroa/projects/{id}/allocations":
-    parameters:
-    - name: id
-      in: path
-      required: true
-      schema:
-        type: string
-        format: uuid
-    get:
-      summary: List explicit project ledger allocations
-      tags:
-      - Abroa study
-      security:
-      - apiKeyAuth: []
-      responses:
-        '200':
-          description: Allocations
-    post:
-      summary: Allocate confirmed entry amount to project
-      tags:
-      - Abroa study
-      security:
-      - apiKeyAuth: []
-      parameters:
-      - name: Idempotency-Key
-        in: header
-        required: true
-        schema:
-          type: string
-      responses:
-        '201':
-          description: Allocated
-      requestBody:
-        content:
-          application/json:
-            schema:
-              "$ref": "#/components/schemas/AbroaStudyAllocationCreate"
-        required: true
-  "/api/v1/abroa/projects/{id}/allocations/{allocation_id}":
-    parameters:
-    - name: id
-      in: path
-      required: true
-      schema:
-        type: string
-        format: uuid
-    - name: allocation_id
-      in: path
-      required: true
-      schema:
-        type: string
-        format: uuid
-    get:
-      summary: Read explicit entry allocation
-      tags:
-      - Abroa study
-      security:
-      - apiKeyAuth: []
-      responses:
-        '200':
-          description: Allocation
-    patch:
-      summary: Change allocated amount with optimistic version
-      tags:
-      - Abroa study
-      security:
-      - apiKeyAuth: []
-      parameters: []
-      responses:
-        '200':
-          description: Updated
-      requestBody:
-        content:
-          application/json:
-            schema:
-              "$ref": "#/components/schemas/AbroaStudyAllocationUpdate"
-        required: true
-    delete:
-      summary: Release an allocation while retaining original ledger entry
-      tags:
-      - Abroa study
-      security:
-      - apiKeyAuth: []
-      parameters: []
-      responses:
-        '200':
-          description: Released
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-              - lock_version
-              properties:
-                lock_version:
-                  type: integer
-        required: true
-  "/api/v1/abroa/reports/consumption":
-    get:
-      summary: Report gross and net standard spending with linked refunds at receipt
-        date
-      tags:
-      - Abroa imports
-      security:
-      - apiKeyAuth: []
-      parameters:
-      - name: start_on
-        in: query
-        required: true
-        schema:
-          type: string
-          format: date
-      - name: end_on
-        in: query
-        required: true
-        schema:
-          type: string
-          format: date
-      - name: currency
-        in: query
-        required: true
-        schema:
-          type: string
-      - name: account_ids[]
-        in: query
-        required: false
-        schema:
-          type: array
-          items:
-            type: string
-            format: uuid
-      responses:
-        '200':
-          description: Consumption and refund projection
-          content:
-            application/json:
-              schema:
-                "$ref": "#/components/schemas/AbroaConsumptionResponse"
-  "/api/v1/abroa/fx/rates":
-    get:
-      summary: Read a historical exchange rate
-      tags:
-      - Abroa FX
-      security:
-      - apiKeyAuth: []
-      parameters:
-      - name: from
-        in: query
-        required: true
-        schema:
-          type: string
-      - name: to
-        in: query
-        required: true
-        schema:
-          type: string
-      - name: date
-        in: query
-        required: true
-        schema:
-          type: string
-          format: date
-      - name: lookback_days
-        in: query
-        schema:
-          type: integer
-          minimum: 0
-          maximum: 365
-      - name: amount
-        in: query
-        schema:
-          type: string
-      responses:
-        '200':
-          description: Historical quote or incomplete rate
-          content:
-            application/json:
-              schema:
-                "$ref": "#/components/schemas/AbroaRateResponse"
-  "/api/v1/abroa/regions/{country_code}":
-    parameters:
-    - name: country_code
-      in: path
-      required: true
-      schema:
-        type: string
-    get:
-      summary: Read country defaults (not a connectivity guarantee)
-      tags:
-      - Abroa FX
-      security:
-      - apiKeyAuth: []
-      responses:
-        '200':
-          description: Region defaults
-          content:
-            application/json:
-              schema:
-                "$ref": "#/components/schemas/AbroaRegionResponse"
-  "/api/v1/abroa/accounts/{account_id}/profile":
-    parameters:
-    - name: account_id
-      in: path
-      required: true
-      schema:
-        type: string
-        format: uuid
-    get:
-      summary: Read visible account region and wallet metadata
-      tags:
-      - Abroa FX
-      security:
-      - apiKeyAuth: []
-      responses:
-        '200':
-          description: Account profile
-          content:
-            application/json:
-              schema:
-                "$ref": "#/components/schemas/AbroaAccountProfileResponse"
-    patch:
-      summary: Update writable account metadata
-      tags:
-      - Abroa FX
-      security:
-      - apiKeyAuth: []
-      parameters: []
-      responses:
-        '200':
-          description: Updated
-          content:
-            application/json:
-              schema:
-                "$ref": "#/components/schemas/AbroaAccountProfileResponse"
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              additionalProperties: false
-              required:
-              - lock_version
-              properties:
-                country:
-                  type: string
-                  nullable: true
-                wallet_kind:
-                  type: string
-                  nullable: true
-                  enum:
-                  - alipay
-                  - wechat
-                  - other
-                  -
-                lock_version:
-                  type: integer
-                  minimum: 0
-        required: true
-  "/api/v1/abroa/fx/exchanges":
-    post:
-      summary: Record an actual exchange, with separate fee
-      tags:
-      - Abroa FX
-      security:
-      - apiKeyAuth: []
-      parameters:
-      - name: Idempotency-Key
-        in: header
-        required: true
-        schema:
-          type: string
-          maxLength: 128
-      responses:
-        '201':
-          description: Recorded or same-request replay
-          content:
-            application/json:
-              schema:
-                "$ref": "#/components/schemas/AbroaExchangeResponse"
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              additionalProperties: false
-              required:
-              - source_account_id
-              - destination_account_id
-              - date
-              - debit_amount
-              - credit_amount
-              properties:
-                source_account_id:
-                  type: string
-                  format: uuid
-                destination_account_id:
-                  type: string
-                  format: uuid
-                date:
-                  type: string
-                  format: date
-                debit_amount:
-                  type: string
-                  description: Source principal, excluding separate fee
-                credit_amount:
-                  type: string
-                  description: Destination principal, before a separately debited
-                    fee
-                fee_amount:
-                  type: string
-                fee_currency:
-                  type: string
-                  nullable: true
-        required: true
-  "/api/v1/abroa/fx/exchanges/{id}":
-    parameters:
-    - name: id
-      in: path
-      required: true
-      schema:
-        type: string
-        format: uuid
-    get:
-      summary: Read actual exchange metadata and ledger consistency
-      tags:
-      - Abroa FX
-      security:
-      - apiKeyAuth: []
-      responses:
-        '200':
-          description: Exchange
-          content:
-            application/json:
-              schema:
-                "$ref": "#/components/schemas/AbroaExchangeResponse"
   "/api/v1/abroa/reviews/{id}/assign-account":
     parameters:
     - name: id
@@ -8835,6 +8379,1258 @@ paths:
                   type: integer
                   minimum: 0
         required: true
+  "/api/v1/abroa/relationship_invites":
+    get:
+      summary: P3 authenticated GET /api/v1/abroa/relationship_invites
+      tags:
+      - Abroa P3 parent
+      security:
+      - apiKeyAuth: []
+      responses:
+        '401':
+          description: Missing API credential
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+    post:
+      summary: P3 authenticated POST /api/v1/abroa/relationship_invites
+      tags:
+      - Abroa P3 parent
+      security:
+      - apiKeyAuth: []
+      parameters: []
+      responses:
+        '401':
+          description: Missing API credential
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+        required: true
+  "/api/v1/abroa/relationship_invites/{id}":
+    parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    get:
+      summary: P3 authenticated GET /api/v1/abroa/relationship_invites/{id}
+      tags:
+      - Abroa P3 parent
+      security:
+      - apiKeyAuth: []
+      responses:
+        '401':
+          description: Missing API credential
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+    delete:
+      summary: P3 authenticated DELETE /api/v1/abroa/relationship_invites/{id}
+      tags:
+      - Abroa P3 parent
+      security:
+      - apiKeyAuth: []
+      parameters: []
+      responses:
+        '401':
+          description: Missing API credential
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+        required: true
+  "/api/v1/abroa/relationship_invites/accept":
+    post:
+      summary: P3 authenticated POST /api/v1/abroa/relationship_invites/accept
+      tags:
+      - Abroa P3 parent
+      security:
+      - apiKeyAuth: []
+      parameters: []
+      responses:
+        '401':
+          description: Missing API credential
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+        required: true
+  "/api/v1/abroa/relationship_invites/reject":
+    post:
+      summary: P3 authenticated POST /api/v1/abroa/relationship_invites/reject
+      tags:
+      - Abroa P3 parent
+      security:
+      - apiKeyAuth: []
+      parameters: []
+      responses:
+        '401':
+          description: Missing API credential
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+        required: true
+  "/api/v1/abroa/relationships":
+    get:
+      summary: P3 authenticated GET /api/v1/abroa/relationships
+      tags:
+      - Abroa P3 parent
+      security:
+      - apiKeyAuth: []
+      responses:
+        '401':
+          description: Missing API credential
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  "/api/v1/abroa/relationships/{id}":
+    parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    get:
+      summary: P3 authenticated GET /api/v1/abroa/relationships/{id}
+      tags:
+      - Abroa P3 parent
+      security:
+      - apiKeyAuth: []
+      responses:
+        '401':
+          description: Missing API credential
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  "/api/v1/abroa/relationships/{id}/revoke":
+    parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    post:
+      summary: P3 authenticated POST /api/v1/abroa/relationships/{id}/revoke
+      tags:
+      - Abroa P3 parent
+      security:
+      - apiKeyAuth: []
+      parameters: []
+      responses:
+        '401':
+          description: Missing API credential
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+        required: true
+  "/api/v1/abroa/relationships/{relationship_id}/grants":
+    parameters:
+    - name: relationship_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    get:
+      summary: P3 authenticated GET /api/v1/abroa/relationships/{relationship_id}/grants
+      tags:
+      - Abroa P3 parent
+      security:
+      - apiKeyAuth: []
+      responses:
+        '401':
+          description: Missing API credential
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+    post:
+      summary: P3 authenticated POST /api/v1/abroa/relationships/{relationship_id}/grants
+      tags:
+      - Abroa P3 parent
+      security:
+      - apiKeyAuth: []
+      parameters: []
+      responses:
+        '401':
+          description: Missing API credential
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+        required: true
+  "/api/v1/abroa/relationships/{relationship_id}/grants/{id}":
+    parameters:
+    - name: relationship_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    delete:
+      summary: P3 authenticated DELETE /api/v1/abroa/relationships/{relationship_id}/grants/{id}
+      tags:
+      - Abroa P3 parent
+      security:
+      - apiKeyAuth: []
+      parameters: []
+      responses:
+        '401':
+          description: Missing API credential
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+        required: true
+  "/api/v1/abroa/parent/drafts":
+    get:
+      summary: P3 authenticated GET /api/v1/abroa/parent/drafts
+      tags:
+      - Abroa P3 parent
+      security:
+      - apiKeyAuth: []
+      responses:
+        '401':
+          description: Missing API credential
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+    post:
+      summary: P3 authenticated POST /api/v1/abroa/parent/drafts
+      tags:
+      - Abroa P3 parent
+      security:
+      - apiKeyAuth: []
+      parameters: []
+      responses:
+        '401':
+          description: Missing API credential
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+        required: true
+  "/api/v1/abroa/parent/drafts/{id}":
+    parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    get:
+      summary: P3 authenticated GET /api/v1/abroa/parent/drafts/{id}
+      tags:
+      - Abroa P3 parent
+      security:
+      - apiKeyAuth: []
+      responses:
+        '401':
+          description: Missing API credential
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+    patch:
+      summary: P3 authenticated PATCH /api/v1/abroa/parent/drafts/{id}
+      tags:
+      - Abroa P3 parent
+      security:
+      - apiKeyAuth: []
+      parameters: []
+      responses:
+        '401':
+          description: Missing API credential
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+        required: true
+    delete:
+      summary: P3 authenticated DELETE /api/v1/abroa/parent/drafts/{id}
+      tags:
+      - Abroa P3 parent
+      security:
+      - apiKeyAuth: []
+      parameters: []
+      responses:
+        '401':
+          description: Missing API credential
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+        required: true
+  "/api/v1/abroa/parent/budgets/{id}":
+    parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    patch:
+      summary: P3 authenticated PATCH /api/v1/abroa/parent/budgets/{id}
+      tags:
+      - Abroa P3 parent
+      security:
+      - apiKeyAuth: []
+      parameters: []
+      responses:
+        '401':
+          description: Missing API credential
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+        required: true
+  "/api/v1/abroa/proposals":
+    get:
+      summary: P3 authenticated GET /api/v1/abroa/proposals
+      tags:
+      - Abroa P3 parent
+      security:
+      - apiKeyAuth: []
+      responses:
+        '401':
+          description: Missing API credential
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+    post:
+      summary: P3 authenticated POST /api/v1/abroa/proposals
+      tags:
+      - Abroa P3 parent
+      security:
+      - apiKeyAuth: []
+      parameters: []
+      responses:
+        '401':
+          description: Missing API credential
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+        required: true
+  "/api/v1/abroa/proposals/{id}":
+    parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    get:
+      summary: P3 authenticated GET /api/v1/abroa/proposals/{id}
+      tags:
+      - Abroa P3 parent
+      security:
+      - apiKeyAuth: []
+      responses:
+        '401':
+          description: Missing API credential
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  "/api/v1/abroa/proposals/{id}/submit":
+    parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    post:
+      summary: P3 authenticated POST /api/v1/abroa/proposals/{id}/submit
+      tags:
+      - Abroa P3 parent
+      security:
+      - apiKeyAuth: []
+      parameters: []
+      responses:
+        '401':
+          description: Missing API credential
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+        required: true
+  "/api/v1/abroa/proposals/{id}/accept":
+    parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    post:
+      summary: P3 authenticated POST /api/v1/abroa/proposals/{id}/accept
+      tags:
+      - Abroa P3 parent
+      security:
+      - apiKeyAuth: []
+      parameters: []
+      responses:
+        '401':
+          description: Missing API credential
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+        required: true
+  "/api/v1/abroa/proposals/{id}/reject":
+    parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    post:
+      summary: P3 authenticated POST /api/v1/abroa/proposals/{id}/reject
+      tags:
+      - Abroa P3 parent
+      security:
+      - apiKeyAuth: []
+      parameters: []
+      responses:
+        '401':
+          description: Missing API credential
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+        required: true
+  "/api/v1/abroa/proposals/{id}/cancel":
+    parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    post:
+      summary: P3 authenticated POST /api/v1/abroa/proposals/{id}/cancel
+      tags:
+      - Abroa P3 parent
+      security:
+      - apiKeyAuth: []
+      parameters: []
+      responses:
+        '401':
+          description: Missing API credential
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+        required: true
+  "/api/v1/abroa/funding_plans":
+    get:
+      summary: P3 authenticated GET /api/v1/abroa/funding_plans
+      tags:
+      - Abroa P3 parent
+      security:
+      - apiKeyAuth: []
+      responses:
+        '401':
+          description: Missing API credential
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+    post:
+      summary: P3 authenticated POST /api/v1/abroa/funding_plans
+      tags:
+      - Abroa P3 parent
+      security:
+      - apiKeyAuth: []
+      parameters: []
+      responses:
+        '401':
+          description: Missing API credential
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+        required: true
+  "/api/v1/abroa/funding_plans/{id}":
+    parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    get:
+      summary: P3 authenticated GET /api/v1/abroa/funding_plans/{id}
+      tags:
+      - Abroa P3 parent
+      security:
+      - apiKeyAuth: []
+      responses:
+        '401':
+          description: Missing API credential
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+    patch:
+      summary: P3 authenticated PATCH /api/v1/abroa/funding_plans/{id}
+      tags:
+      - Abroa P3 parent
+      security:
+      - apiKeyAuth: []
+      parameters: []
+      responses:
+        '401':
+          description: Missing API credential
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+        required: true
+  "/api/v1/abroa/funding_plans/{id}/confirm":
+    parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    post:
+      summary: P3 authenticated POST /api/v1/abroa/funding_plans/{id}/confirm
+      tags:
+      - Abroa P3 parent
+      security:
+      - apiKeyAuth: []
+      parameters: []
+      responses:
+        '401':
+          description: Missing API credential
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+        required: true
+  "/api/v1/abroa/funding_plans/{id}/reject":
+    parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    post:
+      summary: P3 authenticated POST /api/v1/abroa/funding_plans/{id}/reject
+      tags:
+      - Abroa P3 parent
+      security:
+      - apiKeyAuth: []
+      parameters: []
+      responses:
+        '401':
+          description: Missing API credential
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+        required: true
+  "/api/v1/abroa/funding_plans/{id}/cancel":
+    parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    post:
+      summary: P3 authenticated POST /api/v1/abroa/funding_plans/{id}/cancel
+      tags:
+      - Abroa P3 parent
+      security:
+      - apiKeyAuth: []
+      parameters: []
+      responses:
+        '401':
+          description: Missing API credential
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+        required: true
+  "/api/v1/abroa/funding_plans/{funding_plan_id}/receipts":
+    parameters:
+    - name: funding_plan_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    get:
+      summary: P3 authenticated GET /api/v1/abroa/funding_plans/{funding_plan_id}/receipts
+      tags:
+      - Abroa P3 parent
+      security:
+      - apiKeyAuth: []
+      responses:
+        '401':
+          description: Missing API credential
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+    post:
+      summary: P3 authenticated POST /api/v1/abroa/funding_plans/{funding_plan_id}/receipts
+      tags:
+      - Abroa P3 parent
+      security:
+      - apiKeyAuth: []
+      parameters: []
+      responses:
+        '401':
+          description: Missing API credential
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+        required: true
+  "/api/v1/abroa/funding_plans/{funding_plan_id}/receipts/{id}":
+    parameters:
+    - name: funding_plan_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    get:
+      summary: P3 authenticated GET /api/v1/abroa/funding_plans/{funding_plan_id}/receipts/{id}
+      tags:
+      - Abroa P3 parent
+      security:
+      - apiKeyAuth: []
+      responses:
+        '401':
+          description: Missing API credential
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  "/api/v1/abroa/funding_plans/{funding_plan_id}/suggestions":
+    parameters:
+    - name: funding_plan_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    get:
+      summary: P3 authenticated GET /api/v1/abroa/funding_plans/{funding_plan_id}/suggestions
+      tags:
+      - Abroa P3 parent
+      security:
+      - apiKeyAuth: []
+      responses:
+        '401':
+          description: Missing API credential
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+    post:
+      summary: P3 authenticated POST /api/v1/abroa/funding_plans/{funding_plan_id}/suggestions
+      tags:
+      - Abroa P3 parent
+      security:
+      - apiKeyAuth: []
+      parameters: []
+      responses:
+        '401':
+          description: Missing API credential
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+        required: true
+  "/api/v1/abroa/funding_plans/{funding_plan_id}/suggestions/{id}/accept":
+    parameters:
+    - name: funding_plan_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    post:
+      summary: P3 authenticated POST /api/v1/abroa/funding_plans/{funding_plan_id}/suggestions/{id}/accept
+      tags:
+      - Abroa P3 parent
+      security:
+      - apiKeyAuth: []
+      parameters: []
+      responses:
+        '401':
+          description: Missing API credential
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+        required: true
+  "/api/v1/abroa/funding_plans/{funding_plan_id}/suggestions/{id}/reject":
+    parameters:
+    - name: funding_plan_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    post:
+      summary: P3 authenticated POST /api/v1/abroa/funding_plans/{funding_plan_id}/suggestions/{id}/reject
+      tags:
+      - Abroa P3 parent
+      security:
+      - apiKeyAuth: []
+      parameters: []
+      responses:
+        '401':
+          description: Missing API credential
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+        required: true
+  "/api/v1/abroa/funding_plans/{funding_plan_id}/suggestions/{id}/cancel":
+    parameters:
+    - name: funding_plan_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    post:
+      summary: P3 authenticated POST /api/v1/abroa/funding_plans/{funding_plan_id}/suggestions/{id}/cancel
+      tags:
+      - Abroa P3 parent
+      security:
+      - apiKeyAuth: []
+      parameters: []
+      responses:
+        '401':
+          description: Missing API credential
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+        required: true
+  "/api/v1/abroa/funding_plans/{funding_plan_id}/notices":
+    parameters:
+    - name: funding_plan_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    get:
+      summary: P3 authenticated GET /api/v1/abroa/funding_plans/{funding_plan_id}/notices
+      tags:
+      - Abroa P3 parent
+      security:
+      - apiKeyAuth: []
+      responses:
+        '401':
+          description: Missing API credential
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+    post:
+      summary: P3 authenticated POST /api/v1/abroa/funding_plans/{funding_plan_id}/notices
+      tags:
+      - Abroa P3 parent
+      security:
+      - apiKeyAuth: []
+      parameters: []
+      responses:
+        '401':
+          description: Missing API credential
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+        required: true
+  "/api/v1/abroa/funding_plans/{funding_plan_id}/notices/{id}/revoke":
+    parameters:
+    - name: funding_plan_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    post:
+      summary: P3 authenticated POST /api/v1/abroa/funding_plans/{funding_plan_id}/notices/{id}/revoke
+      tags:
+      - Abroa P3 parent
+      security:
+      - apiKeyAuth: []
+      parameters: []
+      responses:
+        '401':
+          description: Missing API credential
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+        required: true
+  "/api/v1/abroa/funding_receipts/{funding_receipt_id}/reversals":
+    parameters:
+    - name: funding_receipt_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    get:
+      summary: P3 authenticated GET /api/v1/abroa/funding_receipts/{funding_receipt_id}/reversals
+      tags:
+      - Abroa P3 parent
+      security:
+      - apiKeyAuth: []
+      responses:
+        '401':
+          description: Missing API credential
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+    post:
+      summary: P3 authenticated POST /api/v1/abroa/funding_receipts/{funding_receipt_id}/reversals
+      tags:
+      - Abroa P3 parent
+      security:
+      - apiKeyAuth: []
+      parameters: []
+      responses:
+        '401':
+          description: Missing API credential
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+        required: true
+  "/api/v1/abroa/parent/projects":
+    get:
+      summary: P3 authenticated GET /api/v1/abroa/parent/projects
+      tags:
+      - Abroa P3 parent
+      security:
+      - apiKeyAuth: []
+      responses:
+        '401':
+          description: Missing API credential
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  "/api/v1/abroa/parent/projects/{id}/summary":
+    parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    get:
+      summary: P3 authenticated GET /api/v1/abroa/parent/projects/{id}/summary
+      tags:
+      - Abroa P3 parent
+      security:
+      - apiKeyAuth: []
+      responses:
+        '401':
+          description: Missing API credential
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  "/api/v1/abroa/parent/projects/{id}/budgets":
+    parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    get:
+      summary: P3 authenticated GET /api/v1/abroa/parent/projects/{id}/budgets
+      tags:
+      - Abroa P3 parent
+      security:
+      - apiKeyAuth: []
+      responses:
+        '401':
+          description: Missing API credential
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  "/api/v1/abroa/parent/projects/{id}/fees":
+    parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    get:
+      summary: P3 authenticated GET /api/v1/abroa/parent/projects/{id}/fees
+      tags:
+      - Abroa P3 parent
+      security:
+      - apiKeyAuth: []
+      responses:
+        '401':
+          description: Missing API credential
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  "/api/v1/abroa/parent/projects/{id}/pools":
+    parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    get:
+      summary: P3 authenticated GET /api/v1/abroa/parent/projects/{id}/pools
+      tags:
+      - Abroa P3 parent
+      security:
+      - apiKeyAuth: []
+      responses:
+        '401':
+          description: Missing API credential
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  "/api/v1/abroa/parent/projects/{id}/expenses":
+    parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    get:
+      summary: P3 authenticated GET /api/v1/abroa/parent/projects/{id}/expenses
+      tags:
+      - Abroa P3 parent
+      security:
+      - apiKeyAuth: []
+      responses:
+        '401':
+          description: Missing API credential
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  "/api/v1/abroa/parent/projects/{id}/funding":
+    parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    get:
+      summary: P3 authenticated GET /api/v1/abroa/parent/projects/{id}/funding
+      tags:
+      - Abroa P3 parent
+      security:
+      - apiKeyAuth: []
+      responses:
+        '401':
+          description: Missing API credential
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
   "/api/v1/abroa/profile":
     get:
       summary: Read own Abroa preferences
@@ -9478,6 +10274,462 @@ paths:
             application/json:
               schema:
                 "$ref": "#/components/schemas/AbroaIntakeReceiptResponse"
+  "/api/v1/abroa/projects":
+    get:
+      summary: List own study projects
+      tags:
+      - Abroa study
+      security:
+      - apiKeyAuth: []
+      responses:
+        '200':
+          description: Own projects
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AbroaStudyProjectListResponse"
+    post:
+      summary: Create a study project with an idempotency key
+      tags:
+      - Abroa study
+      security:
+      - apiKeyAuth: []
+      parameters:
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AbroaStudyProjectResponse"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/AbroaStudyProjectCreate"
+        required: true
+  "/api/v1/abroa/projects/{id}":
+    parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    get:
+      summary: Read an owned study project
+      tags:
+      - Abroa study
+      security:
+      - apiKeyAuth: []
+      responses:
+        '200':
+          description: Project
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AbroaStudyProjectResponse"
+    patch:
+      summary: Change project fields or state
+      tags:
+      - Abroa study
+      security:
+      - apiKeyAuth: []
+      parameters: []
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AbroaStudyProjectResponse"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/AbroaStudyProjectUpdate"
+        required: true
+  "/api/v1/abroa/projects/{id}/archive":
+    parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    post:
+      summary: Archive project without modifying ledger facts
+      tags:
+      - Abroa study
+      security:
+      - apiKeyAuth: []
+      parameters: []
+      responses:
+        '200':
+          description: Archived
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AbroaStudyProjectResponse"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - lock_version
+              properties:
+                lock_version:
+                  type: integer
+        required: true
+  "/api/v1/abroa/projects/{id}/restore":
+    parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    post:
+      summary: Restore archived project state
+      tags:
+      - Abroa study
+      security:
+      - apiKeyAuth: []
+      parameters: []
+      responses:
+        '200':
+          description: Restored
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AbroaStudyProjectResponse"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - lock_version
+              properties:
+                lock_version:
+                  type: integer
+        required: true
+  "/api/v1/abroa/projects/{id}/summary":
+    parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    get:
+      summary: Report project allocations without duplicating the personal ledger
+      tags:
+      - Abroa study
+      security:
+      - apiKeyAuth: []
+      parameters:
+      - name: start_on
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date
+      - name: end_on
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date
+      - name: currency
+        in: query
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Project ledger projection
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AbroaStudySummaryResponse"
+  "/api/v1/abroa/projects/{id}/periods":
+    parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    get:
+      summary: List study periods
+      tags:
+      - Abroa study
+      security:
+      - apiKeyAuth: []
+      responses:
+        '200':
+          description: Study periods
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AbroaStudyPeriodListResponse"
+    post:
+      summary: Add a study period
+      tags:
+      - Abroa study
+      security:
+      - apiKeyAuth: []
+      parameters:
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AbroaStudyPeriodResponse"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/AbroaStudyPeriodCreate"
+        required: true
+  "/api/v1/abroa/projects/{id}/periods/{period_id}":
+    parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    - name: period_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    get:
+      summary: Read study period
+      tags:
+      - Abroa study
+      security:
+      - apiKeyAuth: []
+      responses:
+        '200':
+          description: Period
+    patch:
+      summary: Change study period
+      tags:
+      - Abroa study
+      security:
+      - apiKeyAuth: []
+      parameters: []
+      responses:
+        '200':
+          description: Updated
+      requestBody:
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/AbroaStudyPeriodUpdate"
+        required: true
+    delete:
+      summary: Remove an unreferenced study period
+      tags:
+      - Abroa study
+      security:
+      - apiKeyAuth: []
+      parameters: []
+      responses:
+        '200':
+          description: Deleted
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - lock_version
+              properties:
+                lock_version:
+                  type: integer
+        required: true
+  "/api/v1/abroa/projects/{id}/accounts":
+    parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    get:
+      summary: List project linked accounts
+      tags:
+      - Abroa study
+      security:
+      - apiKeyAuth: []
+      responses:
+        '200':
+          description: Account IDs
+    post:
+      summary: Attach accessible account to project
+      tags:
+      - Abroa study
+      security:
+      - apiKeyAuth: []
+      parameters:
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+      responses:
+        '201':
+          description: Linked
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - account_id
+              properties:
+                account_id:
+                  type: string
+                  format: uuid
+        required: true
+  "/api/v1/abroa/projects/{id}/accounts/{account_id}":
+    parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    - name: account_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    delete:
+      summary: Unlink account without deleting its ledger
+      tags:
+      - Abroa study
+      security:
+      - apiKeyAuth: []
+      responses:
+        '200':
+          description: Unlinked
+  "/api/v1/abroa/projects/{id}/allocations":
+    parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    get:
+      summary: List explicit project ledger allocations
+      tags:
+      - Abroa study
+      security:
+      - apiKeyAuth: []
+      responses:
+        '200':
+          description: Allocations
+    post:
+      summary: Allocate confirmed entry amount to project
+      tags:
+      - Abroa study
+      security:
+      - apiKeyAuth: []
+      parameters:
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+      responses:
+        '201':
+          description: Allocated
+      requestBody:
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/AbroaStudyAllocationCreate"
+        required: true
+  "/api/v1/abroa/projects/{id}/allocations/{allocation_id}":
+    parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    - name: allocation_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    get:
+      summary: Read explicit entry allocation
+      tags:
+      - Abroa study
+      security:
+      - apiKeyAuth: []
+      responses:
+        '200':
+          description: Allocation
+    patch:
+      summary: Change allocated amount with optimistic version
+      tags:
+      - Abroa study
+      security:
+      - apiKeyAuth: []
+      parameters: []
+      responses:
+        '200':
+          description: Updated
+      requestBody:
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/AbroaStudyAllocationUpdate"
+        required: true
+    delete:
+      summary: Release an allocation while retaining original ledger entry
+      tags:
+      - Abroa study
+      security:
+      - apiKeyAuth: []
+      parameters: []
+      responses:
+        '200':
+          description: Released
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - lock_version
+              properties:
+                lock_version:
+                  type: integer
+        required: true
   "/api/v1/account_statements":
     get:
       summary: List statements in the Statement Vault

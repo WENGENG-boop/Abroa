@@ -822,6 +822,59 @@ Rails.application.routes.draw do
   namespace :api do
     namespace :v1 do
       namespace :abroa do
+        resources :relationship_invites, only: %i[index show create destroy] do
+          collection do
+            post :accept
+            post :reject
+          end
+        end
+        resources :relationships, only: %i[index show] do
+          member { post :revoke }
+          resources :grants, only: %i[index create destroy]
+        end
+        scope path: "parent" do
+          resources :drafts, controller: "parent_drafts", only: %i[index show create update destroy]
+          resources :budgets, controller: "parent_budgets", only: %i[update]
+          resources :projects, controller: "parent_projects", only: %i[index] do
+            member do
+              get :summary
+              get :budgets
+              get :fees
+              get :pools
+              get :expenses
+              get :funding
+            end
+          end
+        end
+        resources :proposals, only: %i[index show create] do
+          member do
+            post :submit
+            post :accept
+            post :reject
+            post :cancel
+          end
+        end
+        resources :funding_plans, only: %i[index show create update] do
+          member do
+            post :confirm
+            post :reject
+            post :cancel
+          end
+          resources :receipts, controller: "funding_receipts", only: %i[index show create]
+          resources :suggestions, controller: "funding_suggestions", only: %i[index create] do
+            member do
+              post :accept
+              post :reject
+              post :cancel
+            end
+          end
+          resources :notices, controller: "funding_notices", only: %i[index create] do
+            member { post :revoke }
+          end
+        end
+        resources :funding_receipts, only: [] do
+          resources :reversals, controller: "funding_reversals", only: %i[index create]
+        end
         resources :projects, only: %i[index show create update] do
           member do
             post :archive

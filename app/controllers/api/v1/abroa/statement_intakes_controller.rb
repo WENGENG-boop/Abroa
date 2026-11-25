@@ -5,13 +5,13 @@ class Api::V1::Abroa::StatementIntakesController < Api::V1::Abroa::BaseControlle
   rescue_from ::Abroa::StatementParser::UnsupportedFormat, ArgumentError, with: :render_invalid_input
 
   def show
-    render_json({ data: ::Abroa::StatementIntake.visible_for!(Current.user, statement_id!).payload })
+    render_json({ data: ::Abroa::StatementIntake.visible_for!(current_resource_owner, statement_id!).payload })
   end
 
   def preview
     fields = body_fields!(:source_kind, :mapping, :separator, :pdf_import_id)
     validate_fields!(fields)
-    result = ::Abroa::StatementIntake.preview_for!(Current.user, statement_id: statement_id!, **fields)
+    result = ::Abroa::StatementIntake.preview_for!(current_resource_owner, statement_id: statement_id!, **fields)
     render_json({ data: result })
   end
 
@@ -19,13 +19,13 @@ class Api::V1::Abroa::StatementIntakesController < Api::V1::Abroa::BaseControlle
     fields = body_fields!(:source_kind, :mapping, :separator, :pdf_import_id, :preview_digest, :accept_invalid_rows)
     validate_fields!(fields)
     raise ArgumentError, "preview_digest is required" unless fields[:preview_digest].present?
-    receipt = ::Abroa::StatementIntake.publish_for!(Current.user, statement_id: statement_id!, **fields)
+    receipt = ::Abroa::StatementIntake.publish_for!(current_resource_owner, statement_id: statement_id!, **fields)
     render_json({ data: receipt.payload }, status: :created)
   end
 
   def rollback
     body_fields!
-    receipt = ::Abroa::StatementIntake.rollback_for!(Current.user, statement_id: statement_id!)
+    receipt = ::Abroa::StatementIntake.rollback_for!(current_resource_owner, statement_id: statement_id!)
     render_json({ data: receipt.payload })
   end
 

@@ -30,7 +30,7 @@ class Api::V1::Abroa::CurrencyController < Api::V1::Abroa::BaseController
 
   def account_profile
     require_uuid!(params[:account_id])
-    render_json({ data: ::Abroa::AccountProfile.for_user(Current.user, params[:account_id]).payload })
+    render_json({ data: ::Abroa::AccountProfile.for_user(current_resource_owner, params[:account_id]).payload })
   end
 
   def update_account_profile
@@ -39,7 +39,7 @@ class Api::V1::Abroa::CurrencyController < Api::V1::Abroa::BaseController
     unless fields[:lock_version].is_a?(Integer) && fields[:lock_version] >= 0
       raise ArgumentError, "lock_version must be a non-negative integer"
     end
-    profile = ::Abroa::AccountProfile.change_for!(Current.user, params[:account_id], **fields)
+    profile = ::Abroa::AccountProfile.change_for!(current_resource_owner, params[:account_id], **fields)
     render_json({ data: profile.payload })
   end
 
@@ -48,7 +48,7 @@ class Api::V1::Abroa::CurrencyController < Api::V1::Abroa::BaseController
       :debit_amount, :credit_amount, :fee_amount, :fee_currency)
     %i[source_account_id destination_account_id].each { |field| require_uuid!(fields[field]) }
     detail = ::Abroa::FxDetail.create_for!(
-      Current.user,
+      current_resource_owner,
       source_account_id: fields[:source_account_id], destination_account_id: fields[:destination_account_id],
       date: required_date!(fields[:date]), debit_amount: fields[:debit_amount], credit_amount: fields[:credit_amount],
       fee_amount: fields.fetch(:fee_amount, "0"), fee_currency: fields[:fee_currency],
@@ -59,7 +59,7 @@ class Api::V1::Abroa::CurrencyController < Api::V1::Abroa::BaseController
 
   def exchange
     require_uuid!(params[:id])
-    render_json({ data: ::Abroa::FxDetail.visible_to!(Current.user, params[:id]).payload })
+    render_json({ data: ::Abroa::FxDetail.visible_to!(current_resource_owner, params[:id]).payload })
   end
 
   private

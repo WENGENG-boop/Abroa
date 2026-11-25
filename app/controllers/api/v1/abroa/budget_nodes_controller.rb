@@ -14,7 +14,7 @@ class Api::V1::Abroa::BudgetNodesController < Api::V1::Abroa::BaseController
 
   def create
     fields = body_fields!(*::Abroa::BudgetNode::FIELDS)
-    record = ::Abroa::BudgetNode.create_for!(Current.user, project.id,
+    record = ::Abroa::BudgetNode.create_for!(current_resource_owner, project.id,
       attributes: fields, key: require_idempotency_key!)
     render_json({ data: record.payload }, status: :created)
   end
@@ -22,21 +22,21 @@ class Api::V1::Abroa::BudgetNodesController < Api::V1::Abroa::BaseController
   def update
     fields = body_fields!(*::Abroa::BudgetNode::FIELDS, :lock_version)
     version = fields.delete(:lock_version)
-    record = ::Abroa::BudgetNode.change_for!(Current.user, budget.id, version: version, attributes: fields)
+    record = ::Abroa::BudgetNode.change_for!(current_resource_owner, budget.id, version: version, attributes: fields)
     render_json({ data: record.payload })
   end
 
   def adjust
     fields = body_fields!(:lock_version, :limit_amount, :warning_threshold)
     version = fields.delete(:lock_version)
-    record = ::Abroa::BudgetNode.change_for!(Current.user, budget.id, version: version, attributes: fields)
+    record = ::Abroa::BudgetNode.change_for!(current_resource_owner, budget.id, version: version, attributes: fields)
     render_json({ data: record.payload })
   end
 
   def rollover
     fields = body_fields!(:target_id)
     raise ActiveRecord::RecordNotFound unless valid_uuid?(fields[:target_id])
-    record = ::Abroa::BudgetNode.rollover_for!(Current.user, budget.id,
+    record = ::Abroa::BudgetNode.rollover_for!(current_resource_owner, budget.id,
       target_id: fields[:target_id], key: require_idempotency_key!)
     render_json({ data: record.payload })
   end
@@ -48,7 +48,7 @@ class Api::V1::Abroa::BudgetNodesController < Api::V1::Abroa::BaseController
   end
 
   def execution
-    result = budget.execution_for!(Current.user)
+    result = budget.execution_for!(current_resource_owner)
     result = result.transform_values { |value| value.is_a?(BigDecimal) ? value.to_s("F") : value }
     render_json({ data: result })
   end
@@ -56,7 +56,7 @@ class Api::V1::Abroa::BudgetNodesController < Api::V1::Abroa::BaseController
   private
     def project
       raise ActiveRecord::RecordNotFound unless valid_uuid?(params[:project_id])
-      @project ||= ::Abroa::StudyProject.find_for!(Current.user, params[:project_id])
+      @project ||= ::Abroa::StudyProject.find_for!(current_resource_owner, params[:project_id])
     end
 
     def budget

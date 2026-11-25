@@ -4,12 +4,12 @@ class Api::V1::Abroa::ProviderCapturesController < Api::V1::Abroa::BaseControlle
 
   def capture
     fields = body_fields!(:limit, :after_id)
-    result = ::Abroa::ProviderCapture.capture_for!(Current.user, account_id: account_id!, **fields)
+    result = ::Abroa::ProviderCapture.capture_for!(current_resource_owner, account_id: account_id!, **fields)
     render_json({ data: result })
   end
 
   def diagnostics
-    render_json({ data: ::Abroa::ProviderCapture.diagnostics_for!(Current.user, account_id: account_id!) })
+    render_json({ data: ::Abroa::ProviderCapture.diagnostics_for!(current_resource_owner, account_id: account_id!) })
   end
 
   private

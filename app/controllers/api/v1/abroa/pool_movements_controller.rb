@@ -4,7 +4,7 @@ class Api::V1::Abroa::PoolMovementsController < Api::V1::Abroa::BaseController
   rescue_from ArgumentError, with: :render_invalid_input
 
   def index
-    account_ids = Current.user.family.accounts.accessible_by(Current.user).select(:id)
+    account_ids = current_resource_owner.family.accounts.accessible_by(current_resource_owner).select(:id)
     page = ::Abroa::Page.fetch(pool.movements.where(account_id: account_ids),
       limit: params[:limit], cursor: params[:cursor])
     render_json({ data: page[:rows].map(&:payload), meta: { next_cursor: page[:next_cursor] } })
@@ -13,7 +13,7 @@ class Api::V1::Abroa::PoolMovementsController < Api::V1::Abroa::BaseController
   def create
     fields = body_fields!(:account_id, :kind, :amount, :entry_id, :fee_installment_id)
     raise ActiveRecord::RecordNotFound unless valid_uuid?(fields[:account_id])
-    record = ::Abroa::PoolMovement.apply_for!(Current.user, pool.id, **fields,
+    record = ::Abroa::PoolMovement.apply_for!(current_resource_owner, pool.id, **fields,
       key: require_idempotency_key!)
     render_json({ data: record.payload }, status: :created)
   end
@@ -21,7 +21,7 @@ class Api::V1::Abroa::PoolMovementsController < Api::V1::Abroa::BaseController
   private
     def project
       raise ActiveRecord::RecordNotFound unless valid_uuid?(params[:project_id])
-      @project ||= ::Abroa::StudyProject.find_for!(Current.user, params[:project_id])
+      @project ||= ::Abroa::StudyProject.find_for!(current_resource_owner, params[:project_id])
     end
 
     def pool

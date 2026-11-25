@@ -20,3 +20,11 @@
 - 账户删除/导出遵守原生命周期并扩展项目/家长权限/任务/缓存/原始文件；删除范围及需保留的协作记录按实际政策核实，不承诺法定合规已认证。
 ## 4. 验收攻击面
 IDOR（读写、列表、批量、导出、附件）、跨 family scope、平台管理员误权、授权撤销与并发执行、过期/重用邀请、权限提升、缓存串租户、邮件/日志泄露、AI prompt injection/工具越权、SSRF、恶意文件、重复入账、并发超分配、token 重放。使用学生 A/B、家长 P/Q、管理员 M 多租户 fixture 测试；负向必须断言无数据修改和无敏感内容。P0 记录现有漏洞或基线失败，不绕过。
+
+## P3 跨租户安全边界（2026-11-25）
+
+默认拒绝：关系仅证明学生与家长关联，不共享 Sure 家庭；原 `Current.family`、`AccountPolicy`、`StudyProject.for_user` 不因关系而放宽。家长访问学生项目必须从有效 `Grant.scoped_to_parent` 获取，联合验证家长 user/family、relation active、student user/family、project owner/family、Grant capability/resource/expiry；未授权 API 返回 404，避免跨项目资源枚举。授权立即撤销并同时禁用关系内活动 Grant。家长独立草稿只在家长家庭创建。
+
+资金安全：拨款计划、草稿、预算、汇款声明均不写 Sure 原始账本；学生本人以独立 `EntryAllocation.locked_entry!` 校验 `Entry`，完成凭证、币种、账户归属和入账状态核验，写入独立唯一匹配记录。冲正引用真实退款流水，不直接调整原账本。父母端默认隐藏学生银行账户 ID、支付对象、流水详情；额外授权才可返回裁剪后的交易投影。父母账户 ID 不出现在学生端。
+
+并发及审计：所有资金匹配、提议审批和授权撤销记录真实操作者与不可变操作历史；重要状态机使用行锁、`lock_version`、PostgreSQL 唯一索引和幂等请求摘要。跨币种历史匹配持久化 RateSnapshot；核对原始流水后若源账务发生漂移，汇总拒绝输出看似可信的金额。待办关联、预算、拨款的全业务执行必须在有效权限之下，不能仅检查对象 ID 或原 Family 权限。
