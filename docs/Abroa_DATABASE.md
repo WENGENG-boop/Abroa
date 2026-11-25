@@ -102,3 +102,12 @@ Forecasts are read-only computations over Sure's deposited-cash accounts and pos
 
 `Abroa::FinancialReport` 和 `Abroa::ProjectDebtRecognition` 是无持久化只读聚合，在 Sure `IncomeStatement` 与历史 `Entry` 上关联已有 P1–P4 账务事实；不建立额外收入/支出总账。项目中的第三方借贷与商户退款仍引用真实 P2 分配 Entry、P4 DebtSettlement 和历史汇率。
 `abroa_report_exports`：owner/family 严格租户主键、可选 project、个人/项目/家长范围、已校验筛选、csv/json、创建幂等 SHA-256、请求内容 SHA-256、家长授权摘要、文件 SHA-256 与字节数、状态、有效期。私有数据存 Rails 现有 ActiveStorage，强制 2MB 上限；下载从不返回 ActiveStorage signed ID。所有访问经过当前用户/account/Grant 重新验证及 `PlanningAuditEvent` 追加审计。迁移 `20261125130000_create_abroa_report_exports.rb` 可逆，历史 P1–P3 数据和迁移保持不变。
+
+## P4.5 A14 AI 配置及操作的唯一权威数据
+
+迁移 `20261125140000_create_abroa_ai_financial_assistant.rb` 创建三个独立的租户表（可逆）：
+- `abroa_ai_model_providers`：owner/family 唯一、模型安全 URL、内部 `model_identifier`（避免 Rails 保留的 `model_name` 冲突）、加密 API Key、支持能力 JSON、禁用开关、版本与幂等配置哈希；`encrypts :api_key` 复用 Sure ActiveRecord Encryption。
+- `abroa_ai_model_usages`：owner/family/provider、模型、成功/失败/超时、输入/输出 token、已知成本和 `NULL` 未知成本、耗时及通用失败类型；不存原始模型请求、交易正文或密钥。
+- `abroa_ai_operation_proposals`：单次确认 token SHA-256、用户/项目/操作固定目标、允许的参数、变更前事实快照、预期资源版本和财务证据摘要、执行事实摘要、状态与补偿信息；不可让模型直接伪造已确认状态。
+
+财务执行调用已有 `Abroa::BudgetNode.change_for!`、`FeeAdjustment.apply_for!/void_for!`、`PoolMovement.apply_for!`。资金池提前获取 P2 Goal 账户级 advisory lock，再取得 family/user 行锁，维持已有死锁避免顺序。所有 AI 操作不创建真实 Sure Entry，不新建资金/交易账本。未支持的写动作不会在生产执行。

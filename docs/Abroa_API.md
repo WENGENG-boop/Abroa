@@ -139,3 +139,20 @@ P0 核实 API 路由、controller、认证方式及现有 serializer，再将精
 | GET | `/api/v1/abroa/report_exports/{id}/download` | 当前登录人本人拥有文件、文件未过期且原始项目/账号/Grant 仍可访问；重新鉴权并写入下载审计后返回带 `Content-Disposition: attachment` 的 Blob 内容；不返回公开/signed URL |
 
 报表由 `Abroa::FinancialReport` 读取 Sure `IncomeStatement` 和 `Entry`、P1 `NetConsumption`/RefundLink、P2 `ProjectSummary`/预算/费用/资金池和 P3 `FundingPlan`、P4 应收应付，分别标明已发生现金与未收拨款、非现金资金池目标；不相加重复统计。项目 `personal_allocated_consumption` 仅调整已有 P2 项目分配的第三方承担、商户退款、借贷/偿还；`ledger_allocated_consumption` 仍保留原账本数字。历史 FX 不全、源事实失效时 `incomplete=true` 并置 null，不能将跨币种原数直接相加。CSV 每个单元格均做公式注入净化，导出文件限 2 MB，7 天过期。外部真实对象存储尚未验证。
+
+## P4.5 A14 AI 财务助手（用户模型与人工确认）
+
+AI 接口复用 Sure API Key 身份认证；读取需要 read scope，更新模型和财务写提案需要 read_write scope。新增：
+- `GET /api/v1/abroa/ai/provider`：查询本人自定义模型配置及加密密钥的遮罩状态，普通 JSON 不返回 API Key。
+- `POST /api/v1/abroa/ai/provider`：`Idempotency-Key` + `base_url`、`api_key`、`model_name`、可选 `capabilities`；仅支持安全 HTTPS 公共域名，私有地址需符合自托管管理员的 **精确白名单**。
+- `PATCH /api/v1/abroa/ai/provider`：带 `lock_version` 更新模型、密钥、能力和 `disabled`；冲突 409，非法 URL/字段 422。
+- `POST /api/v1/abroa/ai/chat`：`question`，可选单一 `project_id` 或 `parent_project_id`；仅把服务端授权生成的只读聚合数据发送模型，模型无实际写入工具。未配置/关闭/模型不可用均给出明确状态。
+- `POST /api/v1/abroa/ai/classify`：`entry_id`；对本人可见真实 Entry 生成分类建议，不修改真实交易或导入。
+- `GET /api/v1/abroa/ai/usage`：本人调用次数、成功次数/率、输入/输出 tokens、已知 USD 成本和未知成本次数；没有可靠计费数据时 `cost_usd: null`。
+- `GET /api/v1/abroa/ai/proposals`：列出本人安全操作提案。
+- `POST /api/v1/abroa/ai/proposals`：`Idempotency-Key` + `operation`、`resource_id`、`parameters`；仅可执行 `budget_update`（`limit_amount`）、`fee_adjust`（`kind`、`amount`、`reason`、可选 `installment_id`）、`pool_allocate`（`account_id`、`amount`）。返回提案和 **只出现一次** 的 `confirmation_token`；重复幂等请求不可再次取得 token。
+- `POST /api/v1/abroa/ai/proposals/{id}/confirm`：`token` + `lock_version`；请求主体和资源版本必须仍相符，有效期 15 分钟。
+- `POST /api/v1/abroa/ai/proposals/{id}/execute`：只有明确确认后，服务端二次校验权限、项目可写、资源版本、当前资金/费用证据，并调用既有 P2 服务。重复执行只返回原执行状态，不能重复记账。
+- `POST /api/v1/abroa/ai/proposals/{id}/reject`：仅未确认提案可拒绝；`POST /api/v1/abroa/ai/proposals/{id}/compensate`：当资源未被后续改动时，执行保守补偿，拒绝不安全撤销。
+
+AI 模型不具备调用任意 Sure 旧写工具的权限。Abroa 开启角色后，Sure AI Chat 和 MCP Tool Registry 都排除原有 `create/update/delete/apply/set/record/import/upload/match/unmatch/review` 写工具，实际 ToolCaller 也有第二道拦截。未覆盖的自动化写操作（例如直接修改导入匹配或真实交易分类）保留为 **只读建议 + 原业务用户审核**，不会绕过确认协议。

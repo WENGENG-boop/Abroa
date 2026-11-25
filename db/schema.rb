@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_25_130000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_25_140000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -32,6 +32,76 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_25_130000) do
     t.index ["account_id"], name: "index_abroa_account_profiles_on_account_id", unique: true
     t.index ["family_id"], name: "index_abroa_account_profiles_on_family_id"
     t.check_constraint "wallet_kind IS NULL OR (wallet_kind::text = ANY (ARRAY['alipay'::character varying::text, 'wechat'::character varying::text, 'other'::character varying::text]))", name: "abroa_account_wallet_valid"
+  end
+
+  create_table "abroa_ai_model_providers", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "owner_id", null: false
+    t.uuid "family_id", null: false
+    t.string "base_url", null: false
+    t.string "model_identifier", null: false
+    t.text "api_key"
+    t.jsonb "capabilities", default: {}, null: false
+    t.boolean "disabled", default: false, null: false
+    t.string "setup_key_digest", null: false
+    t.string "setup_request_digest", null: false
+    t.integer "lock_version", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["family_id"], name: "index_abroa_ai_model_providers_on_family_id"
+    t.index ["owner_id"], name: "index_abroa_ai_model_providers_on_owner_id", unique: true
+  end
+
+  create_table "abroa_ai_model_usages", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "owner_id", null: false
+    t.uuid "family_id", null: false
+    t.uuid "provider_id"
+    t.string "model_identifier", null: false
+    t.string "status", null: false
+    t.integer "input_tokens"
+    t.integer "output_tokens"
+    t.decimal "cost_usd", precision: 18, scale: 8
+    t.integer "latency_ms"
+    t.string "failure_kind"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["family_id"], name: "index_abroa_ai_model_usages_on_family_id"
+    t.index ["owner_id", "created_at"], name: "index_abroa_ai_model_usages_on_owner_id_and_created_at"
+    t.index ["owner_id"], name: "index_abroa_ai_model_usages_on_owner_id"
+    t.index ["provider_id"], name: "index_abroa_ai_model_usages_on_provider_id"
+    t.check_constraint "(status::text = ANY (ARRAY['success'::character varying::text, 'failed'::character varying::text, 'timeout'::character varying::text])) AND (input_tokens IS NULL OR input_tokens >= 0) AND (output_tokens IS NULL OR output_tokens >= 0) AND (cost_usd IS NULL OR cost_usd >= 0::numeric) AND (latency_ms IS NULL OR latency_ms >= 0)", name: "abroa_ai_usage_valid"
+  end
+
+  create_table "abroa_ai_operation_proposals", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "family_id", null: false
+    t.uuid "owner_id", null: false
+    t.uuid "project_id"
+    t.string "operation", null: false
+    t.string "resource_type", null: false
+    t.uuid "resource_id", null: false
+    t.jsonb "parameters", default: {}, null: false
+    t.jsonb "before_snapshot", default: {}, null: false
+    t.integer "expected_resource_version", null: false
+    t.string "expected_state_digest", null: false
+    t.string "execution_state_digest"
+    t.string "confirmation_digest", null: false
+    t.string "creation_key_digest", null: false
+    t.string "creation_request_digest", null: false
+    t.string "status", default: "proposed", null: false
+    t.datetime "expires_at", null: false
+    t.datetime "confirmed_at"
+    t.datetime "executed_at"
+    t.datetime "compensated_at"
+    t.uuid "execution_resource_id"
+    t.integer "execution_resource_version"
+    t.integer "lock_version", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["family_id"], name: "index_abroa_ai_operation_proposals_on_family_id"
+    t.index ["owner_id", "creation_key_digest"], name: "idx_abroa_ai_proposal_idempotency", unique: true
+    t.index ["owner_id", "status", "expires_at"], name: "idx_on_owner_id_status_expires_at_b3abb6e94b"
+    t.index ["owner_id"], name: "index_abroa_ai_operation_proposals_on_owner_id"
+    t.index ["project_id"], name: "index_abroa_ai_operation_proposals_on_project_id"
+    t.check_constraint "(status::text = ANY (ARRAY['proposed'::character varying::text, 'confirmed'::character varying::text, 'executed'::character varying::text, 'rejected'::character varying::text, 'compensated'::character varying::text, 'cancelled'::character varying::text])) AND (operation::text = ANY (ARRAY['budget_update'::character varying::text, 'fee_adjust'::character varying::text, 'pool_allocate'::character varying::text, 'entry_classify'::character varying::text, 'import_match'::character varying::text, 'parent_budget_suggestion'::character varying::text])) AND expected_resource_version >= 0", name: "abroa_ai_proposal_valid"
   end
 
   create_table "abroa_budget_nodes", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -853,7 +923,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_25_130000) do
     t.index ["owner_id", "creation_key_digest"], name: "idx_abroa_report_export_idempotency", unique: true
     t.index ["owner_id"], name: "index_abroa_report_exports_on_owner_id"
     t.index ["project_id"], name: "index_abroa_report_exports_on_project_id"
-    t.check_constraint "(scope::text = ANY (ARRAY['personal'::character varying, 'project'::character varying, 'parent'::character varying]::text[])) AND (file_format::text = ANY (ARRAY['json'::character varying, 'csv'::character varying]::text[])) AND (status::text = ANY (ARRAY['ready'::character varying, 'failed'::character varying]::text[])) AND byte_size >= 1 AND byte_size <= 2097152", name: "abroa_report_export_limits"
+    t.check_constraint "(scope::text = ANY (ARRAY['personal'::character varying::text, 'project'::character varying::text, 'parent'::character varying::text])) AND (file_format::text = ANY (ARRAY['json'::character varying::text, 'csv'::character varying::text])) AND (status::text = ANY (ARRAY['ready'::character varying::text, 'failed'::character varying::text])) AND byte_size >= 1 AND byte_size <= 2097152", name: "abroa_report_export_limits"
   end
 
   create_table "abroa_source_actions", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -4172,6 +4242,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_25_130000) do
 
   add_foreign_key "abroa_account_profiles", "accounts", on_delete: :cascade
   add_foreign_key "abroa_account_profiles", "families"
+  add_foreign_key "abroa_ai_model_providers", "families", on_delete: :cascade
+  add_foreign_key "abroa_ai_model_providers", "users", column: "owner_id", on_delete: :cascade
+  add_foreign_key "abroa_ai_model_usages", "abroa_ai_model_providers", column: "provider_id", on_delete: :nullify
+  add_foreign_key "abroa_ai_model_usages", "families", on_delete: :cascade
+  add_foreign_key "abroa_ai_model_usages", "users", column: "owner_id", on_delete: :cascade
+  add_foreign_key "abroa_ai_operation_proposals", "abroa_study_projects", column: "project_id", on_delete: :restrict
+  add_foreign_key "abroa_ai_operation_proposals", "families", on_delete: :cascade
+  add_foreign_key "abroa_ai_operation_proposals", "users", column: "owner_id", on_delete: :cascade
   add_foreign_key "abroa_budget_nodes", "abroa_budget_nodes", column: "parent_id"
   add_foreign_key "abroa_budget_nodes", "abroa_budget_nodes", column: "rollover_target_id"
   add_foreign_key "abroa_budget_nodes", "abroa_study_periods", column: "period_id"

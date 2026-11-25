@@ -20,7 +20,7 @@
 |FORECAST 全部|P4.2|A11|扩展|IN_PROGRESS|确定性 30/90/180 天现金、资金缺口、计划拨款/压力/生活费/租金/FX、历史消费及已付固定费用去重、留学成本、异常消费、输入指纹；学生/家长实时 Grant 授权；A10–A11 阶段回归 288/1788 通过、RuboCop 5/0、Brakeman 0 活跃警告，见 P4_BACKEND_ACCEPTANCE.md；等待 P1–P4 联合验收。|
 |NOTIFY 站内/邮件|P4.3|A12|扩展|IN_PROGRESS|本人站内收件箱/已读/通知偏好、唯一事件键、邮件 Outbox/Sidekiq 调度/权限二次核验、时区静默、明确 SMTP 拒绝安全重试、Worker 中断不盲目重发、P2/P3/Sure 事件路由；A12 专项 17/88 和双 PostgreSQL 并发 2/8 全通过，可逆迁移，见 P4_BACKEND_ACCEPTANCE.md；尚待联合验收。|
 |REPORT 项目/家长/FX|P4.4|A13|扩展|IN_PROGRESS|Sure IncomeStatement/NetConsumption 与 P2 项目分配、预算、费用、资金池及 P3 拨款、P4 个人债权统一只读报表；历史 FX 缺失置 null；项目代付/商户退款/还款比例对账；家长整月/学期/学年小样本隐私抑制；私有 CSV/JSON 导出、幂等、撤权下载阻断、CSV 公式防注入与审计；A13 专项 12/91、RuboCop 8/0，阶段联合验收待完成。|
-|AI-01–07|P4.5|A14|复用+扩展|PLANNED|待填|
+|AI-01–07|P4.5|A14|复用+扩展|IN_PROGRESS|自定义加密模型/安全 URL 和自托管精确白名单；只读授权财务解释、分类建议、用量；Sure Chat/MCP 旧写工具拦截；预算/费用/资金池提案人工确认、版本/状态验证、补偿审计。专项 21/159、双 PostgreSQL 并发 1/7 全通过；外部真模型及 P1–P4 联合验收仍待执行。|
 |ADMIN 权限/用户/审计|P5.1|A15-1|扩展|PLANNED|待填|
 |ADMIN 订阅/权益/用量|P5.2|A15-2,3|复用+扩展|PLANNED|待填|
 |ADMIN 运营/渠道/地区|P5.3|A15|扩展|PLANNED|待填|

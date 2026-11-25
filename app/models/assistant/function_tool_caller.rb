@@ -34,6 +34,10 @@ class Assistant::FunctionToolCaller
         }
       end
 
+      if Abroa::AiLegacyToolGuard.confirmation_required?(fn.send(:user), fn.name)
+        return { error: "confirmation_required",
+          hint: "This write operation requires an explicit, audited Abroa proposal and user confirmation." }
+      end
       fn_args = JSON.parse(function_request.function_args.presence || "{}")
       fn.call(fn_args)
     rescue JSON::ParserError => e

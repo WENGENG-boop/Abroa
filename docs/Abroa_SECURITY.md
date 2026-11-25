@@ -54,3 +54,11 @@ Outbox 在 PG 事务锁中独占标记 sending；已发出不重复发送；Work
 
 学生报表仅可使用本人所属、可访问 Sure Depository 现金账户及本人持有的项目；验证 period/project 归属，所有读聚合基于真实入账 Entry、历史汇率。不可使用预算或资金池目标冒充银行余额。每个下载首先按 owner+family+未到期的私有 Export 查找，然后重新执行源报表的 AccountPolicy/StudyProject 或家长 Grant 检查，核实完整 SHA-256 和文件大小，并追加可审计下载事件。包含其他用户交易、越权项目或过期的文件均不返回。
 家长仅固定自然月或已建立学年/学期聚合，不接受任意小窗、任意账户/项目/交易 ID；对交易笔数小于 5 的项目消费保持 suppression，预算/费用字段另要求对应有效 Grant。导出创建时锁定家长当前 Grant 摘要，任一授权变更都会拒绝下载旧快照及幂等重放，避免撤销后保留更高权限历史文件。CSV 内所有单元格，包括导入数据，带等号/加减号/at/控制字符等公式起始字符的均使用安全前缀；HTTP 下载 `no-store`、`nosniff`、`sandbox` 和附件 disposition。
+
+## P4.5 A14 AI 权限、网络和确认隔离
+
+模型 API Key 使用 Rails authenticated encryption，业务 API 仅返回 `api_key_configured` 和末尾四位遮罩，不返回明文或数据库密文。AI ModelGateway 优先兼容 OpenAI Chat Completions，HTTPS 公共域名必须有正常证书，DNS 同一请求解析结果全量排除私网/环回/link-local/保留地址，并将批准 IP 钉在实际请求连接，禁止重定向、HTTP 代理、非 HTTPS 和任意端口后的 DNS 复用；响应上限、请求尺寸及超时均受限。自托管仅当 `app_mode.self_hosted?` 且系统管理员显式设置 `ABROA_AI_ALLOWED_LOCAL_ENDPOINTS` 时允许 **精确匹配的 IPv4 私网/loopback HTTP(S) URL**，用户自身不能扩大白名单。关闭 AI 或未配模型不影响财务业务。
+
+所有 AI 回答和分类提示都只读授权后的财务资料，父母只拿 P3 Grant 过滤后的聚合与小样本隐藏结果；任意聊天文本/导入说明均为不可信数据，模型输出不得传入 shell/SQL 或财务写方法。Abroa 用户的 Sure Chat/MCP 工具注册表会剔除原有写工具；ToolCaller 还会在实际调用时拒绝写操作（`confirmation_required`）。
+
+写入流程严格为：独立服务器白名单提案 → 生成随机一次性 token 的哈希存库 → 用户提供 token 和乐观锁版本确认 → 再次校验本人权限、project、资源版本和收支/资金证据 → 调用原有 P2 核验服务 → 幂等记录完整审计。15 分钟过期、重用键、错误 token、家长越权或确认后资源变动全部拒绝。补偿必须确认目标执行状态与证据摘要未再变化，不能倒退第三方已发生的资金占用/费用修改。不具备真实支付能力。没有用户配置的真实第三方模型凭证，不能把模拟响应称为真实模型连通性验收。

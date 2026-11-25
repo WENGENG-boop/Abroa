@@ -822,6 +822,18 @@ Rails.application.routes.draw do
   namespace :api do
     namespace :v1 do
       namespace :abroa do
+        get "ai/provider", to: "ai#provider"
+        post "ai/provider", to: "ai#create_provider"
+        patch "ai/provider", to: "ai#update_provider"
+        post "ai/chat", to: "ai#chat"
+        post "ai/classify", to: "ai#classify"
+        get "ai/usage", to: "ai#usage"
+        get "ai/proposals", to: "ai#proposals"
+        post "ai/proposals", to: "ai#create_proposal"
+        post "ai/proposals/:id/confirm", to: "ai#confirm_proposal"
+        post "ai/proposals/:id/reject", to: "ai#reject_proposal"
+        post "ai/proposals/:id/execute", to: "ai#execute_proposal"
+        post "ai/proposals/:id/compensate", to: "ai#compensate_proposal"
         get "reports", to: "reports#show"
         get "parent/projects/:id/report", to: "reports#parent"
         post "report_exports", to: "reports#create_export"

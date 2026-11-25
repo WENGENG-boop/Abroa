@@ -9631,6 +9631,360 @@ paths:
               schema:
                 type: object
                 additionalProperties: true
+  "/api/v1/abroa/ai/provider":
+    get:
+      summary: Read masked, user-owned AI model configuration
+      tags:
+      - Abroa P4 AI
+      security:
+      - apiKeyAuth: []
+      responses:
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+    post:
+      summary: Configure encrypted, allowlisted OpenAI-compatible AI model
+      tags:
+      - Abroa P4 AI
+      security:
+      - apiKeyAuth: []
+      parameters:
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+      responses:
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                base_url:
+                  type: string
+                  format: uri
+                api_key:
+                  type: string
+                  writeOnly: true
+                model_name:
+                  type: string
+                capabilities:
+                  type: object
+                  additionalProperties: true
+                disabled:
+                  type: boolean
+                lock_version:
+                  type: integer
+              additionalProperties: false
+        required: true
+    patch:
+      summary: Update model settings or disable AI using optimistic lock
+      tags:
+      - Abroa P4 AI
+      security:
+      - apiKeyAuth: []
+      parameters: []
+      responses:
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                base_url:
+                  type: string
+                  format: uri
+                api_key:
+                  type: string
+                  writeOnly: true
+                model_name:
+                  type: string
+                capabilities:
+                  type: object
+                  additionalProperties: true
+                disabled:
+                  type: boolean
+                lock_version:
+                  type: integer
+              additionalProperties: false
+        required: true
+  "/api/v1/abroa/ai/chat":
+    post:
+      summary: Read-only financial advice from authorized Sure/Abroa facts
+      tags:
+      - Abroa P4 AI
+      security:
+      - apiKeyAuth: []
+      parameters: []
+      responses:
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                question:
+                  type: string
+                project_id:
+                  type: string
+                  format: uuid
+                parent_project_id:
+                  type: string
+                  format: uuid
+              additionalProperties: false
+        required: true
+  "/api/v1/abroa/ai/classify":
+    post:
+      summary: Generate a non-executing suggestion for an accessible posted entry
+      tags:
+      - Abroa P4 AI
+      security:
+      - apiKeyAuth: []
+      parameters: []
+      responses:
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                entry_id:
+                  type: string
+                  format: uuid
+              additionalProperties: false
+        required: true
+  "/api/v1/abroa/ai/usage":
+    get:
+      summary: Read current user's model usage, with unknown cost represented as null
+      tags:
+      - Abroa P4 AI
+      security:
+      - apiKeyAuth: []
+      responses:
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  "/api/v1/abroa/ai/proposals":
+    get:
+      summary: List own proposed or audited AI financial actions
+      tags:
+      - Abroa P4 AI
+      security:
+      - apiKeyAuth: []
+      responses:
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+    post:
+      summary: Create an allowlisted financial operation proposal; returns one-time
+        confirmation token
+      tags:
+      - Abroa P4 AI
+      security:
+      - apiKeyAuth: []
+      parameters:
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+      responses:
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                operation:
+                  type: string
+                  enum:
+                  - budget_update
+                  - fee_adjust
+                  - pool_allocate
+                resource_id:
+                  type: string
+                  format: uuid
+                parameters:
+                  type: object
+                  additionalProperties: true
+              additionalProperties: false
+        required: true
+  "/api/v1/abroa/ai/proposals/{id}/confirm":
+    parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    post:
+      summary: Explicit user approval with token, version and fresh resource evidence
+      tags:
+      - Abroa P4 AI
+      security:
+      - apiKeyAuth: []
+      parameters: []
+      responses:
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                token:
+                  type: string
+                lock_version:
+                  type: integer
+              additionalProperties: false
+        required: true
+  "/api/v1/abroa/ai/proposals/{id}/reject":
+    parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    post:
+      summary: Reject an unconfirmed financial proposal
+      tags:
+      - Abroa P4 AI
+      security:
+      - apiKeyAuth: []
+      parameters: []
+      responses:
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties: {}
+              additionalProperties: false
+        required: true
+  "/api/v1/abroa/ai/proposals/{id}/execute":
+    parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    post:
+      summary: Execute previously confirmed, still current P2 business action once
+      tags:
+      - Abroa P4 AI
+      security:
+      - apiKeyAuth: []
+      parameters: []
+      responses:
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties: {}
+              additionalProperties: false
+        required: true
+  "/api/v1/abroa/ai/proposals/{id}/compensate":
+    parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    post:
+      summary: Compensate only when the executed resource was not changed again
+      tags:
+      - Abroa P4 AI
+      security:
+      - apiKeyAuth: []
+      parameters: []
+      responses:
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties: {}
+              additionalProperties: false
+        required: true
   "/api/v1/abroa/personal_debts":
     get:
       summary: P4 personal obligation GET /api/v1/abroa/personal_debts

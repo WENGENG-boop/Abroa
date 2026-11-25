@@ -110,7 +110,11 @@ module Assistant
 
       classes += PREVIEW_FUNCTION_CLASSES if user&.preview_features_enabled?
       classes -= FAMILY_CONFIG_FUNCTION_CLASSES if user&.guest?
-      classes.select { |fn_class| ai_feature_available?(fn_class, user) }
+      abroa_role = Abroa::AiLegacyToolGuard.abroa_role_active?(user)
+      classes.select do |fn_class|
+        ai_feature_available?(fn_class, user) &&
+          (!abroa_role || !Abroa::AiLegacyToolGuard.mutating?(fn_class.name))
+      end
     end
 
     private
