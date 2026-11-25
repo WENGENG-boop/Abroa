@@ -106,6 +106,82 @@ class Abroa::AiFinancialAssistantTest < ActiveSupport::TestCase
     assert_equal 38, usage.output_tokens
   end
 
+  test "project AI explanation includes real A11 forecast alongside the authorized report" do
+    configured_provider
+    previous_entries = Entry.count
+    expected = { opening_balance: "800.0", scenario: "conservative",
+      balances: { day_30: "500.0" }, incomplete: false }
+    Abroa::Forecast.stub(:for_student, ->(user, **options) {
+      assert_equal @student.id, user.id
+      assert_equal @project.id, options.fetch(:project_id)
+      assert_equal "conservative", options.fetch(:scenario)
+      expected
+    }) do
+      Abroa::AiModelGateway.stub(:chat, ->(provider:, messages:) {
+        assert_equal "custom-finance", provider.model_identifier
+        context = JSON.parse(messages.last.fetch(:content)).fetch("trusted_financial_facts")
+        assert_equal expected.deep_stringify_keys, context.fetch("forecast")
+        assert context.fetch("financial_report").key?("project")
+        { text: "Forecast is 500 GBP at day 30", input_tokens: 50, output_tokens: 12 }
+      }) do
+        result = Abroa::AiFinancialAssistant.answer_for!(@student,
+          question: "How long will my money last?", project_id: @project.id)
+        assert_equal "success", result.fetch(:status)
+      end
+    end
+    assert_equal previous_entries, Entry.count
+  end
+
+  test "personal AI explanation includes authorized cash summary and conservative forecast" do
+    configured_provider
+    expected = { opening_balance: "600.0", scenario: "conservative", incomplete: false }
+    Abroa::FinancialReport.stub(:for_student!, ->(user, **options) {
+      assert_equal @student.id, user.id
+      assert_equal "personal", options.fetch(:scope)
+      { scope: "personal", cash_flow: { net_consumption: "30.0" } }
+    }) do
+      Abroa::Forecast.stub(:for_student, ->(user, **options) {
+        assert_equal @student.id, user.id
+        assert_nil options[:project_id]
+        expected
+      }) do
+        Abroa::AiModelGateway.stub(:chat, ->(provider:, messages:) {
+          context = JSON.parse(messages.last.fetch(:content)).fetch("trusted_financial_facts")
+          assert_equal expected.deep_stringify_keys, context.fetch("forecast")
+          assert_equal "30.0", context.dig("financial_report", "cash_flow", "net_consumption")
+          assert context.key?("current_budget_limits")
+          { text: "Cash flow reviewed", input_tokens: 35, output_tokens: 8 }
+        }) do
+          result = Abroa::AiFinancialAssistant.answer_for!(@student,
+            question: "How much have I spent recently?")
+          assert_equal "success", result.fetch(:status)
+        end
+      end
+    end
+  end
+
+  test "transaction classification does not send unrelated personal report or forecast" do
+    configured_provider
+    bank = Account.create!(family: @student.family, owner: @student,
+      accountable: Depository.new, name: "Privacy controlled", currency: "GBP", balance: 150)
+    entry = bank.entries.create!(entryable: Transaction.new, name: "Bookshop",
+      amount: 20, currency: "GBP", date: Date.current - 1)
+    Abroa::FinancialReport.stub(:for_student!, ->(**_args) { flunk "Excessive classification disclosure" }) do
+      Abroa::Forecast.stub(:for_student, ->(**_args) { flunk "Excessive forecast disclosure" }) do
+        Abroa::AiModelGateway.stub(:chat, ->(provider:, messages:) {
+          facts = JSON.parse(messages.last.fetch(:content)).fetch("trusted_financial_facts")
+          assert_not facts.key?("financial_report")
+          assert_not facts.key?("forecast")
+          assert_includes messages.last.fetch(:content), "Bookshop"
+          { text: "Books. Review first.", input_tokens: 20, output_tokens: 7 }
+        }) do
+          assert_equal "success", Abroa::AiFinancialAssistant.classification_hint_for!(
+            @student, entry_id: entry.id).fetch(:status)
+        end
+      end
+    end
+  end
+
   test "financial answer exposes output truncation without writing any ledger" do
     configured_provider
     entries = Entry.count
@@ -273,6 +349,64 @@ class Abroa::AiFinancialAssistantTest < ActiveSupport::TestCase
     end
   end
 
+  test "parent AI receives forecast only with independent effective forecast and source grants" do
+    parent, relation = configured_parent_ai_with_grants(%w[summary forecasts_read account_balance fees_read])
+    expected = { scenario: "conservative", balances: { day_30: "250.0" } }
+    forecast_calls = 0
+    chat_calls = 0
+    Abroa::FinancialReport.stub(:for_parent!, ->(_actor, **_params) {
+      { scope: "parent_project", project: { privacy_suppressed: true } }
+    }) do
+      Abroa::Forecast.stub(:for_parent!, ->(actor, project_id, **options) {
+        assert_equal parent.id, actor.id
+        assert_equal @project.id, project_id
+        assert_equal "conservative", options.fetch(:scenario)
+        forecast_calls += 1
+        expected
+      }) do
+        Abroa::AiModelGateway.stub(:chat, ->(provider:, messages:) {
+          facts = JSON.parse(messages.last.fetch(:content)).fetch("trusted_financial_facts")
+          chat_calls += 1
+          if chat_calls == 1
+            assert_equal expected.deep_stringify_keys, facts.fetch("forecast")
+          else
+            assert_not facts.key?("forecast"), "Revoked forecast grant must immediately hide it"
+          end
+          { text: "Aggregate only", input_tokens: 35, output_tokens: 9 }
+        }) do
+          assert_equal "success", Abroa::AiFinancialAssistant.answer_for!(parent,
+            question: "Predict my student funding", parent_project_id: @project.id)[:status]
+          assert_equal 1, forecast_calls
+          forecast_grant = Abroa::Grant.where(relationship_id: relation.id,
+            capability: "forecasts_read").first!
+          Abroa::Grant.revoke_for!(@student, relation.id, forecast_grant.id,
+            version: forecast_grant.lock_version)
+          assert_equal "success", Abroa::AiFinancialAssistant.answer_for!(parent,
+            question: "What happened after revocation?", parent_project_id: @project.id)[:status]
+          assert_equal 1, forecast_calls
+        end
+      end
+    end
+  end
+
+  test "parent AI returns an incomplete explanation for a partial-only project month" do
+    @project.update!(start_on: Date.current.beginning_of_month + 1)
+    parent, = configured_parent_ai_with_grants(%w[summary])
+    Abroa::FinancialReport.stub(:for_parent!, ->(_actor, **_params) {
+      flunk "No valid full project month exists"
+    }) do
+      Abroa::AiModelGateway.stub(:chat, ->(provider:, messages:) {
+        facts = JSON.parse(messages.last.fetch(:content)).fetch("trusted_financial_facts")
+        assert_equal true, facts.fetch("incomplete")
+        assert_equal "no_complete_project_month", facts.fetch("reason")
+        { text: "Not enough project history", input_tokens: 20, output_tokens: 7 }
+      }) do
+        assert_equal "success", Abroa::AiFinancialAssistant.answer_for!(parent,
+          question: "Show my spending", parent_project_id: @project.id)[:status]
+      end
+    end
+  end
+
   test "injected imported transaction text is data and cannot execute arbitrary actions" do
     bank = Account.create!(family: @student.family, owner: @student,
       accountable: Depository.new, name: "Imported account", currency: "GBP", balance: 250)
@@ -393,6 +527,24 @@ class Abroa::AiFinancialAssistantTest < ActiveSupport::TestCase
   end
 
   private
+    def configured_parent_ai_with_grants(capabilities)
+      parent = @outsider
+      Abroa::Profile.create!(user: @student, student_enabled: true, parent_enabled: false)
+      Abroa::Profile.create!(user: parent, student_enabled: false, parent_enabled: true)
+      _invite, token = Abroa::RelationshipInvite.issue_for!(parent,
+        recipient_email: @student.email, recipient_role: "student", key: "ai-extra-parent-invite")
+      relation = Abroa::RelationshipInvite.accept_for!(@student, token: token)
+      capabilities.each do |capability|
+        Abroa::Grant.create_for!(@student, relation.id, project_id: @project.id,
+          capability: capability, key: "ai-extra-parent-#{capability}")
+      end
+      Abroa::AiModelProvider.configure_for!(parent,
+        attributes: { base_url: "https://api.example.com/v1",
+          api_key: "sk-parent-scoped-secret", model_name: "parent-conservative" },
+        key: "ai-extra-parent-provider")
+      [ parent, relation ]
+    end
+
     def configured_provider
       Abroa::AiModelProvider.configure_for!(@student, attributes: {
         base_url: "https://api.example.com/v1",
