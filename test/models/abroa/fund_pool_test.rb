@@ -141,6 +141,70 @@ class Abroa::FundPoolTest < ActiveSupport::TestCase
     assert_equal BigDecimal("1300"), goal.reload.consumed_amount
   end
 
+  test "Goal-linked refunds reverse original historical FX instead of refund-date FX" do
+    spent_on = Date.current - 2.days
+    refunded_on = Date.current - 1.day
+    ExchangeRate.create!(from_currency: "GBP", to_currency: "EUR", rate: BigDecimal("1.2"), date: spent_on)
+    ExchangeRate.create!(from_currency: "GBP", to_currency: "EUR", rate: BigDecimal("1.4"), date: refunded_on)
+    goal = @user.family.goals.create!(name: "Foreign currency tuition", currency: "EUR",
+      target_amount: 1000, goal_accounts: [ GoalAccount.new(account: @account, allocated_amount: 500) ])
+    pool = Abroa::FundPool.create_for!(@user, @project.id, attributes: {
+      name: "EUR tuition", kind: "tuition", currency: "EUR", goal_id: goal.id })
+    spent = @account.entries.create!(entryable: Transaction.new, name: "Tuition FX",
+      amount: 100, currency: "GBP", date: spent_on)
+    @account.update!(balance: 99_900)
+    Abroa::PoolMovement.apply_for!(@user, pool.id, account_id: @account.id,
+      kind: "consume", amount: "100", entry_id: spent.id, key: "fx-goal-consume")
+    assert_equal BigDecimal("120"), goal.reload.consumed_amount
+    assert_equal BigDecimal("400"), goal.goal_accounts.first.reload.allocated_amount
+
+    credit = @account.entries.create!(entryable: Transaction.new, name: "Tuition FX refund",
+      amount: -100, currency: "GBP", date: refunded_on)
+    Abroa::RefundLink.link_for!(@user, original_entry_id: spent.id, refund_entry_id: credit.id,
+      applied_amount: "100", refund_amount: "100")
+    @account.update!(balance: 100_000)
+    assert_no_difference "Entry.count" do
+      Abroa::PoolMovement.apply_for!(@user, pool.id, account_id: @account.id,
+        kind: "refund", amount: "100", entry_id: credit.id, key: "fx-goal-refund")
+    end
+    assert_equal BigDecimal("0"), goal.reload.consumed_amount
+    assert_equal BigDecimal("500"), goal.goal_accounts.first.reload.allocated_amount
+  end
+
+  test "Goal refund across two purchases reverses each purchase historical rate" do
+    first_on = Date.current - 3.days
+    second_on = Date.current - 2.days
+    credit_on = Date.current - 1.day
+    [ [ first_on, "1.2" ], [ second_on, "1.4" ], [ credit_on, "1.7" ] ].each do |on, rate|
+      ExchangeRate.create!(from_currency: "GBP", to_currency: "EUR", rate: BigDecimal(rate), date: on)
+    end
+    goal = @user.family.goals.create!(name: "Multi-purchase currency goal",
+      currency: "EUR", target_amount: 1000,
+      goal_accounts: [ GoalAccount.new(account: @account, allocated_amount: 500) ])
+    pool = Abroa::FundPool.create_for!(@user, @project.id, attributes: {
+      name: "Multi FX pool", kind: "tuition", currency: "EUR", goal_id: goal.id })
+    [ first_on, second_on ].each_with_index do |day, i|
+      purchase = @account.entries.create!(entryable: Transaction.new, name: "Purchase FX #{i}",
+        amount: 100, currency: "GBP", date: day)
+      Abroa::PoolMovement.apply_for!(@user, pool.id, account_id: @account.id,
+        kind: "consume", amount: "100", entry_id: purchase.id, key: "goal-multi-#{i}")
+    end
+    @account.update!(balance: 99_800)
+    assert_equal BigDecimal("260"), goal.reload.consumed_amount
+
+    refund = @account.entries.create!(entryable: Transaction.new, name: "Combined FX credit",
+      amount: -200, currency: "GBP", date: credit_on)
+    pool.movements.where(kind: "consume").includes(:entry).each do |movement|
+      Abroa::RefundLink.link_for!(@user, original_entry_id: movement.entry_id,
+        refund_entry_id: refund.id, applied_amount: "100", refund_amount: "100")
+    end
+    @account.update!(balance: 100_000)
+    Abroa::PoolMovement.apply_for!(@user, pool.id, account_id: @account.id,
+      kind: "refund", amount: "200", entry_id: refund.id, key: "multi-fx-refund")
+    assert_equal BigDecimal("0"), goal.reload.consumed_amount
+    assert_equal BigDecimal("500"), goal.goal_accounts.first.reload.allocated_amount
+  end
+
   test "maintained Sure Goal consumption is refused without creating phantom pool movement" do
     goal = @user.family.goals.create!(name: "Emergency reserve", kind: "maintained",
       target_amount: 5000, currency: "GBP",
