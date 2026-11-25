@@ -84,3 +84,9 @@
 `abroa_debt_settlements` 通过真实 Sure `entry_id` 和 `rate_snapshot_id` 保存付款/返款；`kind=payment/refund/source_refund` 分别表示收回/偿还、返还先前核销款和原始商户退款。后一种要求 P1 `abroa_refund_links` 的 `refund_link_id`，将已退款原消费按他人承担比例减记债权；历史结算不能直接改写 Sure Entry。唯一键覆盖 Entry 与租户内幂等请求，部分结算、跨币种保存原币/汇率/映射金额和日期。
 
 可逆迁移：`20261125110000_create_abroa_personal_debts.rb`、`20261125110500_add_source_refunds_to_abroa_debt_settlements.rb`；不修改 P1–P3 历史迁移。开发验证数据库 `abroa_p4_isolated_test`，PostgreSQL 17 独立集群 `abroap4` 端口 55435；不得指向 P2/P3 stage 或生产。
+
+## P4.2 A11 forecast data and cache boundary
+
+Forecasts are read-only computations over Sure's deposited-cash accounts and posted Entry history, P2 confirmed fee installments/payments, P3 received and future planned funding, and P4 personal obligations. No new forecast Ledger, synthetic cash transaction, second accounting subsystem or persistent forecast table is introduced. Historical FX is read through `Abroa::RateSnapshot.quote`; unavailable conversion returns an `incomplete` response and null balances. Aggregation excludes non-cash receivables and target sizes of funds from available cash. Already paid P2 fees are excluded from repeatable daily spend to avoid double counting their next installments.
+
+`Abroa::Forecast::VERSION` identifies the deterministic algorithm; each projection returns a digest of its financial inputs and a UTC data timestamp. `cache_policy=no_persistent_cache` deliberately prevents stale grant-scoped snapshots; input changes therefore invalidate results immediately without cache eviction jobs. The parent projection filters to the granted project and excludes private debt and unrelated parents' unreceived plans.

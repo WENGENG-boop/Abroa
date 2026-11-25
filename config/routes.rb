@@ -822,6 +822,8 @@ Rails.application.routes.draw do
   namespace :api do
     namespace :v1 do
       namespace :abroa do
+        get "forecasts", to: "forecasts#show"
+        get "parent/projects/:id/forecast", to: "forecasts#parent"
         resources :personal_debts, only: %i[index show create] do
           member { post :cancel }
           resources :settlements, controller: "debt_settlements", only: %i[index create]

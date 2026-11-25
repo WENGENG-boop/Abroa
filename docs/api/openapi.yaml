@@ -9779,6 +9779,64 @@ paths:
               type: object
               additionalProperties: true
         required: true
+  "/api/v1/abroa/forecasts":
+    get:
+      summary: Read student-specific deterministic 30/90/180 day cash projections
+      tags:
+      - Abroa P4 forecasts
+      security:
+      - apiKeyAuth: []
+      parameters:
+      - name: project_id
+        in: query
+        required: false
+        schema:
+          type: string
+          format: uuid
+      - name: currency
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: scenario
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - conservative
+          - planned_funding
+          - stress
+      responses:
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  "/api/v1/abroa/parent/projects/{id}/forecast":
+    parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    get:
+      summary: Read aggregate forecast only within active parental grants
+      tags:
+      - Abroa P4 forecasts
+      security:
+      - apiKeyAuth: []
+      responses:
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
   "/api/v1/abroa/profile":
     get:
       summary: Read own Abroa preferences

@@ -37,3 +37,9 @@ IDOR（读写、列表、批量、导出、附件）、跨 family scope、平台
 `RateSnapshot` 固化历史 FX，缺失或错误汇率拒绝核销；源商户退款必须引用 P1 `RefundLink`，以不可复用的退款 Entry 和比例上限防止重复退回。失效源交易/链接被检测为 inconsistent，拒绝继续结算。Idempotency-Key 哈希与请求内容绑定。审计记录只保存必要的非私密金额/标识，不包含联系人和凭证。父母不能从当前个人债务 API 获得他人应收应付（未开放个人债务 Grant）。
 
 真实并发、旧 Schema 升级、完整回归及 Docker 独立预生产结果必须以 `docs/P4_BACKEND_ACCEPTANCE.md` 实际日志为准；未经全部验收不得宣称安全保证已获最终认证。
+
+## P4.2 A11 forecast authorization and calculation safety
+
+Forecast is read-only, deterministic and BigDecimal-based. Student cash account IDs must be accessible and owned, project-linked when project-scoped; inaccessible IDs return 404. It cannot write Entry, balance, transaction or real payment. Input date, scenario, historical FX, amounts, multipliers, delays and finite values are validated before returning numeric results. Zero-history, missing-rates and inconsistent settlement evidence are surfaced explicitly rather than misrepresented as exact financial predictions.
+
+Parent forecast requires an active student-parent relation plus effective project summary/forecasts_read/account_balance/fees_read grants at request time. It removes account identifiers, individual transactions, private debt assumptions, anomaly flags and other parents' unreceived funding plans. It does not persist or reuse parent-specific cached financial data; a withdrawn grant therefore blocks the next request. Scope-specific data-version fingerprints avoid revealing unrelated project edits through cache metadata.

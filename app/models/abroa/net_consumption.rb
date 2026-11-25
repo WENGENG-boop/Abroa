@@ -9,7 +9,7 @@ module Abroa
     ZERO = BigDecimal("0")
     FIELDS = %i[gross_consumption refunds unallocated_inflows].freeze
 
-    def self.for_user(user, start_on:, end_on:, currency:, account_ids: nil)
+    def self.for_user(user, start_on:, end_on:, currency:, account_ids: nil, include_debts: true)
       raise ActiveRecord::RecordNotFound unless user&.active?
       unless start_on.instance_of?(Date) && end_on.instance_of?(Date) &&
           start_on.year.positive? && start_on <= end_on && end_on <= Date.current &&
@@ -71,8 +71,9 @@ module Abroa
         buckets[key][:unallocated_inflows] -= link.refund_amount
       end
 
-      debt_adjustments = DebtConsumption.for_user(user, entries: entries, account_ids: ids,
-        start_on: start_on, end_on: end_on)
+      debt_adjustments = include_debts ?
+        DebtConsumption.for_user(user, entries: entries, account_ids: ids,
+          start_on: start_on, end_on: end_on) : {}
       debt_adjustments.each do |key, values|
         buckets[key][:unallocated_inflows] -= values[:matched_credit]
       end
