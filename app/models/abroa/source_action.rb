@@ -37,7 +37,7 @@ module Abroa
       return true if expected == current
       receipts = StatementIntake.where(family_id: action.family_id, account_id: entry.account_id)
         .where("summary -> 'reconciliation_history' @> ?::jsonb",
-          [{ "entries" => [{ "entry_id" => entry.id }] }].to_json).limit(51).to_a
+          [ { "entries" => [ { "entry_id" => entry.id } ] } ].to_json).limit(51).to_a
       return false if receipts.size > 50
       events = receipts.flat_map { |receipt| Array(receipt.summary["reconciliation_history"]) }
       events.sort_by { |event| event["reversed_at"].to_s }.each do |event|

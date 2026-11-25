@@ -42,6 +42,9 @@ RSpec.describe 'API V1 Auth', type: :request do
     Rails.cache.write("mobile_sso_link:#{linking_code}", {
       provider: 'google_oauth2',
       uid: 'rswag-google-uid',
+      issuer: 'https://accounts.google.com',
+      subject: 'rswag-google-uid',
+      email_verified: true,
       email: 'sso-docs-user@example.com',
       first_name: 'Sso',
       last_name: 'Docs',

@@ -134,7 +134,7 @@ module Abroa
         sources.each do |source|
           if source.observations.where.not(statement_id: statement.id).exists? ||
               source.observations.where(statement_id: nil).exists? ||
-              where(family: family).where.not(id: receipt.id).where("summary -> 'source_ids' @> ?::jsonb", [source.id].to_json).exists? ||
+              where(family: family).where.not(id: receipt.id).where("summary -> 'source_ids' @> ?::jsonb", [ source.id ].to_json).exists? ||
               source.observations.where(status: "conflict").exists?
             raise Conflict, "Source has later or shared evidence"
           end

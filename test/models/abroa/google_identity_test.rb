@@ -52,7 +52,7 @@ class Abroa::GoogleIdentityTest < ActiveSupport::TestCase
 
   test "an existing Google identity cannot authenticate after provider is repointed" do
     identity = OidcIdentity.new(provider: "campus_google", uid: "subject-1", issuer: "https://accounts.google.com")
-    AuthConfig.stubs(:sso_providers).returns([{ name: "campus_google", strategy: "openid_connect", issuer: "https://other.example" }])
+    AuthConfig.stubs(:sso_providers).returns([ { name: "campus_google", strategy: "openid_connect", issuer: "https://other.example" } ])
     assert_nil Abroa::GoogleIdentity.claims!(auth)
     assert_not Abroa::GoogleIdentity.matches?(identity, nil)
   end

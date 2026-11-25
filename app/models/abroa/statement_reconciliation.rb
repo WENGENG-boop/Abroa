@@ -60,12 +60,12 @@ module Abroa
           row.unmark_reconciled!
           SourceAction.fingerprint(row.reload)
         end
-        by_id = restored.to_h { |row, value| [row.id, value] }
+        by_id = restored.to_h { |row, value| [ row.id, value ] }
         snapshots = active.fetch("entries").map do |snapshot|
           snapshot.merge("restored_fingerprint" => by_id.fetch(snapshot.fetch("entry_id")))
         end
         event = active.merge("entries" => snapshots, "reversed_at" => Time.current.iso8601(6), "reversed_by_id" => user.id)
-        receipt.update!(summary: receipt.summary.except("reconciliation").merge("reconciliation_history" => history + [event]))
+        receipt.update!(summary: receipt.summary.except("reconciliation").merge("reconciliation_history" => history + [ event ]))
         result_for(event, "reversed")
       end
     end
@@ -136,9 +136,9 @@ module Abroa
             issues << "existing_reconciliation" if rows.any?(&:statement_reconciled?)
             issues << "unsupported_ledger_movements" if rows.any? { |row| row.excluded? || row.split_child? || row.currency != account.currency }
 
-            balances = account.balances.where(currency: account.currency, date: [start_on, end_on]).order(:date).lock.to_a
-            lookup = balances.index_by { |balance| [balance.date, balance.currency] }
-            checks = statement.reconciliation_checks(balance_lookup: ->(date, currency) { lookup[[date, currency]] })
+            balances = account.balances.where(currency: account.currency, date: [ start_on, end_on ]).order(:date).lock.to_a
+            lookup = balances.index_by { |balance| [ balance.date, balance.currency ] }
+            checks = statement.reconciliation_checks(balance_lookup: ->(date, currency) { lookup[[ date, currency ]] })
             unless checks.size == 3 && checks.all? { |check| check[:difference].zero? }
               issues << "missing_or_mismatched_balances"
             end
@@ -152,11 +152,11 @@ module Abroa
           digest = Digest::SHA256.hexdigest(JSON.generate([
             receipt.id, receipt.preview_digest, statement.attributes.slice("account_id", "period_start_on",
               "period_end_on", "opening_balance", "closing_balance", "currency", "content_sha256"),
-            sources.map { |source| [source.id, source.lock_version, source.entry_id, source.status] },
-            rows.map { |row| [row.id, SourceAction.fingerprint(row)] }, checks, issues
+            sources.map { |source| [ source.id, source.lock_version, source.entry_id, source.status ] },
+            rows.map { |row| [ row.id, SourceAction.fingerprint(row) ] }, checks, issues
           ]))
-          [{ status: issues.empty? ? "ready" : "review", digest: digest,
-            entry_count: rows.size, issues: issues, balance_checks: checks }, rows]
+          [ { status: issues.empty? ? "ready" : "review", digest: digest,
+            entry_count: rows.size, issues: issues, balance_checks: checks }, rows ]
         end
 
         def verify_markers!(active, statement, account)

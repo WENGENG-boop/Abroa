@@ -18,7 +18,7 @@ RSpec.describe "API V1 Abroa multi-level budgets", type: :request do
     parameter name: :project_id, in: :path, required: true, schema: { type: :string, format: :uuid }
     get "List project budget nodes with pagination" do
       tags "Abroa planning"
-      security [{ apiKeyAuth: [] }]
+      security [ { apiKeyAuth: [] } ]
       produces "application/json"
       parameter name: :limit, in: :query, required: false, schema: { type: :integer }
       parameter name: :cursor, in: :query, required: false, schema: { type: :string }
@@ -31,7 +31,7 @@ RSpec.describe "API V1 Abroa multi-level budgets", type: :request do
     end
     post "Create a budget node without writing to Sure's ledger" do
       tags "Abroa planning"
-      security [{ apiKeyAuth: [] }]
+      security [ { apiKeyAuth: [] } ]
       consumes "application/json"
       produces "application/json"
       parameter name: "Idempotency-Key", in: :header, required: true, schema: { type: :string }
@@ -50,7 +50,7 @@ RSpec.describe "API V1 Abroa multi-level budgets", type: :request do
     parameter name: :id, in: :path, required: true, schema: { type: :string, format: :uuid }
     get "Read an authorized budget node" do
       tags "Abroa planning"
-      security [{ apiKeyAuth: [] }]
+      security [ { apiKeyAuth: [] } ]
       response "200", "Budget" do
         schema '$ref' => '#/components/schemas/AbroaBudgetResponse'
         run_test!
@@ -58,7 +58,7 @@ RSpec.describe "API V1 Abroa multi-level budgets", type: :request do
     end
     patch "Update budget attributes with optimistic version control" do
       tags "Abroa planning"
-      security [{ apiKeyAuth: [] }]
+      security [ { apiKeyAuth: [] } ]
       consumes "application/json"
       parameter name: :body, in: :body, required: true, schema: { '$ref' => '#/components/schemas/AbroaBudgetUpdate' }
       response "200", "Updated" do
@@ -74,7 +74,7 @@ RSpec.describe "API V1 Abroa multi-level budgets", type: :request do
     parameter name: :id, in: :path, required: true, schema: { type: :string, format: :uuid }
     get "Read layered budget actual, committed and remaining amounts" do
       tags "Abroa planning"
-      security [{ apiKeyAuth: [] }]
+      security [ { apiKeyAuth: [] } ]
       response "200", "Budget execution" do
         schema '$ref' => '#/components/schemas/AbroaBudgetExecutionResponse'
         run_test!
@@ -87,7 +87,7 @@ RSpec.describe "API V1 Abroa multi-level budgets", type: :request do
     parameter name: :id, in: :path, required: true, schema: { type: :string, format: :uuid }
     get "Read immutable budget change history" do
       tags "Abroa planning"
-      security [{ apiKeyAuth: [] }]
+      security [ { apiKeyAuth: [] } ]
       response "200", "Budget versions" do
         schema '$ref' => '#/components/schemas/AbroaBudgetVersionsResponse'
         run_test!
@@ -100,7 +100,7 @@ RSpec.describe "API V1 Abroa multi-level budgets", type: :request do
     parameter name: :id, in: :path, required: true, schema: { type: :string, format: :uuid }
     post "Adjust a budget without changing past transactions" do
       tags "Abroa planning"
-      security [{ apiKeyAuth: [] }]
+      security [ { apiKeyAuth: [] } ]
       consumes "application/json"
       parameter name: :body, in: :body, required: true, schema: {
         type: :object, required: %w[lock_version], additionalProperties: false,
@@ -119,7 +119,7 @@ RSpec.describe "API V1 Abroa multi-level budgets", type: :request do
     parameter name: :id, in: :path, required: true, schema: { type: :string, format: :uuid }
     post "Apply remaining closed budget once to a compatible future period" do
       tags "Abroa planning"
-      security [{ apiKeyAuth: [] }]
+      security [ { apiKeyAuth: [] } ]
       consumes "application/json"
       parameter name: "Idempotency-Key", in: :header, required: true, schema: { type: :string }
       parameter name: :body, in: :body, required: true, schema: {

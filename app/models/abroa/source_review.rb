@@ -73,7 +73,7 @@ module Abroa
         review.update!(reason_code: decision.reason, candidate_ids: decision.candidate_ids,
           evidence: review.evidence.merge("source_version" => source.lock_version,
             "proposed_action" => decision.action, "funding_assignment" => assignment,
-            "funding_assignments" => history + [assignment]))
+            "funding_assignments" => history + [ assignment ]))
         review
       end
     end
@@ -225,7 +225,7 @@ module Abroa
           entry.lock!
           entry.transaction.lock!
           if entry.statement_reconciled? && StatementIntake.where(family: family)
-              .where("summary -> 'reconciliation' -> 'entries' @> ?::jsonb", [{entry_id: entry.id}].to_json).exists?
+              .where("summary -> 'reconciliation' -> 'entries' @> ?::jsonb", [ { entry_id: entry.id } ].to_json).exists?
             raise Conflict, "Undo statement reconciliation first"
           end
           if action.operation == "create"

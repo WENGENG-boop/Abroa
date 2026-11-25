@@ -21,7 +21,7 @@ RSpec.describe "API V1 Abroa fee adjustments", type: :request do
     parameter name: :fee_id, in: :path, required: true, schema: { type: :string, format: :uuid }
     get "Read durable fee waiver, scholarship offset and surcharge records" do
       tags "Abroa study fees"
-      security [{ apiKeyAuth: [] }]
+      security [ { apiKeyAuth: [] } ]
       produces "application/json"
       response "200", "Adjustments" do
         schema '$ref' => '#/components/schemas/AbroaFeeAdjustmentListResponse'
@@ -30,7 +30,7 @@ RSpec.describe "API V1 Abroa fee adjustments", type: :request do
     end
     post "Approve a liability-only adjustment, with no bank entry" do
       tags "Abroa study fees"
-      security [{ apiKeyAuth: [] }]
+      security [ { apiKeyAuth: [] } ]
       consumes "application/json"
       produces "application/json"
       parameter name: "Idempotency-Key", in: :header, required: true, schema: { type: :string }
@@ -50,7 +50,7 @@ RSpec.describe "API V1 Abroa fee adjustments", type: :request do
     parameter name: :id, in: :path, required: true, schema: { type: :string, format: :uuid }
     post "Void an approved fee adjustment while keeping the audit record" do
       tags "Abroa study fees"
-      security [{ apiKeyAuth: [] }]
+      security [ { apiKeyAuth: [] } ]
       produces "application/json"
       response "200", "Voided" do
         schema '$ref' => '#/components/schemas/AbroaFeeAdjustmentResponse'

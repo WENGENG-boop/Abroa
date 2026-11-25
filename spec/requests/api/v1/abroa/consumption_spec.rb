@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+
 require 'swagger_helper'
 
 RSpec.describe 'API V1 Abroa net consumption', type: :request do
@@ -22,7 +23,7 @@ RSpec.describe 'API V1 Abroa net consumption', type: :request do
         let(:start_on) { '2025-01-01' }
         let(:end_on) { '2025-01-31' }
         let(:currency) { 'GBP' }
-        let(:'account_ids[]') { [account.id] }
+        let(:'account_ids[]') { [ account.id ] }
         run_test!
       end
     end

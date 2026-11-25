@@ -39,7 +39,7 @@ RSpec.describe "API V1 Abroa study projects", type: :request do
   path "/api/v1/abroa/projects" do
     get "List own study projects" do
       tags "Abroa study"
-      security [{ apiKeyAuth: [] }]
+      security [ { apiKeyAuth: [] } ]
       produces "application/json"
       response "200", "Own projects" do
         schema '$ref' => '#/components/schemas/AbroaStudyProjectListResponse'
@@ -48,7 +48,7 @@ RSpec.describe "API V1 Abroa study projects", type: :request do
     end
     post "Create a study project with an idempotency key" do
       tags "Abroa study"
-      security [{ apiKeyAuth: [] }]
+      security [ { apiKeyAuth: [] } ]
       consumes "application/json"
       produces "application/json"
       parameter name: "Idempotency-Key", in: :header, required: true, schema: { type: :string }
@@ -66,7 +66,7 @@ RSpec.describe "API V1 Abroa study projects", type: :request do
     parameter name: :id, in: :path, required: true, schema: { type: :string, format: :uuid }
     get "Read an owned study project" do
       tags "Abroa study"
-      security [{ apiKeyAuth: [] }]
+      security [ { apiKeyAuth: [] } ]
       produces "application/json"
       response "200", "Project" do
         schema '$ref' => '#/components/schemas/AbroaStudyProjectResponse'
@@ -75,7 +75,7 @@ RSpec.describe "API V1 Abroa study projects", type: :request do
     end
     patch "Change project fields or state" do
       tags "Abroa study"
-      security [{ apiKeyAuth: [] }]
+      security [ { apiKeyAuth: [] } ]
       consumes "application/json"
       produces "application/json"
       parameter name: :body, in: :body, required: true, schema: { '$ref' => '#/components/schemas/AbroaStudyProjectUpdate' }
@@ -91,7 +91,7 @@ RSpec.describe "API V1 Abroa study projects", type: :request do
     parameter name: :id, in: :path, required: true, schema: { type: :string, format: :uuid }
     post "Archive project without modifying ledger facts" do
       tags "Abroa study"
-      security [{ apiKeyAuth: [] }]
+      security [ { apiKeyAuth: [] } ]
       consumes "application/json"
       produces "application/json"
       parameter name: :body, in: :body, required: true, schema: { type: :object, required: %w[lock_version], properties: { lock_version: { type: :integer } } }
@@ -107,7 +107,7 @@ RSpec.describe "API V1 Abroa study projects", type: :request do
     parameter name: :id, in: :path, required: true, schema: { type: :string, format: :uuid }
     post "Restore archived project state" do
       tags "Abroa study"
-      security [{ apiKeyAuth: [] }]
+      security [ { apiKeyAuth: [] } ]
       consumes "application/json"
       produces "application/json"
       parameter name: :body, in: :body, required: true, schema: { type: :object, required: %w[lock_version], properties: { lock_version: { type: :integer } } }
@@ -124,7 +124,7 @@ RSpec.describe "API V1 Abroa study projects", type: :request do
     parameter name: :id, in: :path, required: true, schema: { type: :string, format: :uuid }
     get "Report project allocations without duplicating the personal ledger" do
       tags "Abroa study"
-      security [{ apiKeyAuth: [] }]
+      security [ { apiKeyAuth: [] } ]
       produces "application/json"
       parameter name: :start_on, in: :query, required: true, schema: { type: :string, format: :date }
       parameter name: :end_on, in: :query, required: true, schema: { type: :string, format: :date }
@@ -143,7 +143,7 @@ RSpec.describe "API V1 Abroa study projects", type: :request do
     parameter name: :id, in: :path, required: true, schema: { type: :string, format: :uuid }
     get "List study periods" do
       tags "Abroa study"
-      security [{ apiKeyAuth: [] }]
+      security [ { apiKeyAuth: [] } ]
       produces "application/json"
       response "200", "Study periods" do
         schema '$ref' => '#/components/schemas/AbroaStudyPeriodListResponse'
@@ -152,7 +152,7 @@ RSpec.describe "API V1 Abroa study projects", type: :request do
     end
     post "Add a study period" do
       tags "Abroa study"
-      security [{ apiKeyAuth: [] }]
+      security [ { apiKeyAuth: [] } ]
       consumes "application/json"
       parameter name: "Idempotency-Key", in: :header, required: true, schema: { type: :string }
       produces "application/json"
@@ -171,7 +171,7 @@ RSpec.describe "API V1 Abroa study projects", type: :request do
     parameter name: :period_id, in: :path, required: true, schema: { type: :string, format: :uuid }
     get "Read study period" do
       tags "Abroa study"
-      security [{ apiKeyAuth: [] }]
+      security [ { apiKeyAuth: [] } ]
       response "200", "Period" do
         schema '$ref' => '#/components/schemas/AbroaStudyPeriodResponse'
         run_test!
@@ -179,7 +179,7 @@ RSpec.describe "API V1 Abroa study projects", type: :request do
     end
     patch "Change study period" do
       tags "Abroa study"
-      security [{ apiKeyAuth: [] }]
+      security [ { apiKeyAuth: [] } ]
       consumes "application/json"
       parameter name: :body, in: :body, required: true, schema: { '$ref' => '#/components/schemas/AbroaStudyPeriodUpdate' }
       response "200", "Updated" do
@@ -190,7 +190,7 @@ RSpec.describe "API V1 Abroa study projects", type: :request do
     end
     delete "Remove an unreferenced study period" do
       tags "Abroa study"
-      security [{ apiKeyAuth: [] }]
+      security [ { apiKeyAuth: [] } ]
       consumes "application/json"
       parameter name: :body, in: :body, required: true, schema: { type: :object, required: %w[lock_version], properties: { lock_version: { type: :integer } } }
       response "200", "Deleted" do
@@ -205,7 +205,7 @@ RSpec.describe "API V1 Abroa study projects", type: :request do
     parameter name: :id, in: :path, required: true, schema: { type: :string, format: :uuid }
     get "List project linked accounts" do
       tags "Abroa study"
-      security [{ apiKeyAuth: [] }]
+      security [ { apiKeyAuth: [] } ]
       response "200", "Account IDs" do
         schema '$ref' => '#/components/schemas/AbroaStudyAccountListResponse'
         run_test!
@@ -213,7 +213,7 @@ RSpec.describe "API V1 Abroa study projects", type: :request do
     end
     post "Attach accessible account to project" do
       tags "Abroa study"
-      security [{ apiKeyAuth: [] }]
+      security [ { apiKeyAuth: [] } ]
       consumes "application/json"
       parameter name: "Idempotency-Key", in: :header, required: true, schema: { type: :string }
       parameter name: :body, in: :body, required: true, schema: { type: :object, required: %w[account_id], properties: { account_id: { type: :string, format: :uuid } } }
@@ -231,7 +231,7 @@ RSpec.describe "API V1 Abroa study projects", type: :request do
     parameter name: :account_id, in: :path, required: true, schema: { type: :string, format: :uuid }
     delete "Unlink account without deleting its ledger" do
       tags "Abroa study"
-      security [{ apiKeyAuth: [] }]
+      security [ { apiKeyAuth: [] } ]
       response "200", "Unlinked" do
         schema '$ref' => '#/components/schemas/AbroaStudyAccountResponse'
         before { Abroa::ProjectAccount.attach_for!(user, project.id, account.id) }
@@ -244,7 +244,7 @@ RSpec.describe "API V1 Abroa study projects", type: :request do
     parameter name: :id, in: :path, required: true, schema: { type: :string, format: :uuid }
     get "List explicit project ledger allocations" do
       tags "Abroa study"
-      security [{ apiKeyAuth: [] }]
+      security [ { apiKeyAuth: [] } ]
       response "200", "Allocations" do
         schema '$ref' => '#/components/schemas/AbroaStudyAllocationListResponse'
         run_test!
@@ -252,7 +252,7 @@ RSpec.describe "API V1 Abroa study projects", type: :request do
     end
     post "Allocate confirmed entry amount to project" do
       tags "Abroa study"
-      security [{ apiKeyAuth: [] }]
+      security [ { apiKeyAuth: [] } ]
       consumes "application/json"
       parameter name: "Idempotency-Key", in: :header, required: true, schema: { type: :string }
       parameter name: :body, in: :body, required: true, schema: { '$ref' => '#/components/schemas/AbroaStudyAllocationCreate' }
@@ -270,7 +270,7 @@ RSpec.describe "API V1 Abroa study projects", type: :request do
     parameter name: :allocation_id, in: :path, required: true, schema: { type: :string, format: :uuid }
     get "Read explicit entry allocation" do
       tags "Abroa study"
-      security [{ apiKeyAuth: [] }]
+      security [ { apiKeyAuth: [] } ]
       response "200", "Allocation" do
         schema '$ref' => '#/components/schemas/AbroaStudyAllocationResponse'
         run_test!
@@ -278,7 +278,7 @@ RSpec.describe "API V1 Abroa study projects", type: :request do
     end
     patch "Change allocated amount with optimistic version" do
       tags "Abroa study"
-      security [{ apiKeyAuth: [] }]
+      security [ { apiKeyAuth: [] } ]
       consumes "application/json"
       parameter name: :body, in: :body, required: true, schema: { '$ref' => '#/components/schemas/AbroaStudyAllocationUpdate' }
       response "200", "Updated" do
@@ -289,7 +289,7 @@ RSpec.describe "API V1 Abroa study projects", type: :request do
     end
     delete "Release an allocation while retaining original ledger entry" do
       tags "Abroa study"
-      security [{ apiKeyAuth: [] }]
+      security [ { apiKeyAuth: [] } ]
       consumes "application/json"
       parameter name: :body, in: :body, required: true, schema: { type: :object, required: %w[lock_version], properties: { lock_version: { type: :integer } } }
       response "200", "Released" do

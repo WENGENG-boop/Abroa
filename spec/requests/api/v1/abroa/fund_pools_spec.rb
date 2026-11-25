@@ -23,7 +23,7 @@ RSpec.describe "API V1 Abroa fund pools", type: :request do
     parameter name: :project_id, in: :path, required: true, schema: { type: :string, format: :uuid }
     get "List owned fund pools with native cash balances" do
       tags "Abroa planning"
-      security [{ apiKeyAuth: [] }]
+      security [ { apiKeyAuth: [] } ]
       produces "application/json"
       response "200", "Pools" do
         schema '$ref' => '#/components/schemas/AbroaFundPoolListResponse'
@@ -32,7 +32,7 @@ RSpec.describe "API V1 Abroa fund pools", type: :request do
     end
     post "Create a virtual fund pool without moving real cash" do
       tags "Abroa planning"
-      security [{ apiKeyAuth: [] }]
+      security [ { apiKeyAuth: [] } ]
       consumes "application/json"
       produces "application/json"
       parameter name: "Idempotency-Key", in: :header, required: true, schema: { type: :string }
@@ -51,7 +51,7 @@ RSpec.describe "API V1 Abroa fund pools", type: :request do
     parameter name: :id, in: :path, required: true, schema: { type: :string, format: :uuid }
     get "View an owned virtual pool and its account allocation breakdown" do
       tags "Abroa planning"
-      security [{ apiKeyAuth: [] }]
+      security [ { apiKeyAuth: [] } ]
       response "200", "Pool" do
         schema '$ref' => '#/components/schemas/AbroaFundPoolResponse'
         run_test!
@@ -59,7 +59,7 @@ RSpec.describe "API V1 Abroa fund pools", type: :request do
     end
     patch "Update future target or metadata with a version" do
       tags "Abroa planning"
-      security [{ apiKeyAuth: [] }]
+      security [ { apiKeyAuth: [] } ]
       consumes "application/json"
       parameter name: :body, in: :body, required: true, schema: { '$ref' => '#/components/schemas/AbroaFundPoolUpdate' }
       response "200", "Updated" do
@@ -75,7 +75,7 @@ RSpec.describe "API V1 Abroa fund pools", type: :request do
     parameter name: :id, in: :path, required: true, schema: { type: :string, format: :uuid }
     post "Archive a pool while retaining its promises" do
       tags "Abroa planning"
-      security [{ apiKeyAuth: [] }]
+      security [ { apiKeyAuth: [] } ]
       consumes "application/json"
       parameter name: :body, in: :body, required: true, schema: { '$ref' => '#/components/schemas/AbroaLockVersion' }
       response "200", "Archived" do
@@ -91,7 +91,7 @@ RSpec.describe "API V1 Abroa fund pools", type: :request do
     parameter name: :id, in: :path, required: true, schema: { type: :string, format: :uuid }
     post "Restore a virtual fund pool" do
       tags "Abroa planning"
-      security [{ apiKeyAuth: [] }]
+      security [ { apiKeyAuth: [] } ]
       consumes "application/json"
       parameter name: :body, in: :body, required: true, schema: { '$ref' => '#/components/schemas/AbroaLockVersion' }
       response "200", "Restored" do
@@ -108,7 +108,7 @@ RSpec.describe "API V1 Abroa fund pools", type: :request do
     parameter name: :account_id, in: :path, required: true, schema: { type: :string, format: :uuid }
     get "Read native-currency usable cash, Sure goals, pool pledges and shortfall" do
       tags "Abroa planning"
-      security [{ apiKeyAuth: [] }]
+      security [ { apiKeyAuth: [] } ]
       response "200", "Cash commitments" do
         schema '$ref' => '#/components/schemas/AbroaFundCashResponse'
         run_test!
@@ -121,7 +121,7 @@ RSpec.describe "API V1 Abroa fund pools", type: :request do
     parameter name: :pool_id, in: :path, required: true, schema: { type: :string, format: :uuid }
     get "List immutable native-currency fund movements" do
       tags "Abroa planning"
-      security [{ apiKeyAuth: [] }]
+      security [ { apiKeyAuth: [] } ]
       produces "application/json"
       response "200", "Fund movements" do
         schema '$ref' => '#/components/schemas/AbroaPoolMovementListResponse'
@@ -130,7 +130,7 @@ RSpec.describe "API V1 Abroa fund pools", type: :request do
     end
     post "Apply an idempotent virtual fund movement, optionally linked to a real ledger entry" do
       tags "Abroa planning"
-      security [{ apiKeyAuth: [] }]
+      security [ { apiKeyAuth: [] } ]
       consumes "application/json"
       parameter name: "Idempotency-Key", in: :header, required: true, schema: { type: :string }
       parameter name: :body, in: :body, required: true, schema: { '$ref' => '#/components/schemas/AbroaPoolMovementCreate' }

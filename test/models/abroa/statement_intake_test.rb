@@ -70,7 +70,7 @@ class Abroa::StatementIntakeTest < ActiveSupport::TestCase
 
   test "confirmed bank-funded statement links unique explicit reference without creating a ledger entry" do
     account, entry = bank_payment("match-one")
-    statement = personal_statement(account, ["wallet-order"])
+    statement = personal_statement(account, [ "wallet-order" ])
     config = { source_kind: "alipay_statement" }
     preview = Abroa::StatementIntake.preview_for!(@user, statement_id: statement.id, **config)
     assert_no_difference "Entry.count" do
@@ -93,7 +93,7 @@ class Abroa::StatementIntakeTest < ActiveSupport::TestCase
     account, entry = bank_payment("match-one")
     account.entries.create!(entryable: Transaction.new, name: "Other charge", amount: 100,
       currency: "CNY", date: Date.new(2025, 1, 10))
-    statement = personal_statement(account, ["wallet-order"])
+    statement = personal_statement(account, [ "wallet-order" ])
     preview = Abroa::StatementIntake.preview_for!(@user, statement_id: statement.id, source_kind: "alipay_statement")
     assert_no_difference "Entry.count" do
       receipt = Abroa::StatementIntake.publish_for!(@user, statement_id: statement.id,
@@ -107,7 +107,7 @@ class Abroa::StatementIntakeTest < ActiveSupport::TestCase
 
   test "different orders sharing the same reference in one file do not auto-link" do
     account, entry = bank_payment("match-one")
-    statement = personal_statement(account, ["wallet-one", "wallet-two"])
+    statement = personal_statement(account, [ "wallet-one", "wallet-two" ])
     preview = Abroa::StatementIntake.preview_for!(@user, statement_id: statement.id, source_kind: "alipay_statement")
     assert_no_difference "Entry.count" do
       receipt = Abroa::StatementIntake.publish_for!(@user, statement_id: statement.id,
@@ -126,14 +126,14 @@ class Abroa::StatementIntakeTest < ActiveSupport::TestCase
     action = Abroa::SourceReview.resolve_for!(@user, review_id: review.id, resolution: "create",
       expected_version: review.lock_version, key: "batch-create")
     assert_difference "Entry.count", -1 do
-      assert_no_difference ["Abroa::SourceRecord.count", "Abroa::SourceObservation.count"] do
+      assert_no_difference [ "Abroa::SourceRecord.count", "Abroa::SourceObservation.count" ] do
         result = Abroa::StatementIntake.rollback_for!(@user, statement_id: @statement.id)
         assert_equal receipt.id, result.id
         assert_equal "reversed", result.payload.fetch(:status)
       end
     end
     assert action.reload.reversed_at.present?
-    assert_equal ["reversed"], sources.map { |source| source.reload.status }.uniq
+    assert_equal [ "reversed" ], sources.map { |source| source.reload.status }.uniq
     assert_not Abroa::SourceReview.where(source_record: sources, status: "pending").exists?
     assert_no_difference "Entry.count" do
       assert_equal receipt.id, Abroa::StatementIntake.rollback_for!(@user, statement_id: @statement.id).id
@@ -157,13 +157,13 @@ class Abroa::StatementIntakeTest < ActiveSupport::TestCase
       end
     end
     assert actions.none? { |action| action.reload.reversed_at.present? }
-    assert_equal ["posted"], sources.map { |source| source.reload.status }.uniq
+    assert_equal [ "posted" ], sources.map { |source| source.reload.status }.uniq
     assert_equal "staged", receipt.reload.payload.fetch(:status)
   end
 
   test "batch rollback of automatic link preserves existing bank transaction" do
     account, entry = bank_payment("match-one")
-    statement = personal_statement(account, ["wallet-order"])
+    statement = personal_statement(account, [ "wallet-order" ])
     config = { source_kind: "alipay_statement" }
     preview = Abroa::StatementIntake.preview_for!(@user, statement_id: statement.id, **config)
     Abroa::StatementIntake.publish_for!(@user, statement_id: statement.id,
@@ -179,7 +179,7 @@ class Abroa::StatementIntakeTest < ActiveSupport::TestCase
   test "later statement evidence blocks rollback of the original batch" do
     account, entry = bank_payment("match-one")
     config = { source_kind: "alipay_statement" }
-    first = personal_statement(account, ["wallet-order"])
+    first = personal_statement(account, [ "wallet-order" ])
     preview = Abroa::StatementIntake.preview_for!(@user, statement_id: first.id, **config)
     receipt = Abroa::StatementIntake.publish_for!(@user, statement_id: first.id,
       preview_digest: preview.fetch(:preview_digest), **config)
@@ -192,7 +192,7 @@ class Abroa::StatementIntakeTest < ActiveSupport::TestCase
     source = Abroa::SourceRecord.find_by!(source_kind: "alipay_statement", external_id: "wallet-order")
     assert_equal 2, source.observations.count
     assert_no_difference "Entry.count" do
-      [first, second].each do |statement|
+      [ first, second ].each do |statement|
         assert_raises(Abroa::StatementIntake::Conflict) do
           Abroa::StatementIntake.rollback_for!(@user, statement_id: statement.id)
         end
@@ -208,7 +208,7 @@ class Abroa::StatementIntakeTest < ActiveSupport::TestCase
     wallet = Account.create!(family: @user.family, owner: @user, accountable: Depository.new,
       name: "Alipay balance", currency: "CNY", balance: 500)
     Abroa::AccountProfile.change_for!(@user, wallet.id, wallet_kind: "alipay")
-    statement = personal_statement(account, ["unknown-order"], method: "现金")
+    statement = personal_statement(account, [ "unknown-order" ], method: "现金")
     config = { source_kind: "alipay_statement" }
     preview = Abroa::StatementIntake.preview_for!(@user, statement_id: statement.id, **config)
     receipt = Abroa::StatementIntake.publish_for!(@user, statement_id: statement.id,
@@ -251,7 +251,7 @@ class Abroa::StatementIntakeTest < ActiveSupport::TestCase
 
   test "known wallet funding cannot be reassigned as a bank payment or to another tenant" do
     account, _entry = bank_payment("match-one")
-    statement = personal_statement(account, ["wallet-order"], method: "余额")
+    statement = personal_statement(account, [ "wallet-order" ], method: "余额")
     config = { source_kind: "alipay_statement" }
     preview = Abroa::StatementIntake.preview_for!(@user, statement_id: statement.id, **config)
     Abroa::StatementIntake.publish_for!(@user, statement_id: statement.id,
@@ -275,7 +275,7 @@ class Abroa::StatementIntakeTest < ActiveSupport::TestCase
   test "manual automation preference stages high confidence match without writing metadata" do
     Abroa::Profile.change_for!(@user, version: 0, attributes: { import_automation: "manual" })
     account, entry = bank_payment("match-one")
-    statement = personal_statement(account, ["wallet-order"])
+    statement = personal_statement(account, [ "wallet-order" ])
     preview = Abroa::StatementIntake.preview_for!(@user, statement_id: statement.id, source_kind: "alipay_statement")
     receipt = Abroa::StatementIntake.publish_for!(@user, statement_id: statement.id,
       source_kind: "alipay_statement", preview_digest: preview.fetch(:preview_digest))
@@ -288,8 +288,8 @@ class Abroa::StatementIntakeTest < ActiveSupport::TestCase
     category = @user.family.categories.create!(name: "Cafe imports", color: "#6471eb", lucide_icon: "coffee")
     @user.family.rules.create!(name: "Exact cafe", resource_type: "transaction", active: true,
       apply_immediately: true, effective_date: Date.new(2024, 1, 1),
-      conditions_attributes: [{condition_type: "transaction_name", operator: "=", value: "Cafe"}],
-      actions_attributes: [{action_type: "set_transaction_category", value: category.id}])
+      conditions_attributes: [ { condition_type: "transaction_name", operator: "=", value: "Cafe" } ],
+      actions_attributes: [ { action_type: "set_transaction_category", value: category.id } ])
     preview = Abroa::StatementIntake.preview_for!(@user, statement_id: @statement.id, **@config)
     publish(preview)
     source = Abroa::SourceRecord.where(statement: @statement).first
@@ -306,8 +306,8 @@ class Abroa::StatementIntakeTest < ActiveSupport::TestCase
     category = @user.family.categories.create!(name: "Protected cafe", color: "#6471eb", lucide_icon: "coffee")
     @user.family.rules.create!(name: "Cafe protection", resource_type: "transaction", active: true,
       apply_immediately: true, effective_date: Date.new(2024, 1, 1),
-      conditions_attributes: [{condition_type: "transaction_name", operator: "=", value: "Cafe"}],
-      actions_attributes: [{action_type: "set_transaction_category", value: category.id}])
+      conditions_attributes: [ { condition_type: "transaction_name", operator: "=", value: "Cafe" } ],
+      actions_attributes: [ { action_type: "set_transaction_category", value: category.id } ])
     entry = @account.entries.create!(name: "Cafe", amount: 12.5, currency: "GBP", date: Date.new(2025, 1, 10),
       entryable: Transaction.new)
     entry.transaction.lock_attr!(:category_id)
@@ -327,7 +327,7 @@ class Abroa::StatementIntakeTest < ActiveSupport::TestCase
     assert_equal "ready", preview.fetch(:status)
     assert_equal 2, preview.fetch(:entry_count)
     assert rows.none?(&:statement_reconciled?)
-    assert_no_difference ["Entry.count", "Balance.count"] do
+    assert_no_difference [ "Entry.count", "Balance.count" ] do
       result = Abroa::StatementReconciliation.confirm_for!(@user, statement_id: @statement.id,
         digest: preview.fetch(:digest))
       assert_equal "reconciled", result.fetch(:status)
@@ -380,7 +380,7 @@ class Abroa::StatementIntakeTest < ActiveSupport::TestCase
 
   test "manual resolution cannot attach distinct payment orders to the same bank entry" do
     account, entry = bank_payment("match-one")
-    statement = personal_statement(account, ["wallet-one", "wallet-two"])
+    statement = personal_statement(account, [ "wallet-one", "wallet-two" ])
     config = { source_kind: "alipay_statement" }
     preview = Abroa::StatementIntake.preview_for!(@user, statement_id: statement.id, **config)
     Abroa::StatementIntake.publish_for!(@user, statement_id: statement.id,
@@ -389,7 +389,7 @@ class Abroa::StatementIntakeTest < ActiveSupport::TestCase
     reviews = sources.map { |source| Abroa::SourceReview.find_by!(source_record: source, status: "pending") }
     Abroa::SourceReview.resolve_for!(@user, review_id: reviews.first.id, resolution: "link",
       expected_version: reviews.first.lock_version, key: "manual-first", target_entry_id: entry.id)
-    assert_no_difference ["Entry.count", "Abroa::SourceAction.count"] do
+    assert_no_difference [ "Entry.count", "Abroa::SourceAction.count" ] do
       assert_raises(Abroa::SourceReview::Conflict) do
         Abroa::SourceReview.resolve_for!(@user, review_id: reviews.last.id, resolution: "link",
           expected_version: reviews.last.lock_version, key: "manual-second", target_entry_id: entry.id)
@@ -430,7 +430,7 @@ class Abroa::StatementIntakeTest < ActiveSupport::TestCase
         Abroa::SourceReview.resolve_for!(@user, review_id: review.id, resolution: "create",
           expected_version: review.lock_version, key: "reconcile-#{source.id}").entry
       end
-      [receipt, entries]
+      [ receipt, entries ]
     end
 
     def bank_payment(reference)

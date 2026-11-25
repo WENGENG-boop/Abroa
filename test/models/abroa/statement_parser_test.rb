@@ -76,7 +76,7 @@ class Abroa::StatementParserTest < ActiveSupport::TestCase
       assert_raises(Abroa::StatementParser::UnsupportedFormat) do
         Abroa::StatementParser.parse_csv(bytes: "x" * (Abroa::StatementParser::MAX_BYTES + 1), **arguments)
       end
-      rows = Array.new(Abroa::StatementParser::MAX_ROWS + 101) { ["2025-01-10", "-1", "Cafe"] }
+      rows = Array.new(Abroa::StatementParser::MAX_ROWS + 101) { [ "2025-01-10", "-1", "Cafe" ] }
       assert_raises(Abroa::StatementParser::UnsupportedFormat) do
         Abroa::StatementParser.parse_table(rows: rows, file_sha256: "a" * 64, **arguments)
       end

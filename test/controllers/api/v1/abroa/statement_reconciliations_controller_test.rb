@@ -28,7 +28,7 @@ class Api::V1::Abroa::StatementReconciliationsControllerTest < ActionDispatch::I
   end
 
   test "preview confirm and undo change only reconciliation markers" do
-    assert_no_difference ["Entry.count", "Balance.count"] do
+    assert_no_difference [ "Entry.count", "Balance.count" ] do
       post "#{@path}/preview", headers: api_headers(@key)
       assert_response :ok
       assert_equal "ready", response.parsed_body.dig("data", "status")

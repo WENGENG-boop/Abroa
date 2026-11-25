@@ -36,7 +36,7 @@ class Abroa::LedgerConcurrencyTest < ActiveSupport::TestCase
 
   test "parallel refunds cannot overallocate the original purchase" do
     original = movement(100)
-    refunds = [movement(-60), movement(-60)]
+    refunds = [ movement(-60), movement(-60) ]
     outcomes = race do |index|
       Abroa::RefundLink.link_for!(User.find(@user.id), original_entry_id: original.id,
         refund_entry_id: refunds.fetch(index).id, applied_amount: "60", refund_amount: "60")
@@ -44,7 +44,7 @@ class Abroa::LedgerConcurrencyTest < ActiveSupport::TestCase
     rescue ArgumentError
       :rejected
     end
-    assert_equal [:allocated, :rejected], outcomes.sort
+    assert_equal [ :allocated, :rejected ], outcomes.sort
     assert_equal 60, Abroa::RefundLink.active.where(original_entry_id: original.id).sum(:applied_amount)
     assert_equal 3, @account.entries.count
   end

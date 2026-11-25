@@ -41,7 +41,7 @@ class Abroa::StudyAllocationConcurrencyTest < ActiveSupport::TestCase
       end
     end
     result = Timeout.timeout(30) { threads.map(&:value).sort }
-    assert_equal [:allocated, :rejected], result
+    assert_equal [ :allocated, :rejected ], result
     assert_equal BigDecimal("70"), Abroa::EntryAllocation.where(entry_id: @entry.id).sum(:amount)
     assert_equal BigDecimal("100"), @entry.reload.amount
   ensure

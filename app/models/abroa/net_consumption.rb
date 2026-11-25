@@ -37,7 +37,7 @@ module Abroa
 
       buckets = Hash.new { |h, key| h[key] = { gross_consumption: ZERO, refunds: ZERO, unallocated_inflows: ZERO } }
       entries.each do |entry|
-        amounts = buckets[[entry.date, entry.currency]]
+        amounts = buckets[[ entry.date, entry.currency ]]
         if entry.amount.positive?
           amounts[:gross_consumption] += entry.amount
         elsif entry.amount.negative?
@@ -53,13 +53,13 @@ module Abroa
       visible_links = RefundLink.active.where(family_id: user.family_id, refund_entry_id: credits.keys)
       links = visible_links.where(original_entry_id: allowed.select(:id))
         .or(visible_links.where(original_entry_id: nil)).order(:id).limit(MAX_ROWS + 1)
-        .includes(:rate_snapshot, original_entry: [:account, :entryable], refund_entry: [:account, :entryable]).to_a
+        .includes(:rate_snapshot, original_entry: [ :account, :entryable ], refund_entry: [ :account, :entryable ]).to_a
       raise ArgumentError, "Too many refund allocations; select a shorter report period" if links.size > MAX_ROWS
       invalid = Set.new
       inconsistent_count = 0
       links.each do |link|
         credit = credits.fetch(link.refund_entry_id)
-        key = [credit.date, credit.currency]
+        key = [ credit.date, credit.currency ]
         unless link.consistent?
           invalid.add(key)
           inconsistent_count += 1
@@ -75,7 +75,7 @@ module Abroa
       incomplete_fields = Set.new
       rates = []
       buckets.sort.each do |(date, from), amounts|
-        if invalid.include?([date, from])
+        if invalid.include?([ date, from ])
           incomplete_fields.merge(%i[refunds unallocated_inflows])
         end
         next if amounts.values.all?(&:zero?)
@@ -97,7 +97,7 @@ module Abroa
       precision = Money::Currency.new(currency).default_precision
       display = ->(amount) { amount.round(precision).to_s("F") }
       values = FIELDS.to_h do |field|
-        [field, incomplete_fields.include?(field) ? nil : display.call(totals[field])]
+        [ field, incomplete_fields.include?(field) ? nil : display.call(totals[field]) ]
       end
       values[:net_consumption] = if incomplete_fields.intersect?(Set[:gross_consumption, :refunds])
         nil

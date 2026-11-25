@@ -13,7 +13,7 @@ class Abroa::NetConsumptionTest < ActiveSupport::TestCase
   end
 
   test "refund reduces net spending on refund date without reducing the historical purchase" do
-    assert_no_difference ["Entry.count", "Abroa::RateSnapshot.count"] do
+    assert_no_difference [ "Entry.count", "Abroa::RateSnapshot.count" ] do
       january = report(Date.new(2025, 1, 1), Date.new(2025, 1, 31))
       february = report(Date.new(2025, 2, 1), Date.new(2025, 2, 28))
       combined = report(Date.new(2025, 1, 1), Date.new(2025, 2, 28))
@@ -68,7 +68,7 @@ class Abroa::NetConsumptionTest < ActiveSupport::TestCase
     result = report(Date.new(2025, 1, 1), Date.new(2025, 2, 28))
     assert_equal "70.0", result.dig(:totals, :net_consumption)
     assert_raises(ActiveRecord::RecordNotFound) do
-      Abroa::NetConsumption.for_user(@user, account_ids: [foreign.id], start_on: @purchase.date,
+      Abroa::NetConsumption.for_user(@user, account_ids: [ foreign.id ], start_on: @purchase.date,
         end_on: @refund.date, currency: "CNY")
     end
   end
@@ -90,7 +90,7 @@ class Abroa::NetConsumptionTest < ActiveSupport::TestCase
     end
 
     def report(start_on, end_on, currency: "CNY")
-      Abroa::NetConsumption.for_user(@user, account_ids: [@account.id],
+      Abroa::NetConsumption.for_user(@user, account_ids: [ @account.id ],
         start_on: start_on, end_on: end_on, currency: currency)
     end
 end

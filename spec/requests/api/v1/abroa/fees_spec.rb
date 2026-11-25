@@ -30,7 +30,7 @@ RSpec.describe "API V1 Abroa study fees", type: :request do
     parameter name: :project_id, in: :path, required: true, schema: { type: :string, format: :uuid }
     get "List project tuition, housing, deposits and other scheduled fees" do
       tags "Abroa study fees"
-      security [{ apiKeyAuth: [] }]
+      security [ { apiKeyAuth: [] } ]
       produces "application/json"
       response "200", "Fees" do
         schema '$ref' => '#/components/schemas/AbroaFeePlanListResponse'
@@ -39,7 +39,7 @@ RSpec.describe "API V1 Abroa study fees", type: :request do
     end
     post "Create a gross fee with directly deducted scholarships or discounts" do
       tags "Abroa study fees"
-      security [{ apiKeyAuth: [] }]
+      security [ { apiKeyAuth: [] } ]
       consumes "application/json"
       produces "application/json"
       parameter name: "Idempotency-Key", in: :header, required: true, schema: { type: :string }
@@ -58,7 +58,7 @@ RSpec.describe "API V1 Abroa study fees", type: :request do
     parameter name: :fee_id, in: :path, required: true, schema: { type: :string, format: :uuid }
     get "Read an owned fee, plan total, paid amount and remaining liability" do
       tags "Abroa study fees"
-      security [{ apiKeyAuth: [] }]
+      security [ { apiKeyAuth: [] } ]
       response "200", "Fee" do
         schema '$ref' => '#/components/schemas/AbroaFeePlanResponse'
         run_test!
@@ -66,7 +66,7 @@ RSpec.describe "API V1 Abroa study fees", type: :request do
     end
     patch "Versioned fee edit, without altering the original ledger" do
       tags "Abroa study fees"
-      security [{ apiKeyAuth: [] }]
+      security [ { apiKeyAuth: [] } ]
       consumes "application/json"
       parameter name: :body, in: :body, required: true, schema: { '$ref' => '#/components/schemas/AbroaFeePlanUpdate' }
       response "200", "Updated" do
@@ -82,7 +82,7 @@ RSpec.describe "API V1 Abroa study fees", type: :request do
     parameter name: :fee_id, in: :path, required: true, schema: { type: :string, format: :uuid }
     post "Import matching Sure bill occurrences once, without creating any bank transaction" do
       tags "Abroa study fees"
-      security [{ apiKeyAuth: [] }]
+      security [ { apiKeyAuth: [] } ]
       consumes "application/json"
       produces "application/json"
       parameter name: :body, in: :body, required: true, schema: {
@@ -112,7 +112,7 @@ RSpec.describe "API V1 Abroa study fees", type: :request do
     parameter name: :fee_id, in: :path, required: true, schema: { type: :string, format: :uuid }
     post "Cancel an unpaid fee without deleting transactions" do
       tags "Abroa study fees"
-      security [{ apiKeyAuth: [] }]
+      security [ { apiKeyAuth: [] } ]
       consumes "application/json"
       parameter name: :body, in: :body, required: true, schema: { '$ref' => '#/components/schemas/AbroaLockVersion' }
       response "200", "Cancelled" do
@@ -128,7 +128,7 @@ RSpec.describe "API V1 Abroa study fees", type: :request do
     parameter name: :fee_id, in: :path, required: true, schema: { type: :string, format: :uuid }
     get "List fee installments" do
       tags "Abroa study fees"
-      security [{ apiKeyAuth: [] }]
+      security [ { apiKeyAuth: [] } ]
       response "200", "Installments" do
         schema '$ref' => '#/components/schemas/AbroaFeeInstallmentListResponse'
         run_test!
@@ -136,7 +136,7 @@ RSpec.describe "API V1 Abroa study fees", type: :request do
     end
     post "Create a dated installment of a net fee" do
       tags "Abroa study fees"
-      security [{ apiKeyAuth: [] }]
+      security [ { apiKeyAuth: [] } ]
       consumes "application/json"
       parameter name: "Idempotency-Key", in: :header, required: true, schema: { type: :string }
       parameter name: :body, in: :body, required: true, schema: { '$ref' => '#/components/schemas/AbroaFeeInstallmentCreate' }
@@ -155,7 +155,7 @@ RSpec.describe "API V1 Abroa study fees", type: :request do
     parameter name: :installment_id, in: :path, required: true, schema: { type: :string, format: :uuid }
     get "Read an installment and its confirmed payment state" do
       tags "Abroa study fees"
-      security [{ apiKeyAuth: [] }]
+      security [ { apiKeyAuth: [] } ]
       response "200", "Installment" do
         schema '$ref' => '#/components/schemas/AbroaFeeInstallmentResponse'
         run_test!
@@ -163,7 +163,7 @@ RSpec.describe "API V1 Abroa study fees", type: :request do
     end
     patch "Change due date or discount with optimistic locking" do
       tags "Abroa study fees"
-      security [{ apiKeyAuth: [] }]
+      security [ { apiKeyAuth: [] } ]
       consumes "application/json"
       parameter name: :body, in: :body, required: true, schema: { '$ref' => '#/components/schemas/AbroaFeeInstallmentUpdate' }
       response "200", "Updated installment" do
@@ -180,7 +180,7 @@ RSpec.describe "API V1 Abroa study fees", type: :request do
     parameter name: :installment_id, in: :path, required: true, schema: { type: :string, format: :uuid }
     get "List payment and refund links to real ledger entries" do
       tags "Abroa study fees"
-      security [{ apiKeyAuth: [] }]
+      security [ { apiKeyAuth: [] } ]
       response "200", "Settlements" do
         schema '$ref' => '#/components/schemas/AbroaFeeSettlementListResponse'
         run_test!
@@ -188,7 +188,7 @@ RSpec.describe "API V1 Abroa study fees", type: :request do
     end
     post "Reconcile a fee with confirmed entry allocation or authoritative refund link" do
       tags "Abroa study fees"
-      security [{ apiKeyAuth: [] }]
+      security [ { apiKeyAuth: [] } ]
       consumes "application/json"
       parameter name: "Idempotency-Key", in: :header, required: true, schema: { type: :string }
       parameter name: :body, in: :body, required: true, schema: { '$ref' => '#/components/schemas/AbroaFeeSettlementCreate' }

@@ -9,15 +9,15 @@ class Api::V1::Abroa::ConsumptionControllerTest < ActionDispatch::IntegrationTes
       currency: "GBP", date: Date.new(2025, 1, 10))
     @key = ApiKey.create!(user: @user, name: "Consumption read", key: ApiKey.generate_secure_key, scopes: %w[read], source: "web")
     @path = "/api/v1/abroa/reports/consumption"
-    @query = { start_on: "2025-01-01", end_on: "2025-01-31", currency: "GBP", account_ids: [@account.id] }
+    @query = { start_on: "2025-01-01", end_on: "2025-01-31", currency: "GBP", account_ids: [ @account.id ] }
   end
 
   test "read key returns scoped report without ledger writes" do
-    assert_no_difference ["Entry.count", "Abroa::RateSnapshot.count"] do
+    assert_no_difference [ "Entry.count", "Abroa::RateSnapshot.count" ] do
       get @path, params: @query, headers: api_headers(@key)
       assert_response :ok
       assert_equal "12.5", response.parsed_body.dig("data", "totals", "net_consumption")
-      assert_equal [@account.id], response.parsed_body.dig("data", "account_ids")
+      assert_equal [ @account.id ], response.parsed_body.dig("data", "account_ids")
       assert_equal false, response.parsed_body.dig("data", "incomplete")
     end
   end
@@ -30,7 +30,7 @@ class Api::V1::Abroa::ConsumptionControllerTest < ActionDispatch::IntegrationTes
     other = users(:empty)
     foreign = Account.create!(family: other.family, owner: other, accountable: Depository.new,
       name: "Foreign", currency: "GBP", balance: 100)
-    get @path, params: @query.merge(account_ids: [foreign.id]), headers: api_headers(@key)
+    get @path, params: @query.merge(account_ids: [ foreign.id ]), headers: api_headers(@key)
     assert_response :not_found
   end
 end
