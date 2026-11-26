@@ -4,6 +4,15 @@ RSpec.describe "Abroa P5 managed entitlements and simulated billing", type: :req
   let(:id) { SecureRandom.uuid }
   let(:user_id) { SecureRandom.uuid }
   let(:body) { {} }
+  let(:user) { User.first }
+  let(:api_key) do
+    key = ApiKey.generate_secure_key
+    ApiKey.create!(
+      user: user, name: "API Docs Key",
+      key: key, scopes: %w[read_write], source: "web"
+    )
+  end
+  let(:'X-Api-Key') { api_key.plain_key }
 
   {
     "/api/v1/abroa/commercial/entitlements" => {
@@ -98,6 +107,7 @@ RSpec.describe "Abroa P5 managed entitlements and simulated billing", type: :req
           end
           response "401", "Invalid or missing API credential" do
             schema type: :object, additionalProperties: true
+            let(:'X-Api-Key') { "" }
             run_test!
           end
           response "403", "Not permitted for this identity, role, or write scope" do

@@ -10470,6 +10470,938 @@ paths:
               schema:
                 type: object
                 additionalProperties: true
+  "/api/v1/abroa/commercial/entitlements":
+    get:
+      summary: Current user core entitlements and add-on limits, with unknown costs
+        null
+      tags:
+      - Abroa P5 managed commercial services
+      security:
+      - apiKeyAuth: []
+      responses:
+        '401':
+          description: Invalid or missing API credential
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  "/api/v1/abroa/commercial/usage":
+    get:
+      summary: Only current user usage events in an explicit bounded UTC period
+      tags:
+      - Abroa P5 managed commercial services
+      security:
+      - apiKeyAuth: []
+      parameters:
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 1000
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+      - name: from
+        in: query
+        required: false
+        schema:
+          type: string
+          format: date
+      - name: to
+        in: query
+        required: false
+        schema:
+          type: string
+          format: date
+      - name: feature
+        in: query
+        required: false
+        schema:
+          type: string
+      responses:
+        '401':
+          description: Invalid or missing API credential
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  "/api/v1/abroa/commercial/plans":
+    get:
+      summary: Platform operator lists configured managed add-on plans
+      tags:
+      - Abroa P5 managed commercial services
+      security:
+      - apiKeyAuth: []
+      responses:
+        '401':
+          description: Invalid or missing API credential
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+    post:
+      summary: System admin creates an unpriced-by-default add-on plan
+      tags:
+      - Abroa P5 managed commercial services
+      security:
+      - apiKeyAuth: []
+      parameters: []
+      responses:
+        '401':
+          description: Invalid or missing API credential
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                code:
+                  type: string
+                name:
+                  type: string
+                enabled:
+                  type: boolean
+                version:
+                  type: integer
+                entitlements:
+                  type: object
+                  additionalProperties: true
+                price_amount:
+                  type: string
+                  nullable: true
+                price_currency:
+                  type: string
+                  nullable: true
+              additionalProperties: false
+        required: true
+  "/api/v1/abroa/commercial/plans/{id}":
+    parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    patch:
+      summary: System admin optimistically updates plan with safe audit
+      tags:
+      - Abroa P5 managed commercial services
+      security:
+      - apiKeyAuth: []
+      parameters: []
+      responses:
+        '401':
+          description: Invalid or missing API credential
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                code:
+                  type: string
+                name:
+                  type: string
+                enabled:
+                  type: boolean
+                version:
+                  type: integer
+                entitlements:
+                  type: object
+                  additionalProperties: true
+                price_amount:
+                  type: string
+                  nullable: true
+                price_currency:
+                  type: string
+                  nullable: true
+              additionalProperties: false
+        required: true
+  "/api/v1/abroa/commercial/subscriptions":
+    get:
+      summary: Platform operator lists paginated add-on subscriptions
+      tags:
+      - Abroa P5 managed commercial services
+      security:
+      - apiKeyAuth: []
+      responses:
+        '401':
+          description: Invalid or missing API credential
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  "/api/v1/abroa/commercial/subscriptions/{id}":
+    parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    get:
+      summary: Platform operator reads one add-on subscription without financial ledger
+        access
+      tags:
+      - Abroa P5 managed commercial services
+      security:
+      - apiKeyAuth: []
+      responses:
+        '401':
+          description: Invalid or missing API credential
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  "/api/v1/abroa/commercial/subscriptions/{user_id}":
+    parameters:
+    - name: user_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    post:
+      summary: System admin creates or changes a managed subscription with version
+        check
+      tags:
+      - Abroa P5 managed commercial services
+      security:
+      - apiKeyAuth: []
+      parameters: []
+      responses:
+        '401':
+          description: Invalid or missing API credential
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                plan_id:
+                  type: string
+                  format: uuid
+                status:
+                  type: string
+                  enum:
+                  - active
+                  - trialing
+                  - paused
+                  - canceled
+                version:
+                  type: integer
+                  minimum: 0
+              additionalProperties: false
+        required: true
+  "/api/v1/abroa/commercial/billing/events":
+    get:
+      summary: Platform operator lists synthetic billing events without real payment
+        credentials
+      tags:
+      - Abroa P5 managed commercial services
+      security:
+      - apiKeyAuth: []
+      responses:
+        '401':
+          description: Invalid or missing API credential
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  "/api/v1/abroa/commercial/billing/simulate":
+    post:
+      summary: Deterministic synthetic callback, amount unknown and no real charge
+      tags:
+      - Abroa P5 managed commercial services
+      security:
+      - apiKeyAuth: []
+      parameters: []
+      responses:
+        '401':
+          description: Invalid or missing API credential
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                user_id:
+                  type: string
+                  format: uuid
+                service_subscription_id:
+                  type: string
+                  format: uuid
+                external_id:
+                  type: string
+                occurred_at:
+                  type: string
+                  format: date_time
+                kind:
+                  type: string
+                  enum:
+                  - order
+                  - discount
+                  - payment
+                  - refund
+              additionalProperties: false
+        required: true
+  "/api/v1/abroa/platform/operations/users":
+    get:
+      summary: Registration, activity and seven-day retention with cohort denominators
+      tags:
+      - Abroa P5 platform operations
+      security:
+      - apiKeyAuth: []
+      parameters:
+      - name: from
+        in: query
+        required: false
+        schema:
+          type: string
+          format: date
+      - name: to
+        in: query
+        required: false
+        schema:
+          type: string
+          format: date
+      responses:
+        '401':
+          description: Missing authentication
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  "/api/v1/abroa/platform/operations/banks":
+    get:
+      summary: Account sync outcomes, success denominator and configured region coverage
+      tags:
+      - Abroa P5 platform operations
+      security:
+      - apiKeyAuth: []
+      parameters:
+      - name: from
+        in: query
+        required: false
+        schema:
+          type: string
+          format: date
+      - name: to
+        in: query
+        required: false
+        schema:
+          type: string
+          format: date
+      responses:
+        '401':
+          description: Missing authentication
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  "/api/v1/abroa/platform/operations/ai":
+    get:
+      summary: Aggregate model availability, calls and only known AI costs
+      tags:
+      - Abroa P5 platform operations
+      security:
+      - apiKeyAuth: []
+      parameters:
+      - name: from
+        in: query
+        required: false
+        schema:
+          type: string
+          format: date
+      - name: to
+        in: query
+        required: false
+        schema:
+          type: string
+          format: date
+      responses:
+        '401':
+          description: Missing authentication
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  "/api/v1/abroa/platform/operations/imports":
+    get:
+      summary: Aggregate import outcomes and template version metadata without raw
+        files
+      tags:
+      - Abroa P5 platform operations
+      security:
+      - apiKeyAuth: []
+      parameters:
+      - name: from
+        in: query
+        required: false
+        schema:
+          type: string
+          format: date
+      - name: to
+        in: query
+        required: false
+        schema:
+          type: string
+          format: date
+      responses:
+        '401':
+          description: Missing authentication
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  "/api/v1/abroa/platform/operations/health":
+    get:
+      summary: Live safe DB, Redis, worker and scheduler probes
+      tags:
+      - Abroa P5 platform operations
+      security:
+      - apiKeyAuth: []
+      responses:
+        '401':
+          description: Missing authentication
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  "/api/v1/abroa/platform/operations/configs":
+    get:
+      summary: List bounded and allowlisted operational configuration
+      tags:
+      - Abroa P5 platform operations
+      security:
+      - apiKeyAuth: []
+      parameters:
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 1000
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+      responses:
+        '401':
+          description: Missing authentication
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+    post:
+      summary: System admin sets safe provider, region, model, import or policy metadata
+      tags:
+      - Abroa P5 platform operations
+      security:
+      - apiKeyAuth: []
+      parameters: []
+      responses:
+        '401':
+          description: Missing authentication
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                category:
+                  type: string
+                code:
+                  type: string
+                settings:
+                  type: object
+                  additionalProperties: false
+                version:
+                  type: integer
+                  minimum: 0
+              additionalProperties: false
+        required: true
+  "/api/v1/abroa/platform/operations/configs/{id}":
+    parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    patch:
+      summary: Optimistically update safe operational config with audit
+      tags:
+      - Abroa P5 platform operations
+      security:
+      - apiKeyAuth: []
+      parameters: []
+      responses:
+        '401':
+          description: Missing authentication
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                category:
+                  type: string
+                code:
+                  type: string
+                settings:
+                  type: object
+                  additionalProperties: false
+                version:
+                  type: integer
+                  minimum: 0
+              additionalProperties: false
+        required: true
+  "/api/v1/abroa/platform/operations/governance":
+    get:
+      summary: Platform operator sees pseudonymous export and deletion request statuses
+      tags:
+      - Abroa P5 platform operations
+      security:
+      - apiKeyAuth: []
+      parameters:
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 1000
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+      responses:
+        '401':
+          description: Missing authentication
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  "/api/v1/abroa/platform/operations/governance/{id}":
+    parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    patch:
+      summary: System admin transitions governance status with verifiable completion
+        evidence
+      tags:
+      - Abroa P5 platform operations
+      security:
+      - apiKeyAuth: []
+      parameters: []
+      responses:
+        '401':
+          description: Missing authentication
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum:
+                  - requested
+                  - approved
+                  - processing
+                  - completed
+                  - rejected
+                  - failed
+                version:
+                  type: integer
+                  minimum: 0
+                evidence_export_id:
+                  type: string
+                  format: uuid
+                  nullable: true
+                reason_code:
+                  type: string
+                  nullable: true
+              additionalProperties: false
+        required: true
+  "/api/v1/abroa/governance/requests":
+    get:
+      summary: Current user lists their own export/deletion request status
+      tags:
+      - Abroa P5 platform operations
+      security:
+      - apiKeyAuth: []
+      parameters:
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 1000
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+      responses:
+        '401':
+          description: Missing authentication
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+    post:
+      summary: Current user submits an export or erasure request without disclosing
+        private data
+      tags:
+      - Abroa P5 platform operations
+      security:
+      - apiKeyAuth: []
+      parameters: []
+      responses:
+        '401':
+          description: Missing authentication
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                kind:
+                  type: string
+                  enum:
+                  - export
+                  - deletion
+              additionalProperties: false
+        required: true
+  "/api/v1/abroa/governance/requests/{id}":
+    parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    get:
+      summary: Read only own governance request
+      tags:
+      - Abroa P5 platform operations
+      security:
+      - apiKeyAuth: []
+      responses:
+        '401':
+          description: Missing authentication
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  "/api/v1/abroa/platform/users":
+    get:
+      summary: List paginated user metadata without any financial balances or transactions
+      tags:
+      - Abroa P5 platform administration
+      security:
+      - apiKeyAuth: []
+      parameters:
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 1000
+      - name: status
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - active
+          - suspended
+          - inactive
+      - name: role
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - guest
+          - member
+          - admin
+          - super_admin
+      responses:
+        '401':
+          description: Missing or invalid credential
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  "/api/v1/abroa/platform/users/{id}":
+    parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    get:
+      summary: Read account status and public operational metadata only
+      tags:
+      - Abroa P5 platform administration
+      security:
+      - apiKeyAuth: []
+      responses:
+        '401':
+          description: Missing or invalid credential
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  "/api/v1/abroa/platform/users/{id}/suspend":
+    parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    post:
+      summary: Suspend account, revoke credentials and audit without deleting financial
+        history
+      tags:
+      - Abroa P5 platform administration
+      security:
+      - apiKeyAuth: []
+      parameters: []
+      responses:
+        '401':
+          description: Missing or invalid credential
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                platform_access_version:
+                  type: integer
+                  minimum: 0
+                reason_code:
+                  type: string
+                  enum:
+                  - abuse_prevention
+                  - compromised_account
+                  - policy_violation
+                  - user_request
+        required: true
+  "/api/v1/abroa/platform/users/{id}/unsuspend":
+    parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    post:
+      summary: Restore account authentication eligibility but not revoked credentials
+      tags:
+      - Abroa P5 platform administration
+      security:
+      - apiKeyAuth: []
+      parameters: []
+      responses:
+        '401':
+          description: Missing or invalid credential
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                platform_access_version:
+                  type: integer
+                  minimum: 0
+        required: true
+  "/api/v1/abroa/platform/roles":
+    get:
+      summary: List paginated platform RBAC assignments
+      tags:
+      - Abroa P5 platform administration
+      security:
+      - apiKeyAuth: []
+      parameters:
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 1000
+      responses:
+        '401':
+          description: Missing or invalid credential
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+    post:
+      summary: System administrator grants a platform-only role
+      tags:
+      - Abroa P5 platform administration
+      security:
+      - apiKeyAuth: []
+      parameters: []
+      responses:
+        '401':
+          description: Missing or invalid credential
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                user_id:
+                  type: string
+                  format: uuid
+                role:
+                  type: string
+                  enum:
+                  - operator
+                  - access_admin
+                  - system_admin
+        required: true
+  "/api/v1/abroa/platform/roles/{id}":
+    parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    delete:
+      summary: System administrator revokes a platform-only role
+      tags:
+      - Abroa P5 platform administration
+      security:
+      - apiKeyAuth: []
+      responses:
+        '401':
+          description: Missing or invalid credential
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
   "/api/v1/abroa/profile":
     get:
       summary: Read own Abroa preferences

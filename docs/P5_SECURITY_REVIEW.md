@@ -1,0 +1,19 @@
+# P5 Security Review — source-level evidence
+
+Scope: platform RBAC, separate billing and subscription controls, operational diagnostics and sandboxed delivery. Review recorded 2026-11-26. Formal combined acceptance remains pending.
+
+**Platform roles and privilege separation.** `app/models/abroa/platform_role_assignment.rb` checks permissions directly against PostgreSQL and active user state for each request; Sure `super_admin` and Family Admin do not automatically receive platform permissions. `app/models/abroa/platform_administration.rb` serializes role changes and account state changes with a transaction/advisory lock; last-admin self-lockout is rejected. `app/models/abroa/platform_bootstrap.rb` requires explicit local operator approval and a preexisting Sure super administrator, without public bootstrap endpoints. API allowlists: `app/controllers/api/v1/abroa/platform_users_controller.rb`.
+
+**Cross-tenant privacy.** The platform account listing serializes only account operational fields, not financial tenant resources, user bank accounts, entries, private planning or AI chat. `app/controllers/impersonation_sessions_controller.rb`, `app/models/impersonation_session.rb` and `app/controllers/concerns/authentication.rb` prevent platform roles from using Sure support impersonation as a financial-authority bypass, including existing sessions after role promotion.
+
+**Account suspension.** A distinct `platform_suspended_at` avoids Sure's irreversible deletion side effect of setting `active=false`; session destruction, API key revocation, OAuth token revocation and in-job guards are implemented. Code: `app/models/user.rb`, `app/jobs/assistant_response_job.rb`, `app/jobs/abroa/provider_capture_job.rb`, `app/jobs/abroa/email_outbox_delivery_job.rb`. Negative tests verify no entries changed on a suspended replay.
+
+**Append-only audit.** `app/models/abroa/platform_audit_event.rb` rejects model edits; `db/migrate/20261126110100_protect_abroa_platform_audit_events.rb` installs a PostgreSQL UPDATE/DELETE denial trigger; `lib/tasks/abroa_platform_audit.rake` restores the trigger after Ruby schema loads. Audit contains actor ID, target ID, request ID, bounded safe-field deltas and outcome, never request payloads or credentials. Denied/409 sensitive operations are also recorded. PostgreSQL-level immutability was behavior-tested.
+
+**Add-on business isolation.** `app/models/abroa/service_plan.rb` explicitly excludes free core features from quota configuration. `app/models/abroa/service_entitlements.rb` serializes usage and subscription changes under user-row locks, canonicalizes usage IDs and preserves unknown cost/price as null. `app/models/abroa/service_billing_event.rb` simulates callbacks without payment-provider requests or ledger writes. Role-restricted commercial API: `service_entitlements_controller.rb`.
+
+**Diagnostics and governance.** `app/models/abroa/operational_config.rb` validates safe, typed configuration white lists; `operational_metrics.rb` aggregates only source table counts and status columns over bounded time windows; `governance_request.rb` restricts data export and deletion transitions, requires evidence to complete and never deletes user data from a platform API. Tests cover misleading values, secret-like strings, cross-user governance IDs and stale versions.
+
+**Static scanning.** P5 Brakeman: zero new security warnings, 8 ignored inherited warnings and one obsolete ignore marker; original API consistency checker reports historic financekit OAuth/spec assertions. They are tracked as historical, not claimed to be fixed by P5.
+
+**Open external verification.** Real provider/bank/model/payments and production encryption key recovery remain outside this isolated test and were not attempted. The synthetic encryption marker round-tripped after a Web restart using an unchanged test key. No actual production account was opened or mutated.

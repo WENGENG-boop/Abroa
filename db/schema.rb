@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_26_110000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_26_130100) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -64,6 +64,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_26_110000) do
     t.string "failure_kind"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.index ["created_at", "status"], name: "idx_abroa_ai_usage_operational_status"
     t.index ["family_id"], name: "index_abroa_ai_model_usages_on_family_id"
     t.index ["owner_id", "created_at"], name: "index_abroa_ai_model_usages_on_owner_id_and_created_at"
     t.index ["owner_id"], name: "index_abroa_ai_model_usages_on_owner_id"
@@ -536,6 +537,27 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_26_110000) do
     t.check_constraint "fee_amount = 0::numeric AND fee_entry_id IS NULL AND fee_currency IS NULL OR fee_amount > 0::numeric AND fee_entry_id IS NOT NULL AND fee_currency IS NOT NULL AND (fee_currency::text = debit_currency::text OR fee_currency::text = credit_currency::text)", name: "abroa_fx_fee_valid"
   end
 
+  create_table "abroa_governance_requests", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "user_id", null: false
+    t.string "kind", null: false
+    t.string "status", default: "requested", null: false
+    t.string "request_id", null: false
+    t.datetime "requested_at", null: false
+    t.datetime "reviewed_at"
+    t.datetime "completed_at"
+    t.uuid "reviewed_by_id"
+    t.string "reason_code"
+    t.uuid "evidence_export_id"
+    t.integer "lock_version", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["status", "requested_at"], name: "idx_abroa_governance_status_date"
+    t.index ["user_id", "created_at"], name: "idx_abroa_governance_user_date"
+    t.index ["user_id", "request_id"], name: "idx_abroa_governance_user_request_dedupe", unique: true
+    t.check_constraint "kind::text = ANY (ARRAY['export'::character varying, 'deletion'::character varying]::text[])", name: "abroa_governance_kind_valid"
+    t.check_constraint "status::text = ANY (ARRAY['requested'::character varying, 'approved'::character varying, 'processing'::character varying, 'completed'::character varying, 'rejected'::character varying, 'failed'::character varying]::text[])", name: "abroa_governance_status_valid"
+  end
+
   create_table "abroa_grants", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.uuid "family_id", null: false
     t.uuid "relationship_id", null: false
@@ -614,6 +636,17 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_26_110000) do
     t.index ["actor_id", "operation", "key_digest"], name: "idx_abroa_operation_replay", unique: true
     t.index ["actor_id"], name: "index_abroa_operation_records_on_actor_id"
     t.index ["family_id"], name: "index_abroa_operation_records_on_family_id"
+  end
+
+  create_table "abroa_operational_configs", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.string "category", null: false
+    t.string "code", null: false
+    t.jsonb "settings", default: {}, null: false
+    t.integer "lock_version", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["category", "code"], name: "idx_abroa_operational_config_unique", unique: true
+    t.check_constraint "category::text = ANY (ARRAY['bank_provider'::character varying, 'ai_model'::character varying, 'import_template'::character varying, 'region'::character varying, 'language'::character varying, 'currency'::character varying, 'channel'::character varying, 'policy'::character varying]::text[])", name: "abroa_operational_config_valid_category"
   end
 
   create_table "abroa_personal_debts", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -951,6 +984,101 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_26_110000) do
     t.index ["owner_id"], name: "index_abroa_report_exports_on_owner_id"
     t.index ["project_id"], name: "index_abroa_report_exports_on_project_id"
     t.check_constraint "(scope::text = ANY (ARRAY['personal'::character varying::text, 'project'::character varying::text, 'parent'::character varying::text])) AND (file_format::text = ANY (ARRAY['json'::character varying::text, 'csv'::character varying::text])) AND (status::text = ANY (ARRAY['ready'::character varying::text, 'failed'::character varying::text])) AND byte_size >= 1 AND byte_size <= 2097152", name: "abroa_report_export_limits"
+  end
+
+  create_table "abroa_service_billing_events", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "user_id", null: false
+    t.uuid "service_subscription_id", null: false
+    t.string "external_id", null: false
+    t.string "kind", null: false
+    t.string "status", default: "simulated", null: false
+    t.datetime "occurred_at", null: false
+    t.decimal "amount", precision: 20, scale: 6
+    t.string "currency"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["service_subscription_id"], name: "idx_abroa_billing_subscription"
+    t.index ["user_id", "external_id"], name: "idx_abroa_billing_event_dedupe", unique: true
+    t.index ["user_id"], name: "index_abroa_service_billing_events_on_user_id"
+    t.check_constraint "amount IS NULL AND currency IS NULL OR amount IS NOT NULL AND currency IS NOT NULL AND amount >= 0::numeric", name: "abroa_billing_cost_consistent"
+  end
+
+  create_table "abroa_service_plans", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.string "code", null: false
+    t.string "name", null: false
+    t.boolean "enabled", default: true, null: false
+    t.jsonb "entitlements", default: {}, null: false
+    t.decimal "price_amount", precision: 20, scale: 6
+    t.string "price_currency"
+    t.integer "lock_version", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["code"], name: "index_abroa_service_plans_on_code", unique: true
+    t.check_constraint "price_amount IS NULL AND price_currency IS NULL OR price_amount IS NOT NULL AND price_currency IS NOT NULL AND price_amount >= 0::numeric", name: "abroa_service_plan_price_consistent"
+  end
+
+  create_table "abroa_service_quota_counters", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "user_id", null: false
+    t.string "feature", null: false
+    t.date "period_start", null: false
+    t.bigint "used_count", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["user_id", "feature", "period_start"], name: "idx_abroa_quota_user_period", unique: true
+    t.index ["user_id"], name: "index_abroa_service_quota_counters_on_user_id"
+    t.check_constraint "used_count >= 0", name: "abroa_quota_nonnegative"
+  end
+
+  create_table "abroa_service_subscription_events", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "service_subscription_id", null: false
+    t.uuid "actor_user_id"
+    t.string "action", null: false
+    t.string "before_status"
+    t.string "after_status", null: false
+    t.string "previous_plan"
+    t.string "new_plan", null: false
+    t.string "request_id", null: false
+    t.datetime "occurred_at", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["service_subscription_id", "occurred_at"], name: "idx_abroa_service_subscription_history"
+    t.index ["service_subscription_id"], name: "idx_abroa_subscription_events_owner"
+  end
+
+  create_table "abroa_service_subscriptions", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "user_id", null: false
+    t.uuid "plan_id", null: false
+    t.string "status", null: false
+    t.string "origin", null: false
+    t.datetime "started_at", null: false
+    t.datetime "ends_at"
+    t.integer "lock_version", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["plan_id"], name: "index_abroa_service_subscriptions_on_plan_id"
+    t.index ["user_id"], name: "index_abroa_service_subscriptions_on_user_id", unique: true
+    t.check_constraint "status::text = ANY (ARRAY['active'::character varying, 'trialing'::character varying, 'paused'::character varying, 'canceled'::character varying]::text[])", name: "abroa_service_subscription_valid_state"
+  end
+
+  create_table "abroa_service_usage_events", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "user_id", null: false
+    t.uuid "family_id", null: false
+    t.string "feature", null: false
+    t.string "source", null: false
+    t.string "event_id", null: false
+    t.integer "quantity", null: false
+    t.date "period_start", null: false
+    t.datetime "occurred_at", null: false
+    t.decimal "cost_amount", precision: 20, scale: 6
+    t.string "cost_currency"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["family_id"], name: "index_abroa_service_usage_events_on_family_id"
+    t.index ["period_start", "feature"], name: "idx_abroa_usage_period"
+    t.index ["user_id", "feature", "event_id"], name: "idx_abroa_usage_dedupe", unique: true
+    t.index ["user_id"], name: "index_abroa_service_usage_events_on_user_id"
+    t.check_constraint "cost_amount IS NULL AND cost_currency IS NULL OR cost_amount IS NOT NULL AND cost_currency IS NOT NULL AND cost_amount >= 0::numeric", name: "abroa_usage_cost_consistent"
+    t.check_constraint "quantity > 0", name: "abroa_usage_positive_quantity"
   end
 
   create_table "abroa_source_actions", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -2522,6 +2650,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_26_110000) do
     t.string "type", null: false
     t.datetime "updated_at", null: false
     t.index ["account_statement_id"], name: "index_imports_on_account_statement_id"
+    t.index ["created_at", "status"], name: "idx_abroa_imports_operational_status"
     t.index ["family_id"], name: "index_imports_on_family_id"
     t.index ["import_session_id", "client_chunk_id"], name: "idx_imports_on_session_client_chunk", unique: true, where: "((import_session_id IS NOT NULL) AND (client_chunk_id IS NOT NULL))"
     t.index ["import_session_id", "sequence"], name: "idx_imports_on_session_sequence", unique: true, where: "((import_session_id IS NOT NULL) AND (sequence IS NOT NULL))"
@@ -3869,6 +3998,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_26_110000) do
     t.date "window_start_date"
     t.index ["parent_id"], name: "index_syncs_on_parent_id"
     t.index ["status"], name: "index_syncs_on_status"
+    t.index ["syncable_type", "created_at", "status"], name: "idx_abroa_syncs_operational_status"
     t.index ["syncable_type", "syncable_id", "created_at", "id"], name: "index_syncs_on_syncable_and_created_at_and_id", order: { created_at: :desc, id: :desc }
   end
 
@@ -4166,9 +4296,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_26_110000) do
     t.string "webauthn_id"
     t.datetime "platform_suspended_at"
     t.integer "platform_access_version", default: 0, null: false
+    t.index ["created_at"], name: "idx_abroa_users_registered_at"
     t.index ["default_account_id"], name: "index_users_on_default_account_id"
     t.index ["email"], name: "index_users_on_email", unique: true
     t.index ["family_id"], name: "index_users_on_family_id"
+    t.index ["last_login_at"], name: "idx_abroa_users_activity_at"
     t.index ["last_viewed_chat_id"], name: "index_users_on_last_viewed_chat_id"
     t.index ["locale"], name: "index_users_on_locale"
     t.index ["otp_secret"], name: "index_users_on_otp_secret", unique: true, where: "(otp_secret IS NOT NULL)"
@@ -4418,6 +4550,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_26_110000) do
   add_foreign_key "abroa_report_exports", "abroa_study_projects", column: "project_id", on_delete: :restrict
   add_foreign_key "abroa_report_exports", "families", on_delete: :cascade
   add_foreign_key "abroa_report_exports", "users", column: "owner_id", on_delete: :cascade
+  add_foreign_key "abroa_service_billing_events", "abroa_service_subscriptions", column: "service_subscription_id", on_delete: :restrict
+  add_foreign_key "abroa_service_billing_events", "users", on_delete: :restrict
+  add_foreign_key "abroa_service_quota_counters", "users", on_delete: :cascade
+  add_foreign_key "abroa_service_subscription_events", "abroa_service_subscriptions", column: "service_subscription_id", on_delete: :restrict
+  add_foreign_key "abroa_service_subscriptions", "abroa_service_plans", column: "plan_id", on_delete: :restrict
+  add_foreign_key "abroa_service_subscriptions", "users", on_delete: :restrict
+  add_foreign_key "abroa_service_usage_events", "families", on_delete: :restrict
+  add_foreign_key "abroa_service_usage_events", "users", on_delete: :restrict
   add_foreign_key "abroa_source_actions", "abroa_source_records", column: "source_record_id", on_delete: :cascade
   add_foreign_key "abroa_source_actions", "abroa_source_reviews", column: "source_review_id", on_delete: :cascade
   add_foreign_key "abroa_source_actions", "entries", on_delete: :nullify

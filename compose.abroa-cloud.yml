@@ -1,0 +1,10 @@
+# Apply ONLY for managed cloud mode:
+# docker compose -f compose.abroa.yml -f compose.abroa-cloud.yml up -d
+# Core finance, budgets, student planning and parent collaboration remain free.
+services:
+  web:
+    environment:
+      SELF_HOSTED: "false"
+  worker:
+    environment:
+      SELF_HOSTED: "false"

@@ -3,6 +3,15 @@ require "swagger_helper"
 RSpec.describe "Abroa P5 platform operational APIs", type: :request do
   let(:id) { SecureRandom.uuid }
   let(:body) { {} }
+  let(:user) { User.first }
+  let(:api_key) do
+    key = ApiKey.generate_secure_key
+    ApiKey.create!(
+      user: user, name: "API Docs Key",
+      key: key, scopes: %w[read_write], source: "web"
+    )
+  end
+  let(:'X-Api-Key') { api_key.plain_key }
 
   {
     "/api/v1/abroa/platform/operations/users" => {
@@ -93,6 +102,7 @@ RSpec.describe "Abroa P5 platform operational APIs", type: :request do
           end
           response "401", "Missing authentication" do
             schema type: :object, additionalProperties: true
+            let(:'X-Api-Key') { "" }
             run_test!
           end
           response "403", "Platform permission or write scope missing" do

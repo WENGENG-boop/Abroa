@@ -21,10 +21,10 @@
 |NOTIFY 站内/邮件|P4.3|A12|扩展|VERIFIED|站内通知、已读/偏好、Email Outbox/静默、失败及 uncertain 处理；五个 Sidekiq Cron 在 P4 Docker Worker 重启前后正常。P1–P4 全量通过；真实 SMTP 收件不在此验收，详见 P4_BACKEND_ACCEPTANCE.md。|
 |REPORT 项目/家长/FX|P4.4|A13|扩展|VERIFIED|Sure Ledger 只读财务报表、历史 FX、第三方代付比例、家长小样本保护、CSV/JSON 导出与当前 Grant 再校验。修复 ActiveStorage signed blob 绕过后 134/1844 专项及 19253/117659 全量通过；P4 Docker 验收通过。|
 |AI-01–07|P4.5|A14|复用+扩展|VERIFIED|自定义加密模型配置与安全网络限制、授权财务解释/分类建议、用量；预算/费用/资金池提案人工确认、幂等/补偿、Sure旧 AI 写工具隔离。专项21/159、并发1/7、v14 backfill、19253/117659 全量与 Docker 通过；真实模型连通性未在范围内。|
-|ADMIN 权限/用户/审计|P5.1|A15-1|扩展|PLANNED|待填|
-|ADMIN 订阅/权益/用量|P5.2|A15-2,3|复用+扩展|PLANNED|待填|
-|ADMIN 运营/渠道/地区|P5.3|A15|扩展|PLANNED|待填|
-|Docker/自托管/云端|P5.4|A16|复用+扩展|PLANNED|待填|
+|ADMIN 权限/用户/审计|P5.1|A15-1|扩展|IN_PROGRESS|平台RBAC/审计/封禁/旧Sure impersonation防绕过；Git a082b05d4；P5.1专项26/143零失败，Brakeman 0警告；全量回归待最终通过，见 docs/P5_BACKEND_ACCEPTANCE.md。|
+|ADMIN 订阅/权益/用量|P5.2|A15-2,3|复用+扩展|IN_PROGRESS|独立套餐/订阅/用量/模拟支付，核心业务免费，自托管无官方订阅；Git ba220b8e9，专项15/82与并发8/35均绿；全量回归待验证。|
+|ADMIN 运营/渠道/地区|P5.3|A15|扩展|IN_PROGRESS|真实用户/银行/AI/导入/运维汇总、允许配置的地区渠道参数/治理申请；Git 0716d1b6f，专项14/114、Brakeman、API rswag通过；全量回归待完成。|
+|Docker/自托管/云端|P5.4|A16|复用+扩展|IN_PROGRESS|生产候选 Web/Worker/PostgreSQL/Redis 四容器健康、HTTP200和401、Worker实际执行、原Sure/P4历史升级+金额指纹一致、备份恢复、新库Schema与加密密钥重启验收；故障恢复及完整回归待完成。|
 |全后端验收/原版回归|P6|A00–A17|回归|PLANNED|待填|
 |前端三端/PWA|P7|A18|后端后实施|PLANNED|待填|
 |上线|P8|A19|端到端|PLANNED|待填|
