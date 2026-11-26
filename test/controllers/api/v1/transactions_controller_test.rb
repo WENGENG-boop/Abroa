@@ -35,6 +35,22 @@ class Api::V1::TransactionsControllerTest < ActionDispatch::IntegrationTest
     Redis.new.del("api_rate_limit:#{@read_only_api_key.id}")
   end
 
+  test "P6 imported foreign-currency dividend response preserves exchange rate and native currency" do
+    entry = @account.entries.create!(
+      name: "P6 EUR dividend", date: Date.current, amount: -12.40, currency: "EUR",
+      source: "ibkr", external_id: "p6-dividend-fx-eur",
+      entryable: Transaction.new(investment_activity_label: "Dividend",
+        extra: { "exchange_rate" => 1.08, "ibkr" => { "type" => "Dividends" } })
+    )
+
+    get api_v1_transaction_url(entry.transaction), headers: api_headers(@api_key)
+    assert_response :success
+    payload = JSON.parse(response.body)
+    assert_equal 1.08, payload.fetch("exchange_rate")
+    assert_equal "EUR", payload.fetch("amount_currency")
+    assert_equal BigDecimal("-12.40"), entry.reload.amount
+  end
+
   # INDEX action tests
   test "should get index with valid API key" do
     get api_v1_transactions_url, headers: api_headers(@api_key)

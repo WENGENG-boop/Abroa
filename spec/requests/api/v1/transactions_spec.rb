@@ -331,11 +331,7 @@ RSpec.describe 'API V1 Transactions', type: :request do
         # checked against the schema too.
         let(:id) { dividend_transaction.id }
 
-        run_test! do |response|
-          data = JSON.parse(response.body)
-          expect(data['exchange_rate']).to eq(1.08)
-          expect(data['amount_currency']).to eq('EUR')
-        end
+        run_test!
       end
 
       response '404', 'transaction not found' do
