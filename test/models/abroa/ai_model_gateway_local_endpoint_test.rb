@@ -39,6 +39,20 @@ class Abroa::AiModelGatewayLocalEndpointTest < ActiveSupport::TestCase
     end
   end
 
+  test "local upstream 500 and 503 are safe model failures without credential disclosure" do
+    [ 500, 503 ].each do |status|
+      with_compatible_endpoint(status: status,
+        body: { error: { message: FAKE_KEY } }.to_json) do |provider, receipts|
+        error = assert_raises(Abroa::AiModelGateway::ModelFailure) do
+          Abroa::AiModelGateway.chat(provider: provider,
+            messages: [ { role: "user", content: "synthetic model outage" } ])
+        end
+        assert_not_includes error.message, FAKE_KEY
+        assert_equal status, receipts.pop[:response_status]
+      end
+    end
+  end
+
   test "local HTTP redirect to metadata endpoint is rejected, never followed" do
     with_compatible_endpoint(status: 302, location: "http://169.254.169.254/latest") do |provider, receipts|
       error = assert_raises(Abroa::AiModelGateway::UnsafeEndpoint) do
@@ -165,7 +179,8 @@ class Abroa::AiModelGatewayLocalEndpointTest < ActiveSupport::TestCase
           request_body = client.read(Integer(headers.fetch("content-length")))
           receipts << { path: first_line.split[1], headers: headers,
             body: request_body, response_status: status }
-          reason = { 200 => "OK", 302 => "Found", 401 => "Unauthorized" }.fetch(status)
+          reason = { 200 => "OK", 302 => "Found", 401 => "Unauthorized",
+            500 => "Internal Server Error", 503 => "Service Unavailable" }.fetch(status)
           output = "HTTP/1.1 #{status} #{reason}\r\n" \
             "Content-Type: application/json\r\n" \
             "Content-Length: #{payload.bytesize}\r\n" \
