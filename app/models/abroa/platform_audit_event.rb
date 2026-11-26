@@ -1,7 +1,9 @@
 class Abroa::PlatformAuditEvent < ApplicationRecord
   self.table_name = "abroa_platform_audit_events"
-  ACTIONS = %w[role_grant role_revoke user_suspend user_unsuspend].freeze
-  OUTCOMES = %w[granted revoked suspended unsuspended denied conflict].freeze
+  ACTIONS = %w[role_grant role_revoke user_suspend user_unsuspend
+    plan_create plan_update subscription_assign billing_simulated].freeze
+  OUTCOMES = %w[granted revoked suspended unsuspended denied conflict
+    created updated assigned simulated].freeze
 
   validates :action, presence: true, inclusion: { in: ACTIONS }
   validates :outcome, presence: true, inclusion: { in: OUTCOMES }

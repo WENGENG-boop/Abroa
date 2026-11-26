@@ -822,6 +822,16 @@ Rails.application.routes.draw do
   namespace :api do
     namespace :v1 do
       namespace :abroa do
+        get "commercial/entitlements", to: "service_entitlements#entitlements"
+        get "commercial/usage", to: "service_entitlements#usage"
+        get "commercial/plans", to: "service_entitlements#plans"
+        post "commercial/plans", to: "service_entitlements#create_plan"
+        patch "commercial/plans/:id", to: "service_entitlements#update_plan"
+        get "commercial/subscriptions", to: "service_entitlements#subscriptions"
+        get "commercial/subscriptions/:id", to: "service_entitlements#subscription"
+        post "commercial/subscriptions/:user_id", to: "service_entitlements#assign_subscription"
+        get "commercial/billing/events", to: "service_entitlements#billing_events"
+        post "commercial/billing/simulate", to: "service_entitlements#simulate_billing"
         get "platform/users", to: "platform_users#index"
         get "platform/users/:id", to: "platform_users#show"
         post "platform/users/:id/suspend", to: "platform_users#suspend"
