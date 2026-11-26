@@ -822,6 +822,19 @@ Rails.application.routes.draw do
   namespace :api do
     namespace :v1 do
       namespace :abroa do
+        get "platform/operations/users", to: "platform_operations#users"
+        get "platform/operations/banks", to: "platform_operations#banks"
+        get "platform/operations/ai", to: "platform_operations#ai"
+        get "platform/operations/imports", to: "platform_operations#imports"
+        get "platform/operations/health", to: "platform_operations#health"
+        get "platform/operations/configs", to: "platform_operations#configs"
+        post "platform/operations/configs", to: "platform_operations#create_config"
+        patch "platform/operations/configs/:id", to: "platform_operations#update_config"
+        get "platform/operations/governance", to: "platform_operations#governance"
+        patch "platform/operations/governance/:id", to: "platform_operations#transition_governance"
+        get "governance/requests", to: "platform_operations#user_requests"
+        get "governance/requests/:id", to: "platform_operations#user_request"
+        post "governance/requests", to: "platform_operations#create_user_request"
         get "commercial/entitlements", to: "service_entitlements#entitlements"
         get "commercial/usage", to: "service_entitlements#usage"
         get "commercial/plans", to: "service_entitlements#plans"

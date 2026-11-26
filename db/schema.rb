@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_25_140000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_26_110000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -686,6 +686,33 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_25_140000) do
     t.index ["parent_user_id", "status"], name: "index_abroa_planning_drafts_on_parent_user_id_and_status"
     t.index ["parent_user_id"], name: "index_abroa_planning_drafts_on_parent_user_id"
     t.check_constraint "(kind::text = ANY (ARRAY['budget'::character varying::text, 'study_project'::character varying::text, 'funding'::character varying::text])) AND (status::text = ANY (ARRAY['draft'::character varying::text, 'cancelled'::character varying::text, 'submitted'::character varying::text, 'accepted'::character varying::text, 'rejected'::character varying::text]))", name: "abroa_draft_states"
+  end
+
+  create_table "abroa_platform_audit_events", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "actor_user_id"
+    t.uuid "target_user_id"
+    t.string "action", null: false
+    t.string "outcome", null: false
+    t.string "request_id", null: false
+    t.jsonb "safe_changes", default: {}, null: false
+    t.datetime "occurred_at", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["actor_user_id", "occurred_at"], name: "idx_abroa_platform_audit_actor"
+    t.index ["request_id", "occurred_at"], name: "idx_abroa_platform_audit_request"
+    t.index ["target_user_id", "occurred_at"], name: "idx_abroa_platform_audit_target"
+  end
+
+  create_table "abroa_platform_role_assignments", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "user_id", null: false
+    t.uuid "granted_by_id"
+    t.string "role", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["granted_by_id"], name: "index_abroa_platform_role_assignments_on_granted_by_id"
+    t.index ["user_id", "role"], name: "idx_abroa_platform_role_unique", unique: true
+    t.index ["user_id"], name: "index_abroa_platform_role_assignments_on_user_id"
+    t.check_constraint "role::text = ANY (ARRAY['operator'::character varying, 'access_admin'::character varying, 'system_admin'::character varying]::text[])", name: "abroa_platform_role_valid"
   end
 
   create_table "abroa_pool_movements", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -4137,14 +4164,18 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_25_140000) do
     t.string "unconfirmed_email"
     t.datetime "updated_at", null: false
     t.string "webauthn_id"
+    t.datetime "platform_suspended_at"
+    t.integer "platform_access_version", default: 0, null: false
     t.index ["default_account_id"], name: "index_users_on_default_account_id"
     t.index ["email"], name: "index_users_on_email", unique: true
     t.index ["family_id"], name: "index_users_on_family_id"
     t.index ["last_viewed_chat_id"], name: "index_users_on_last_viewed_chat_id"
     t.index ["locale"], name: "index_users_on_locale"
     t.index ["otp_secret"], name: "index_users_on_otp_secret", unique: true, where: "(otp_secret IS NOT NULL)"
+    t.index ["platform_suspended_at"], name: "index_users_on_platform_suspended_at"
     t.index ["preferences"], name: "index_users_on_preferences", using: :gin
     t.index ["webauthn_id"], name: "index_users_on_webauthn_id", unique: true, where: "(webauthn_id IS NOT NULL)"
+    t.check_constraint "platform_access_version >= 0", name: "users_platform_access_version_nonnegative"
   end
 
   create_table "valuations", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -4350,6 +4381,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_25_140000) do
   add_foreign_key "abroa_planning_audit_events", "users", column: "actor_id", on_delete: :nullify
   add_foreign_key "abroa_planning_drafts", "families", on_delete: :cascade
   add_foreign_key "abroa_planning_drafts", "users", column: "parent_user_id", on_delete: :cascade
+  add_foreign_key "abroa_platform_role_assignments", "users", column: "granted_by_id", on_delete: :nullify
+  add_foreign_key "abroa_platform_role_assignments", "users", on_delete: :cascade
   add_foreign_key "abroa_pool_movements", "abroa_fund_pools", column: "pool_id"
   add_foreign_key "abroa_pool_movements", "abroa_pool_movements", column: "reversal_of_id"
   add_foreign_key "abroa_pool_movements", "abroa_rate_snapshots", column: "rate_snapshot_id"
