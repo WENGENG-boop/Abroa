@@ -1,6 +1,6 @@
 # P5 Security Review — source-level evidence
 
-Scope: platform RBAC, separate billing and subscription controls, operational diagnostics and sandboxed delivery. Review recorded 2026-11-26. Formal combined acceptance remains pending.
+Scope: platform RBAC, separate billing and subscription controls, operational diagnostics and sandboxed delivery. Review recorded 2026-11-26. P5.1–P5.4 combined backend-only simulation acceptance VERIFIED after the complete green regression and final P5.4 image revalidation; production and external integrations remain outside scope.
 
 **Platform roles and privilege separation.** `app/models/abroa/platform_role_assignment.rb` checks permissions directly against PostgreSQL and active user state for each request; Sure `super_admin` and Family Admin do not automatically receive platform permissions. `app/models/abroa/platform_administration.rb` serializes role changes and account state changes with a transaction/advisory lock; last-admin self-lockout is rejected. `app/models/abroa/platform_bootstrap.rb` requires explicit local operator approval and a preexisting Sure super administrator, without public bootstrap endpoints. API allowlists: `app/controllers/api/v1/abroa/platform_users_controller.rb`.
 

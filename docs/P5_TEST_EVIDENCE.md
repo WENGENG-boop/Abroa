@@ -16,7 +16,8 @@ All figures below refer to actual executed processes and named logs. Unknown/unf
 | API consistency | `ruby test/support/verify_api_endpoint_consistency.rb --compliance`: implementation verified, exit 0; inherited Sure compliance exceptions: financekit OAuth spec, transaction/transfer docs-only assertion violations | 0 |
 | Original Monarch CSV regression | `logs/p5-monarch-regression.log`: 25 tests / 51 assertions / 0 failures / 0 errors / 0 skips. Isolated Linux fixture LF correction; original fixture and tests unchanged | 0 |
 | Redis/PostgreSQL fault-recovery simulation | `logs/p5-service-fault-verification.jsonl`: induced Redis and PostgreSQL stalls, verified failure during outage, recovered PONG/SQL SELECT 1, persisted ledger count, HTTP 200 | 0 |
-| Complete P1–P5 Rails suite | `logs/p5-full-regression.log`: fifth run 19,328 tests / 118,185 assertions / 0 failures / 2 errors caused solely by mixed CSV fixture line endings; sixth full run after correction underway | **PENDING sixth-run completion; fifth NOT accepted** |
+| Final rebuilt P5.4 image | logs/p5-final-image-runtime-verification.jsonl: rebuilt image and running Web/Worker confirmed SHA 6f8fc5f19, DB/Redis/Worker healthy, Web HTTP 200 and latest migration 20261126130100 | 0 |
+| Complete P1–P5 Rails suite | `logs/p5-full-regression.log`: fifth run archived as failed; sixth completed run: **19,328 tests / 118,189 assertions / 0 failures / 0 errors / 9 historical skips**, final evidence gate VERIFIED | **EXIT 0; VERIFIED** |
 
 The previous failed whole-suite attempts were preserved in D: as `p5-full-initial-environment-failure.log`, `p5-full-second-environment-generation-failure.log`, `p5-full-third-env-empty-token-failure.log`, and `p5-full-fourth-missing-git-failure.log`. These attempts cannot be described as green. Tests or assertions were not removed, skipped or relaxed.
 
