@@ -59,7 +59,8 @@ class Api::V1::MessagesControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should retry last assistant message" do
-    skip "Retry functionality needs debugging"
+    last_user_message = @chat.messages.where(type: "UserMessage").ordered.last
+    assert last_user_message
 
     # Create an assistant message to retry
     assistant_message = @chat.messages.create!(
@@ -68,14 +69,22 @@ class Api::V1::MessagesControllerTest < ActionDispatch::IntegrationTest
       ai_model: "gpt-4"
     )
 
-    assert_enqueued_with(job: AssistantResponseJob) do
-      post "/api/v1/chats/#{@chat.id}/messages/retry",
-        headers: bearer_auth_header(@write_token)
-    end
-
+    post "/api/v1/chats/#{@chat.id}/messages/retry.json",
+      headers: bearer_auth_header(@write_token)
     assert_response :accepted
+    assert_enqueued_jobs 1, only: AssistantResponseJob
     response_body = JSON.parse(response.body)
     assert response_body["message_id"].present?
+    pending = @chat.messages.find(response_body.fetch("message_id"))
+    assert_instance_of AssistantMessage, pending
+    assert pending.pending?
+    assert_not_equal assistant_message.id, pending.id
+
+    queued = enqueued_jobs.reverse.find { |item| item[:job] == AssistantResponseJob }
+    assert queued
+    user_arg, pending_arg = ActiveJob::Arguments.deserialize(queued.fetch(:args))
+    assert_equal last_user_message, user_arg, "Only a UserMessage can request an AI response"
+    assert_equal pending, pending_arg, "The job must fill the new pending AssistantMessage"
   end
 
   test "should not retry if no assistant message exists" do

@@ -27,16 +27,20 @@ class Api::V1::MessagesController < Api::V1::BaseController
 
   def retry
     last_message = @chat.messages.ordered.last
+    last_user_message = @chat.messages.where(type: "UserMessage").ordered.last
 
-    if last_message&.type == "AssistantMessage"
-      new_message = @chat.messages.create!(
+    if last_message.is_a?(AssistantMessage) && last_user_message.present?
+      pending = @chat.messages.create!(
         type: "AssistantMessage",
         content: "",
-        ai_model: last_message.ai_model
+        ai_model: last_user_message.ai_model,
+        status: :pending
       )
 
-      AssistantResponseJob.perform_later(new_message)
-      render json: { message: "Retry initiated", message_id: new_message.id }, status: :accepted
+      # The worker must receive the user's question, then the pending reply.
+      # AssistantMessage does not implement request_response.
+      AssistantResponseJob.perform_later(last_user_message, pending)
+      render json: { message: "Retry initiated", message_id: pending.id }, status: :accepted
     else
       render json: { error: "No assistant message to retry" }, status: :unprocessable_entity
     end
