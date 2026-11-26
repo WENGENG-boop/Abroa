@@ -1311,6 +1311,10 @@ Rails.application.routes.draw do
     end
   end
 
+  namespace :abroa do
+    resources :projects, only: %i[index show new create]
+  end
+
   # Defines the root path route ("/")
   root "pages#dashboard"
 end

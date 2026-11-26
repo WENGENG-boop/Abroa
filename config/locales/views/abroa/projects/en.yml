@@ -1,0 +1,20 @@
+en:
+  abroa:
+    projects:
+      title: Study projects
+      new: New study project
+      empty: You have no study projects yet.
+      details: View project
+      next_page: Next page
+      name: Project name
+      country: Destination country (ISO code)
+      school: School
+      city: City
+      start_on: Start date
+      end_on: End date
+      currency: Project currency
+      timezone: Time zone
+      create: Create project
+      created: Project created.
+      save_error: Could not save the project. Check the fields and try again.
+      unspecified: Not specified

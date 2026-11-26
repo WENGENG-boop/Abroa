@@ -1,0 +1,29 @@
+<% content_for :head do %>
+  <meta name="turbo-cache-control" content="no-cache">
+<% end %>
+<div class="max-w-4xl mx-auto space-y-4">
+  <div class="flex flex-wrap items-center justify-between gap-3">
+    <h1 class="text-2xl font-medium"><%= t("abroa.projects.title") %></h1>
+    <% unless Current.user.guest? %>
+      <%= render DS::Link.new(text: t("abroa.projects.new"), icon: "plus", href: new_abroa_project_path) %>
+    <% end %>
+  </div>
+  <% if @projects.empty? %>
+    <%= render DS::Card.new do %>
+      <p class="text-secondary"><%= t("abroa.projects.empty") %></p>
+    <% end %>
+  <% else %>
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
+      <% @projects.each do |project| %>
+        <%= render DS::Card.new(class: "gap-3") do %>
+          <h2 class="font-medium break-words"><%= project.name %></h2>
+          <p class="text-sm text-secondary"><%= project.country %> · <%= project.currency %></p>
+          <%= render DS::Link.new(text: t("abroa.projects.details"), variant: "outline", href: abroa_project_path(project)) %>
+        <% end %>
+      <% end %>
+    </div>
+  <% end %>
+  <% if @next_cursor %>
+    <%= render DS::Link.new(text: t("abroa.projects.next_page"), variant: "outline", href: abroa_projects_path(cursor: @next_cursor)) %>
+  <% end %>
+</div>

@@ -57,6 +57,11 @@
   </div>
 <% end %>
 
+<% unless Current.user.guest? %>
+  <div class="mb-4">
+    <%= render DS::Link.new(text: t("abroa.projects.title"), variant: "outline", icon: "folder", href: abroa_projects_path) %>
+  </div>
+<% end %>
 <%= turbo_frame_tag "dashboard_sections", target: "_top" do %>
   <%= render "shared/exchange_rate_notes", family: Current.family, classes: "mb-4" %>
 

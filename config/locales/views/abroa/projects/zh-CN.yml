@@ -1,0 +1,20 @@
+zh-CN:
+  abroa:
+    projects:
+      title: 留学项目
+      new: 新建留学项目
+      empty: 暂无留学项目。
+      details: 查看项目
+      next_page: 下一页
+      name: 项目名称
+      country: 目的地国家（ISO 代码）
+      school: 学校
+      city: 城市
+      start_on: 开始日期
+      end_on: 结束日期
+      currency: 项目币种
+      timezone: 时区
+      create: 创建项目
+      created: 项目已创建。
+      save_error: 无法保存项目，请检查填写内容后重试。
+      unspecified: 未设置

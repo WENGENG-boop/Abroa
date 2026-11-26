@@ -1,0 +1,23 @@
+<% content_for :head do %>
+  <meta name="turbo-cache-control" content="no-cache">
+<% end %>
+<div class="max-w-2xl mx-auto space-y-4">
+  <%= render DS::Link.new(text: t("abroa.projects.title"), variant: "ghost", icon: "arrow-left", href: abroa_projects_path) %>
+  <h1 class="text-2xl font-medium break-words"><%= @project.name %></h1>
+  <%= render DS::Card.new do %>
+    <dl class="space-y-3">
+      <% %i[country school city currency timezone].each do |field| %>
+        <div class="flex flex-wrap justify-between gap-2">
+          <dt class="text-secondary"><%= t("abroa.projects.#{field}") %></dt>
+          <dd class="break-words"><%= @project.public_send(field).presence || t("abroa.projects.unspecified") %></dd>
+        </div>
+      <% end %>
+      <% %i[start_on end_on].each do |field| %>
+        <div class="flex flex-wrap justify-between gap-2">
+          <dt class="text-secondary"><%= t("abroa.projects.#{field}") %></dt>
+          <dd><%= @project.public_send(field)&.then { |date| l(date) } || t("abroa.projects.unspecified") %></dd>
+        </div>
+      <% end %>
+    </dl>
+  <% end %>
+</div>
