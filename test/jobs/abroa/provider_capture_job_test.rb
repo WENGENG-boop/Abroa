@@ -22,6 +22,17 @@ class Abroa::ProviderCaptureJobTest < ActiveJob::TestCase
     assert_equal @entry.id, Abroa::SourceRecord.find_by!(account: @account).entry_id
   end
 
+  test "suspended account owner prevents queued source record capture" do
+    sync = @account.syncs.create!(status: "completed", completed_at: Time.current)
+    @user.update!(platform_suspended_at: Time.current)
+    assert_no_difference "Abroa::SourceRecord.count" do
+      assert_no_difference "Entry.count" do
+        Abroa::ProviderCaptureJob.perform_now(sync.id)
+      end
+    end
+    assert_not @user.reload.active?
+  end
+
   test "failed and missing syncs do not capture" do
     sync = @account.syncs.create!(status: "failed")
     assert_no_difference "Abroa::SourceRecord.count" do

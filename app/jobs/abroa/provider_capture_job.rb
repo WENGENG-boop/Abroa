@@ -9,7 +9,7 @@ module Abroa
       return unless sync && sync.completed_at && !sync.cancel_requested_at?
 
       account = Account.find_by(id: sync.syncable_id)
-      return unless account && !account.pending_deletion?
+      return unless account && !account.pending_deletion? && account.owner&.active?
 
       # Include the upstream provider phase, which can write entries before
       # the account-level balance job starts. Older history is available via

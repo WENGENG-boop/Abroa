@@ -1,0 +1,18 @@
+#!/usr/bin/env ruby
+# One-time local administration command. No default platform administrator is
+# created on installation and Sure super administrators inherit no P5 roles.
+require_relative "../config/environment"
+
+abort "Usage: ABROA_PLATFORM_BOOTSTRAP_APPROVED=yes ABROA_PLATFORM_BOOTSTRAP_CONFIRMATION=... bin/abroa-bootstrap-platform-admin <existing-sure-super-admin-uuid>" unless
+  ARGV.length == 1 && ENV["ABROA_PLATFORM_BOOTSTRAP_APPROVED"] == "yes"
+
+begin
+  assignment = Abroa::PlatformBootstrap.grant_initial_system_admin!(
+    user_id: ARGV.fetch(0),
+    approval: ENV.fetch("ABROA_PLATFORM_BOOTSTRAP_CONFIRMATION", "")
+  )
+  puts "First platform system administrator successfully granted; role assignment #{assignment.id}"
+rescue Abroa::PlatformBootstrap::InvalidApproval,
+       Abroa::PlatformBootstrap::AlreadyInitialized, ActiveRecord::RecordNotFound => e
+  abort "Platform bootstrap rejected: #{e.class.name}"
+end

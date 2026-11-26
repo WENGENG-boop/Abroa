@@ -9,6 +9,7 @@ class ImpersonationSession < ApplicationRecord
   scope :initiated, -> { where(status: [ :pending, :in_progress ]) }
 
   validate :impersonator_is_super_admin
+  validate :impersonator_is_not_platform_admin
   validate :impersonated_is_not_super_admin
   validate :impersonator_different_from_impersonated
 
@@ -27,6 +28,12 @@ class ImpersonationSession < ApplicationRecord
   private
     def impersonator_is_super_admin
       errors.add(:impersonator, "must be a super admin to impersonate") unless impersonator.super_admin?
+    end
+
+    def impersonator_is_not_platform_admin
+      return unless impersonator && Abroa::PlatformRoleAssignment.where(user_id: impersonator.id).exists?
+
+      errors.add(:impersonator, "platform administrators cannot impersonate private tenants")
     end
 
     def impersonated_is_not_super_admin

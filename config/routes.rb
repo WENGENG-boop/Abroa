@@ -822,6 +822,13 @@ Rails.application.routes.draw do
   namespace :api do
     namespace :v1 do
       namespace :abroa do
+        get "platform/users", to: "platform_users#index"
+        get "platform/users/:id", to: "platform_users#show"
+        post "platform/users/:id/suspend", to: "platform_users#suspend"
+        post "platform/users/:id/unsuspend", to: "platform_users#unsuspend"
+        get "platform/roles", to: "platform_users#roles"
+        post "platform/roles", to: "platform_users#grant_role"
+        delete "platform/roles/:id", to: "platform_users#revoke_role"
         get "ai/provider", to: "ai#provider"
         post "ai/provider", to: "ai#create_provider"
         patch "ai/provider", to: "ai#update_provider"

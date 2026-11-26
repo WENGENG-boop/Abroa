@@ -93,7 +93,10 @@ module Authentication
     # entirely — their own session is still valid.
     def end_impersonation_if_target_inactive!
       impersonation = Current.session&.active_impersonator_session
-      return unless impersonation && !impersonation.impersonated.active?
+      return unless impersonation
+
+      impersonator_role = Abroa::PlatformRoleAssignment.where(user_id: impersonation.impersonator_id).exists?
+      return unless impersonator_role || !impersonation.impersonated.active?
 
       Rails.logger.warn(
         "[AUTH] Ending impersonation_session_id=#{impersonation.id}: " \

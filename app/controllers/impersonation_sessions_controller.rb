@@ -1,5 +1,6 @@
 class ImpersonationSessionsController < ApplicationController
   before_action :require_super_admin!, only: [ :create, :join, :leave ]
+  before_action :prevent_platform_impersonation!, only: [ :create, :join ]
   before_action :set_impersonation_session, only: [ :approve, :reject, :complete ]
 
   def create
@@ -45,6 +46,12 @@ class ImpersonationSessionsController < ApplicationController
   end
 
   private
+    # A platform administrator is never granted another person's financial
+    # tenant permissions through Sure's legacy support impersonation flow.
+    def prevent_platform_impersonation!
+      raise_unauthorized! if Abroa::PlatformRoleAssignment.where(user_id: Current.true_user.id).exists?
+    end
+
     def session_params
       params.require(:impersonation_session).permit(:impersonated_id)
     end

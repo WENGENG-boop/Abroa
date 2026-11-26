@@ -43,7 +43,8 @@ module Abroa
 
       # Validate once more at the actual send boundary. No sensitive source
       # details or customer-defined strings are ever included in the mail.
-      unless outbox.reload.inbox_notification.authorized_for?(recipient) &&
+      unless recipient.reload.active? &&
+          outbox.reload.inbox_notification.authorized_for?(recipient) &&
           NotificationPreference.for_user(recipient).email_enabled
         outbox.with_lock { outbox.update!(status: "cancelled", error_code: "permission_revoked") }
         return

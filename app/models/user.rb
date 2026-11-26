@@ -208,6 +208,13 @@ class User < ApplicationRecord
     impersonator_support_sessions.create!(impersonated: impersonated)
   end
 
+  # Platform suspensions are distinct from Sure account deactivation, which
+  # schedules irreversible financial-data purging. Keep that original column
+  # unchanged while denying sessions, API tokens and new credential issuance.
+  def active?
+    self[:active] && (!has_attribute?(:platform_suspended_at) || self[:platform_suspended_at].nil?)
+  end
+
   def admin?
     super_admin? || role == "admin"
   end
@@ -325,7 +332,9 @@ class User < ApplicationRecord
   after_update_commit :revoke_oauth_access, if: :saved_change_to_password_digest?
 
   def deactivate
-    return true unless active?
+    # An independently platform-suspended user still has an active Sure row.
+    # An explicit legacy deactivation must not become a silent no-op.
+    return true unless self[:active]
 
     transaction do
       update(active: false, email: deactivated_email)

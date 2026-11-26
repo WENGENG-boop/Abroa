@@ -144,6 +144,31 @@ class ImpersonationSessionsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to root_path
   end
 
+  test "platform role cannot use Sure super admin impersonation to read a tenant" do
+    sign_in actor = users(:sure_support_staff)
+    Abroa::PlatformRoleAssignment.create!(user: actor, role: "system_admin")
+    target = users(:family_member)
+    assert_no_difference "ImpersonationSession.count" do
+      post impersonation_sessions_path, params: { impersonation_session: { impersonated_id: target.id } }
+      assert_response :not_found
+    end
+    post join_impersonation_sessions_path,
+      params: { impersonation_session_id: impersonation_sessions(:in_progress).id }
+    assert_response :not_found
+  end
+
+  test "platform promotion terminates existing Sure support impersonation on next request" do
+    sign_in actor = users(:sure_support_staff)
+    session = actor.sessions.order(created_at: :desc).first
+    post join_impersonation_sessions_path,
+      params: { impersonation_session_id: impersonation_sessions(:in_progress).id }
+    assert session.reload.active_impersonator_session.present?
+    Abroa::PlatformRoleAssignment.create!(user: actor, role: "operator")
+    get root_path
+    assert_response :success
+    assert_nil session.reload.active_impersonator_session
+  end
+
   test "a user who is neither party gets a 404 on complete and the session stays open" do
     sign_in users(:family_admin)
     impersonator_session = impersonation_sessions(:in_progress)
