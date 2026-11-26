@@ -1,0 +1,772 @@
+# P1–P4 独立执行的实际测试方法索引
+
+本文件由2026-11-26实际 Rails 专项 -v 日志自动提取，并非历史矩阵复写。
+原始日志：D:/开发/Abroa/.p1-p4-full-20261126/logs/abroa-focused-verbose-20261126T020941Z.log
+实际方法 496 个；PASS 495 / SKIP 1 / FAILURE 0 / ERROR 0。
+状态为方法级结果，不可直接推论每项需求的全部业务断言已满足。
+
+## Abroa::AccountProfileTest (4)
+
+- [PASS] Abroa::AccountProfileTest#test_credit_card_cannot_be_marked_as_a_stored-value_wallet
+- [PASS] Abroa::AccountProfileTest#test_unrelated_tenant_cannot_read_or_update_account_profile
+- [PASS] Abroa::AccountProfileTest#test_region_defaults_are_available_without_claiming_a_supported_bank_connection
+- [PASS] Abroa::AccountProfileTest#test_account_region_and_wallet_classification_do_not_change_balance_or_currency
+
+## Abroa::AiFinancialAssistantTest (25)
+
+- [PASS] Abroa::AiFinancialAssistantTest#test_AI_proposals_cannot_transfer_real_money,_issue_payment_or_run_system_commands
+- [PASS] Abroa::AiFinancialAssistantTest#test_confirm_then_execute_updates_only_the_intended_budget_once_and_logs_it
+- [PASS] Abroa::AiFinancialAssistantTest#test_safe_compensation_restores_prior_budget_only_if_subsequent_edits_did_not_intervene
+- [PASS] Abroa::AiFinancialAssistantTest#test_private,_loopback,_redirected_and_credential_URL_forms_cannot_be_saved
+- [PASS] Abroa::AiFinancialAssistantTest#test_transaction_classification_does_not_send_unrelated_personal_report_or_forecast
+- [PASS] Abroa::AiFinancialAssistantTest#test_financial_answer_exposes_output_truncation_without_writing_any_ledger
+- [PASS] Abroa::AiFinancialAssistantTest#test_fund_allocation_requires_explicit_confirmation_and_never_creates_an_actual_bank_transfer
+- [PASS] Abroa::AiFinancialAssistantTest#test_self-hosted_local_AI_models_require_an_explicit_exact_admin_URL_allowlist
+- [PASS] Abroa::AiFinancialAssistantTest#test_personal_AI_explanation_includes_authorized_cash_summary_and_conservative_forecast
+- [PASS] Abroa::AiFinancialAssistantTest#test_fee_waiver_needs_confirmation_and_can_be_safely_voided_without_creating_cash_transactions
+- [PASS] Abroa::AiFinancialAssistantTest#test_the_AI_registry_and_MCP_share_the_restriction_for_Abroa_enabled_accounts
+- [PASS] Abroa::AiFinancialAssistantTest#test_AI_disabled_or_unconfigured_does_not_impact_normal_finance_requests
+- [PASS] Abroa::AiFinancialAssistantTest#test_custom_OpenAI-compatible_API_key_is_encrypted_and_masked_in_every_public_view
+- [PASS] Abroa::AiFinancialAssistantTest#test_old_proposal,_stale_resource_version_or_another_tenant_cannot_execute
+- [PASS] Abroa::AiFinancialAssistantTest#test_explicit_parent_AI_scope_never_receives_bank_entry_IDs_or_private_debt_details
+- [PASS] Abroa::AiFinancialAssistantTest#test_parent_AI_receives_forecast_only_with_independent_effective_forecast_and_source_grants
+- [PASS] Abroa::AiFinancialAssistantTest#test_model_is_read-only,_usage_records_tokens_with_unknown_cost_null,_no_Ledger_mutation
+- [PASS] Abroa::AiFinancialAssistantTest#test_injected_imported_transaction_text_is_data_and_cannot_execute_arbitrary_actions
+- [PASS] Abroa::AiFinancialAssistantTest#test_DNS_rebinding_or_a_mixed_public-private_answer_aborts_before_connecting
+- [PASS] Abroa::AiFinancialAssistantTest#test_project_AI_explanation_includes_real_A11_forecast_alongside_the_authorized_report
+- [PASS] Abroa::AiFinancialAssistantTest#test_legacy_Sure_AI_write_tools_cannot_bypass_a_confirmation_for_an_Abroa_user
+- [PASS] Abroa::AiFinancialAssistantTest#test_rejected_proposal_and_missing_confirmation_cannot_change_budget
+- [PASS] Abroa::AiFinancialAssistantTest#test_parent_AI_returns_an_incomplete_explanation_for_a_partial-only_project_month
+- [PASS] Abroa::AiFinancialAssistantTest#test_later_pool_movement_blocks_old_AI_compensation,_protecting_separately_reserved_funds
+- [PASS] Abroa::AiFinancialAssistantTest#test_model_failure_and_timeout_are_recorded_without_disclosing_credentials_or_mutating_data
+
+## Abroa::AiModelGatewayLocalEndpointTest (7)
+
+- [PASS] Abroa::AiModelGatewayLocalEndpointTest#test_actual_local_HTTP_length_response_is_marked_incomplete,_not_silently_complete
+- [PASS] Abroa::AiModelGatewayLocalEndpointTest#test_financial_assistant_calls_real_local_model_without_writes_or_executable_tools
+- [PASS] Abroa::AiModelGatewayLocalEndpointTest#test_malformed_local_completion_body_does_not_escape_as_JSON_parser_exception
+- [PASS] Abroa::AiModelGatewayLocalEndpointTest#test_local_upstream_401_is_a_generic_safe_failure,_never_a_secret_leak
+- [PASS] Abroa::AiModelGatewayLocalEndpointTest#test_approved_local_endpoint_accepts_a_real_HTTP_chat_completion_with_usage
+- [PASS] Abroa::AiModelGatewayLocalEndpointTest#test_local_HTTP_redirect_to_metadata_endpoint_is_rejected,_never_followed
+- [PASS] Abroa::AiModelGatewayLocalEndpointTest#test_API_key_authenticated_chat_reaches_local_compatible_HTTP_service_without_financial_writes
+
+## Abroa::AiModelGatewayTest (10)
+
+- [PASS] Abroa::AiModelGatewayTest#test_long_content_and_long_input_no_longer_hit_legacy_byte_caps
+- [PASS] Abroa::AiModelGatewayTest#test_gateway_maps_upstream_read_timeout_without_leaking_a_NameError
+- [PASS] Abroa::AiModelGatewayTest#test_large_max_tokens_is_forwarded_verbatim_with_extended_timeout
+- [PASS] Abroa::AiModelGatewayTest#test_gateway_explicitly_marks_provider_length_cutoff_as_incomplete
+- [PASS] Abroa::AiModelGatewayTest#test_provider_permits_full_384K_output_budget_and_rejects_values_above_model_ceiling
+- [PASS] Abroa::AiModelGatewayTest#test_gateway_rejects_valid_JSON_with_unexpected_response_shapes_as_model_failures
+- [PASS] Abroa::AiModelGatewayTest#test_gateway_maps_invalid_HTTP_framing_and_connection_aborts_to_safe_model_failures
+- [PASS] Abroa::AiModelGatewayTest#test_gateway_maps_malformed_upstream_JSON_to_a_safe_model_error
+- [PASS] Abroa::AiModelGatewayTest#test_gateway_maps_upstream_401_to_a_safe_model_error,_not_a_constant_NameError
+- [PASS] Abroa::AiModelGatewayTest#test_gateway_accepts_a_valid_OpenAI_compatible_response
+
+## Abroa::AiProposalConcurrencyTest (1)
+
+- [PASS] Abroa::AiProposalConcurrencyTest#test_two_real_PG_sessions_cannot_confirm_different_versions_or_double-execute_an_AI_operation
+
+## Abroa::BudgetNodeTest (6)
+
+- [PASS] Abroa::BudgetNodeTest#test_invalid_overlaps_cycles_and_project_cross_references_reject
+- [PASS] Abroa::BudgetNodeTest#test_closed_period_rollover_is_idempotent_and_versioned
+- [PASS] Abroa::BudgetNodeTest#test_refund_reduces_the_actual_on_its_receipt_date,_not_the_purchase_date
+- [PASS] Abroa::BudgetNodeTest#test_committed_obligations_and_earmarked_cash_never_subtract_twice
+- [PASS] Abroa::BudgetNodeTest#test_child_budget_over-allocation_warns_without_rewriting_the_ledger
+- [PASS] Abroa::BudgetNodeTest#test_one_transaction_counts_once_per_matching_level_but_not_three_times_in_ledger
+
+## Abroa::DebtConcurrencyTest (2)
+
+- [PASS] Abroa::DebtConcurrencyTest#test_two_PostgreSQL_sessions_cannot_overpay_one_debt_using_distinct_genuine_entries
+- [PASS] Abroa::DebtConcurrencyTest#test_duplicate_simultaneous_confirmation_of_same_entry_and_key_returns_the_identical_immutable_settlement
+
+## Abroa::EntryAllocationTest (5)
+
+- [PASS] Abroa::EntryAllocationTest#test_archiving_retains_allocations_and_blocks_new_allocation_writes
+- [PASS] Abroa::EntryAllocationTest#test_project-specific_category_can_change_without_changing_the_original_transaction
+- [PASS] Abroa::EntryAllocationTest#test_later_ledger_modification_marks_allocations_inconsistent
+- [PASS] Abroa::EntryAllocationTest#test_a_split_parent_is_ineligible_and_foreign_users_cannot_allocate
+- [PASS] Abroa::EntryAllocationTest#test_shared_account_never_automatically_allocates_entries_and_explicit_splits_conserve_the_ledger
+
+## Abroa::FeeAdjustmentTest (4)
+
+- [PASS] Abroa::FeeAdjustmentTest#test_deductions_cannot_lower_obligations_below_confirmed_payments
+- [PASS] Abroa::FeeAdjustmentTest#test_installment_waiver_changes_both_installment_net_due_and_plan_total_exactly_once
+- [PASS] Abroa::FeeAdjustmentTest#test_waiver_scholarship_offset_and_surcharge_affect_liability_without_phantom_income
+- [PASS] Abroa::FeeAdjustmentTest#test_cancelled_fee_plans_freeze_approved_adjustments_and_keep_their_historical_obligations
+
+## Abroa::FeePlanTest (13)
+
+- [PASS] Abroa::FeePlanTest#test_fees_cannot_accept_unposted_transactions_or_unmatched_cross-currency_parity
+- [PASS] Abroa::FeePlanTest#test_linked_refund_reopens_amount_due_and_keeps_expense_only_once
+- [PASS] Abroa::FeePlanTest#test_legacy_fee-settlement_idempotency_replay_cannot_consume_a_second_pool_movement
+- [PASS] Abroa::FeePlanTest#test_linked_fund_pool_releases_reserved_money_on_payment_and_restores_credit_on_refund
+- [PASS] Abroa::FeePlanTest#test_same_client_idempotency_key_is_scoped_separately_to_each_fee_installment
+- [PASS] Abroa::FeePlanTest#test_scheduled_installments_freeze_fee_currency_kind_and_funding_provenance_before_payment
+- [PASS] Abroa::FeePlanTest#test_cancelling_unpaid_fee_releases_its_pool_reservation_without_touching_bank_cash
+- [PASS] Abroa::FeePlanTest#test_refundable_housing_deposit_is_an_asset_not_a_budget_expense
+- [PASS] Abroa::FeePlanTest#test_future_fee_commitment_is_separate_from_spent_budget
+- [PASS] Abroa::FeePlanTest#test_fee_settlement_can_use_one_Sure_Goal-backed_pool_without_double_reservation_or_posting
+- [PASS] Abroa::FeePlanTest#test_same_payment_ledger_portion_cannot_fund_multiple_installments
+- [PASS] Abroa::FeePlanTest#test_a_confirmed_fee_cannot_be_cancelled_after_payment_and_a_stale_version_cannot_edit
+- [PASS] Abroa::FeePlanTest#test_tuition_installments_and_direct_scholarship_reduction_do_not_create_cash_receipts
+
+## Abroa::FeeRecurringImportTest (5)
+
+- [PASS] Abroa::FeeRecurringImportTest#test_imports_Sure_recurring_occurrence_once_without_creating_a_bank_entry
+- [PASS] Abroa::FeeRecurringImportTest#test_skipped_occurrences_do_not_create_future_liabilities
+- [PASS] Abroa::FeeRecurringImportTest#test_revoked_account_access_refuses_importing_someone_else's_bill
+- [PASS] Abroa::FeeRecurringImportTest#test_different_currency_and_excessive_ranges_fail_closed_without_guessed_FX
+- [PASS] Abroa::FeeRecurringImportTest#test_snoozed_Sure_occurrences_are_imported_when_the_effective_due_date_is_in_range
+
+## Abroa::FeeSettlementConcurrencyTest (2)
+
+- [PASS] Abroa::FeeSettlementConcurrencyTest#test_two_database_sessions_cannot_allocate_140_against_100_of_ledger_facts
+- [PASS] Abroa::FeeSettlementConcurrencyTest#test_simultaneous_replay_of_one_key_returns_the_same_settlement
+
+## Abroa::FinancialReportTest (5)
+
+- [PASS] Abroa::FinancialReportTest#test_personal_cash_report_conserves_800_cash,_200_expense,_600_claim_and_no_income_on_recovery
+- [PASS] Abroa::FinancialReportTest#test_project_report_reconciles_allocated_Sure_entries_with_third-party_share_without_adding_fee_commitments_to_cash
+- [PASS] Abroa::FinancialReportTest#test_parent_aggregate_hides_small_private_activity_and_refuses_arbitrary_windows_or_revoked_Grant
+- [PASS] Abroa::FinancialReportTest#test_project_report_subtracts_the_correct_third-party_share_of_merchant_refund_and_repayments
+- [PASS] Abroa::FinancialReportTest#test_report_returns_missing_FX_evidence_and_null_aggregates_instead_of_combining_currencies
+
+## Abroa::ForecastTest (10)
+
+- [PASS] Abroa::ForecastTest#test_student_without_cash_or_history_has_reproducible_zero_baseline,_no_false_transactions
+- [PASS] Abroa::ForecastTest#test_missing_historical_FX_explicitly_blocks_numeric_output_instead_of_mixing_currencies
+- [PASS] Abroa::ForecastTest#test_student_computation_reads_Sure_bank_balances_and_never_creates_bank_entries
+- [PASS] Abroa::ForecastTest#test_FX_shock_applies_to_converted_foreign-currency_fees_and_funding,_not_local_expenses
+- [PASS] Abroa::ForecastTest#test_zero_spend_never_has_shortage,_negative_opening_reports_immediate_shortage
+- [PASS] Abroa::ForecastTest#test_stress_and_late_funding_reduce_coverage_without_updating_actual_ledger
+- [PASS] Abroa::ForecastTest#test_conservative_excludes_scheduled_but_unreceived_parental_support
+- [PASS] Abroa::ForecastTest#test_invalid_multiplier_and_currency_are_rejected_deterministically
+- [PASS] Abroa::ForecastTest#test_known_fixed_fee_payments_are_removed_from_routine_spending_baseline
+- [PASS] Abroa::ForecastTest#test_A11_standard_calculation:_day_ten_500,_day_thirty_100,_negative_day_thirty_six
+
+## Abroa::FundPoolConcurrencyTest (3)
+
+- [PASS] Abroa::FundPoolConcurrencyTest#test_concurrent_duplicate_movement_key_creates_only_one_event
+- [PASS] Abroa::FundPoolConcurrencyTest#test_two_independent_connections_never_claim_80000_of_70000_free_cash
+- [PASS] Abroa::FundPoolConcurrencyTest#test_a_new_Sure_Goal_and_an_Abroa_allocation_cannot_race_past_available_cash
+
+## Abroa::FundPoolTest (13)
+
+- [PASS] Abroa::FundPoolTest#test_an_added_Sure_Goal_must_not_overclaim_the_funds_already_in_a_pool
+- [PASS] Abroa::FundPoolTest#test_goal-linked_pool_is_only_a_view_of_the_original_Sure_Goal_earmark
+- [PASS] Abroa::FundPoolTest#test_four_virtual_allocations_conserve_bank_balance_and_expose_free_living_amount
+- [PASS] Abroa::FundPoolTest#test_goal-linked_pool_consumes_the_same_real_posted_transaction_through_Sure_Goal
+- [PASS] Abroa::FundPoolTest#test_maintained_Sure_Goal_consumption_is_refused_without_creating_phantom_pool_movement
+- [PASS] Abroa::FundPoolTest#test_replaying_a_movement_is_idempotent_and_a_changed_request_is_rejected
+- [PASS] Abroa::FundPoolTest#test_Goal_refund_across_two_purchases_reverses_each_purchase_historical_rate
+- [PASS] Abroa::FundPoolTest#test_Sure_Goal_reserve_and_Abroa_pools_share_one_native_currency_ceiling
+- [PASS] Abroa::FundPoolTest#test_goal-linked_refund_restores_original_earmark_only_for_an_authoritative_refund
+- [PASS] Abroa::FundPoolTest#test_external_spending_reports_a_funding_shortfall_instead_of_reducing_pledged_allocations
+- [PASS] Abroa::FundPoolTest#test_release_reserve_consume_and_linked_refund_never_create_a_second_payment
+- [PASS] Abroa::FundPoolTest#test_restoring_an_archived_Sure_Goal_must_not_overclaim_active_fund_pools
+- [PASS] Abroa::FundPoolTest#test_Goal-linked_refunds_reverse_original_historical_FX_instead_of_refund-date_FX
+
+## Abroa::FundingPlanTest (12)
+
+- [PASS] Abroa::FundingPlanTest#test_parent_never_sees_student_account_IDs_or_individual_transaction_and_cannot_match_receipts
+- [PASS] Abroa::FundingPlanTest#test_monthly_recurrence_has_deterministic_total,_installment_dates,_and_cancels_without_altering_received_history
+- [PASS] Abroa::FundingPlanTest#test_outflows,_pending,_foreign_family,_wrong_account_and_overpayment_cannot_match
+- [PASS] Abroa::FundingPlanTest#test_relationship_revoke_immediately_hides_funding_plans_and_all_parent_projections
+- [PASS] Abroa::FundingPlanTest#test_funding_suggestions_respect_optimistic_version_and_relationship_revocation
+- [PASS] Abroa::FundingPlanTest#test_parent_creates_a_plan,_student_confirms,_two_posted_receipts_settle_without_cash_creation
+- [PASS] Abroa::FundingPlanTest#test_student_can_propose_a_funding_adjustment_without_changing_the_parent's_plan_until_accepted
+- [PASS] Abroa::FundingPlanTest#test_partial_bank_refund_reverses_historic_matched_value_and_cannot_be_repeated
+- [PASS] Abroa::FundingPlanTest#test_historical_USD_to_GBP_matching_remains_stable_after_FX_correction
+- [PASS] Abroa::FundingPlanTest#test_mutated_source_ledger_fact_invalidates_previously_confirmed_funding_projection
+- [PASS] Abroa::FundingPlanTest#test_same_confirmed_transaction_cannot_be_matched_twice_or_to_unrelated_funding_plans
+- [PASS] Abroa::FundingPlanTest#test_changed_refund_ledger_evidence_invalidates_all_resulting_funding_projections
+
+## Abroa::FxDetailTest (3)
+
+- [PASS] Abroa::FxDetailTest#test_cross-tenant_and_unauthorized_accounts_cannot_be_used
+- [PASS] Abroa::FxDetailTest#test_invalid_fee_currency_and_nonfinite_amount_never_post_ledger_entries
+- [PASS] Abroa::FxDetailTest#test_actual_exchange_keeps_the_fee_separate_from_principal_and_replays_only_once
+
+## Abroa::GoogleIdentityTest (6)
+
+- [PASS] Abroa::GoogleIdentityTest#test_other_identity_providers_keep_their_original_behavior
+- [PASS] Abroa::GoogleIdentityTest#test_configured_Google_OIDC_requires_issuer_subject_and_verified_email
+- [PASS] Abroa::GoogleIdentityTest#test_stored_Google_issuer_must_match_verified_proof
+- [PASS] Abroa::GoogleIdentityTest#test_native_Google_requires_verified_subject_from_userinfo_not_just_email
+- [PASS] Abroa::GoogleIdentityTest#test_an_existing_Google_identity_cannot_authenticate_after_provider_is_repointed
+- [PASS] Abroa::GoogleIdentityTest#test_pending_proof_is_bound_to_its_provider_and_cannot_be_reused_after_configuration_changes
+
+## Abroa::InboxNotificationTest (9)
+
+- [PASS] Abroa::InboxNotificationTest#test_email_opt-in_creates_durable_outbox_and_retry_after_successful_delivery_is_idempotent
+- [PASS] Abroa::InboxNotificationTest#test_default_email_opt-out_creates_no_outbound_mail
+- [PASS] Abroa::InboxNotificationTest#test_worker_will_not_deliver_when_outbox_recipient_is_corrupted_to_another_family
+- [PASS] Abroa::InboxNotificationTest#test_recipient_spoofing_across_families_never_creates_a_notification_or_sends_mail
+- [PASS] Abroa::InboxNotificationTest#test_same_stable_event_key_creates_exactly_one_tenant-scoped_inbox_item
+- [PASS] Abroa::InboxNotificationTest#test_disabling_in-app_channel_prevents_event_display_even_when_event_already_exists
+- [PASS] Abroa::InboxNotificationTest#test_email_job_must_recheck_an_active_parental_grant
+- [PASS] Abroa::InboxNotificationTest#test_disabled_preferences_or_permission_revoked_before_worker_execution_blocks_email
+- [PASS] Abroa::InboxNotificationTest#test_cross-timezone_quiet_hours_defer_mail_and_a_later_allowed_hour_resumes_it
+
+## Abroa::LedgerConcurrencyTest (3)
+
+- [PASS] Abroa::LedgerConcurrencyTest#test_parallel_provider_imports_create_one_entry_for_an_identical_external_ID
+- [PASS] Abroa::LedgerConcurrencyTest#test_parallel_refunds_cannot_overallocate_the_original_purchase
+- [PASS] Abroa::LedgerConcurrencyTest#test_parallel_captures_of_the_same_provider_movement_preserve_one_entry_and_source
+
+## Abroa::NetConsumptionTest (6)
+
+- [PASS] Abroa::NetConsumptionTest#test_inconsistent_allocations_produce_an_incomplete_report_instead_of_a_false_net_amount
+- [PASS] Abroa::NetConsumptionTest#test_revoking_the_allocation_does_not_delete_the_refund_movement
+- [PASS] Abroa::NetConsumptionTest#test_conversion_uses_each_movement_date_and_reports_missing_rates_explicitly
+- [PASS] Abroa::NetConsumptionTest#test_deleted_original_purchase_does_not_silently_become_unallocated_income
+- [PASS] Abroa::NetConsumptionTest#test_account_scope_excludes_foreign_accounts_and_unauthorized_account_requests
+- [PASS] Abroa::NetConsumptionTest#test_refund_reduces_net_spending_on_refund_date_without_reducing_the_historical_purchase
+
+## Abroa::NotificationConcurrencyTest (2)
+
+- [PASS] Abroa::NotificationConcurrencyTest#test_two_independent_PostgreSQL_sessions_can_create_only_one_notification_and_outbox_per_recipient/event
+- [PASS] Abroa::NotificationConcurrencyTest#test_concurrent_worker_executions_cannot_deliver_the_same_outbox_twice
+
+## Abroa::NotificationEventSweepTest (5)
+
+- [PASS] Abroa::NotificationEventSweepTest#test_fatal_SMTP_refusal_leaves_a_bounded_retryable_failure_without_private_error_details
+- [PASS] Abroa::NotificationEventSweepTest#test_retry_worker_polls_pending_outboxes_and_will_not_queue_duplicates_after_sending
+- [PASS] Abroa::NotificationEventSweepTest#test_P2_posted_fee_reminder_becomes_one_inbox_item_under_repeated_sweeps
+- [PASS] Abroa::NotificationEventSweepTest#test_worker_crash_while_SMTP_acceptance_is_uncertain_never_triggers_a_blind_resend
+- [PASS] Abroa::NotificationEventSweepTest#test_grant_creation_and_revoke_generate_distinct_safe_events_for_current_parent_and_student
+
+## Abroa::P3ConcurrencyTest (5)
+
+- [PASS] Abroa::P3ConcurrencyTest#test_student_grant_revoke_and_parent_direct_edit_serialize_safely
+- [PASS] Abroa::P3ConcurrencyTest#test_two_funding_plans_cannot_match_the_same_ledger_entry_simultaneously
+- [PASS] Abroa::P3ConcurrencyTest#test_two_PostgreSQL_sessions_accept_the_same_invitation_only_once
+- [PASS] Abroa::P3ConcurrencyTest#test_concurrent_budget_approval_and_rejection_cannot_both_resolve_proposal
+- [PASS] Abroa::P3ConcurrencyTest#test_two_refund_matches_cannot_reuse_one_actual_bank_outflow
+
+## Abroa::ParentOverviewTest (4)
+
+- [PASS] Abroa::ParentOverviewTest#test_no_grant_and_summary-only_grant_never_expose_private_budget_or_account_details
+- [PASS] Abroa::ParentOverviewTest#test_project_grants_selectively_unlock_aggregates_without_raw_transactions
+- [PASS] Abroa::ParentOverviewTest#test_revoked_or_expired_authorization_eliminates_summary_access_immediately
+- [PASS] Abroa::ParentOverviewTest#test_funding_receipts_are_not_added_to_expense_allocation_or_real_bank_cash
+
+## Abroa::ParentPlanningTest (8)
+
+- [PASS] Abroa::ParentPlanningTest#test_accept_applies_one_budget_version,_replays_safely,_and_catches_stale_budget_versions
+- [PASS] Abroa::ParentPlanningTest#test_proposal_creates_a_budget_only_after_student_approves,_preserving_hierarchy
+- [PASS] Abroa::ParentPlanningTest#test_parent_proposal_requires_propose_grant_and_student_rejection_does_not_write
+- [PASS] Abroa::ParentPlanningTest#test_independent_parent_draft_never_writes_a_student's_budget_or_ledger
+- [PASS] Abroa::ParentPlanningTest#test_revoke_propose_permission_before_acceptance_prevents_execution
+- [PASS] Abroa::ParentPlanningTest#test_direct_edit_is_restricted_to_a_specifically_granted_budget_node
+- [PASS] Abroa::ParentPlanningTest#test_a_parent_proposes_a_school_change_but_cannot_directly_modify_the_student's_project
+- [PASS] Abroa::ParentPlanningTest#test_parent_draft_converts_to_a_proposal_snapshot_and_follows_student_decision
+
+## Abroa::PdfSourceTest (2)
+
+- [PASS] Abroa::PdfSourceTest#test_normalized_PDF_extraction_rows_are_evidence_rather_than_ledger_postings
+- [PASS] Abroa::PdfSourceTest#test_staged_PDF_evidence_cannot_also_be_published_through_the_legacy_PDF_importer
+
+## Abroa::PersonalDebtTest (10)
+
+- [PASS] Abroa::PersonalDebtTest#test_settlements_retain_historical_exchange_rates_when_provider_rates_change
+- [PASS] Abroa::PersonalDebtTest#test_externally_paid_personal_expense_is_booked_as_payable_and_repaying_it_is_not_a_second_expense
+- [PASS] Abroa::PersonalDebtTest#test_outsiders_cannot_read_or_alter_obligations_even_if_they_know_IDs
+- [PASS] Abroa::PersonalDebtTest#test_a_debt_may_be_due_in_the_future_while_its_original_expense_must_be_historical
+- [PASS] Abroa::PersonalDebtTest#test_merchant_purchase_refund_reduces_third-party_claim_and_personal_consumption_proportionally
+- [PASS] Abroa::PersonalDebtTest#test_two_receipts_close_debt,_refund_reopens_only_the_repaid_portion
+- [PASS] Abroa::PersonalDebtTest#test_borrowed_cash_is_not_income_and_lending_is_not_personal_expense
+- [PASS] Abroa::PersonalDebtTest#test_cancellation_has_an_audit_trail_and_refuses_a_subsequent_settlement
+- [PASS] Abroa::PersonalDebtTest#test_duplicate_and_over-limit_requests_are_rejected_without_changing_authoritative_entries
+- [PASS] Abroa::PersonalDebtTest#test_800_paid_with_200_own_consumption_leaves_600_claim_and_partial_recovery_is_not_income
+
+## Abroa::ProfileTest (6)
+
+- [PASS] Abroa::ProfileTest#test_reading_a_default_profile_does_not_create_a_record
+- [PASS] Abroa::ProfileTest#test_invalid_country_currency_timezone_and_mode_are_rejected
+- [PASS] Abroa::ProfileTest#test_student_and_parent_modes_do_not_change_the_original_user_role_or_family
+- [PASS] Abroa::ProfileTest#test_onboarding_allows_optional_steps_to_be_skipped_without_a_project
+- [PASS] Abroa::ProfileTest#test_completion_requires_a_chosen_role_and_rejects_a_different_request_with_the_same_key
+- [PASS] Abroa::ProfileTest#test_stale_updates_do_not_overwrite_newer_preferences
+
+## Abroa::ProviderCaptureTest (4)
+
+- [PASS] Abroa::ProviderCaptureTest#test_capture_scans_existing_provider-identified_ledger_rows_without_modifying_the_ledger
+- [PASS] Abroa::ProviderCaptureTest#test_diagnostics_expose_only_status_and_allowlisted_error_reason
+- [PASS] Abroa::ProviderCaptureTest#test_foreign_user_cannot_capture_or_read_diagnostics
+- [PASS] Abroa::ProviderCaptureTest#test_Wise_source_captures_actual_provider_payment_reference_rather_than_editable_notes
+
+## Abroa::ProviderSyncStatusTest (1)
+
+- [PASS] Abroa::ProviderSyncStatusTest#test_classifies_only_structured_provider_error_fields_and_typed_network_errors
+
+## Abroa::RateSnapshotTest (4)
+
+- [PASS] Abroa::RateSnapshotTest#test_historical_snapshot_remains_unchanged_when_stored_rate_is_corrected
+- [PASS] Abroa::RateSnapshotTest#test_same_currency_is_exact_parity_and_rounds_only_for_display
+- [PASS] Abroa::RateSnapshotTest#test_three_decimal_currencies_retain_exact_amounts_and_round_only_for_presentation
+- [PASS] Abroa::RateSnapshotTest#test_historical_fallback_is_bounded_and_never_uses_a_future_rate
+
+## Abroa::RefundLinkTest (5)
+
+- [PASS] Abroa::RefundLinkTest#test_later_edit_makes_refund_projection_incomplete_instead_of_returning_a_stale_value
+- [PASS] Abroa::RefundLinkTest#test_several_partial_refunds_cannot_exceed_original_or_refund_entry_amount
+- [PASS] Abroa::RefundLinkTest#test_partial_refund_links_existing_entries_without_changing_ledger_and_replays
+- [PASS] Abroa::RefundLinkTest#test_invalid_direction_or_date_and_foreign_tenant_are_rejected
+- [PASS] Abroa::RefundLinkTest#test_unlink_is_audited_and_never_removes_the_real_refund_entry
+
+## Abroa::RelationshipTest (4)
+
+- [PASS] Abroa::RelationshipTest#test_relationship_alone_grants_nothing_and_project_access_is_explicit
+- [PASS] Abroa::RelationshipTest#test_relationship_requires_a_recipient-bound_single_use_invitation
+- [PASS] Abroa::RelationshipTest#test_revoke_relation_immediately_denies_all_grants_without_touching_student_ledger
+- [PASS] Abroa::RelationshipTest#test_expired_invitation,_same_family_and_outsider_roles_are_rejected
+
+## Abroa::ReportExportTest (4)
+
+- [PASS] Abroa::ReportExportTest#test_creates_an_encrypted-private-store-bound_export,_with_audit_and_identical_key_replay
+- [PASS] Abroa::ReportExportTest#test_download_refuses_outsider,_logs_owner_access,_and_refuses_expired_artifact
+- [PASS] Abroa::ReportExportTest#test_CSV_formula_injection_is_neutralized_in_every_exported_string_cell
+- [PASS] Abroa::ReportExportTest#test_parent_export_cannot_be_read_after_report_Grant_revocation
+
+## Abroa::SourceMatcherTest (5)
+
+- [PASS] Abroa::SourceMatcherTest#test_equal_date_and_amount_without_shared_reference_never_authorize_a_link
+- [PASS] Abroa::SourceMatcherTest#test_unique_bank_evidence_and_matching_explicit_reference_propose_a_link_without_writing
+- [PASS] Abroa::SourceMatcherTest#test_multiple_same_amount_candidates_always_require_review
+- [PASS] Abroa::SourceMatcherTest#test_a_wallet_balance_payment_is_not_eligible_for_bank_linking
+- [PASS] Abroa::SourceMatcherTest#test_unrelated_tenants_cannot_examine_match_candidates
+
+## Abroa::SourceRecordTest (12)
+
+- [PASS] Abroa::SourceRecordTest#test_reuse_of_a_row_identity_with_different_contents_is_rejected
+- [PASS] Abroa::SourceRecordTest#test_closing_a_still-unposted_pending_order_preserves_evidence_and_prevents_posting
+- [PASS] Abroa::SourceRecordTest#test_provider_pending_flag_may_clear_without_writing_or_duplicating_the_ledger
+- [PASS] Abroa::SourceRecordTest#test_provider_wrapper_links_the_precise_existing_source_id_without_changing_ledger
+- [PASS] Abroa::SourceRecordTest#test_same_file_row_and_external_id_in_another_file_preserve_one_canonical_record
+- [PASS] Abroa::SourceRecordTest#test_changed_stable_source_record_retains_both_observations_and_requires_review
+- [PASS] Abroa::SourceRecordTest#test_source_identity_is_tenant_isolated_and_cannot_point_to_another_tenant_account
+- [PASS] Abroa::SourceRecordTest#test_same_day_and_amount_with_distinct_row_identity_never_collapse
+- [PASS] Abroa::SourceRecordTest#test_closed_records_are_ignored_and_pending_evidence_cannot_write_ledger
+- [PASS] Abroa::SourceRecordTest#test_invalid_amount_currency_and_direction_are_rejected_without_source_or_ledger_writes
+- [PASS] Abroa::SourceRecordTest#test_same_stable_pending_order_becomes_posted_without_duplicate_or_conflict
+- [PASS] Abroa::SourceRecordTest#test_changed_pending_amount_is_not_silently_accepted_as_posted
+
+## Abroa::SourceReviewTest (9)
+
+- [PASS] Abroa::SourceReviewTest#test_refund_evidence_links_a_real_inflow_without_inventing_a_refund_payment
+- [PASS] Abroa::SourceReviewTest#test_confirmed_creation_posts_one_entry_and_the_same_request_replays
+- [PASS] Abroa::SourceReviewTest#test_version_conflict_and_pending_evidence_cannot_post
+- [PASS] Abroa::SourceReviewTest#test_reversal_removes_only_an_unchanged_entry_created_by_this_action
+- [PASS] Abroa::SourceReviewTest#test_unknown_PDF_movements_require_explicit_classification_before_posting
+- [PASS] Abroa::SourceReviewTest#test_later_entry_edit_or_a_second_source_blocks_destructive_reversal
+- [PASS] Abroa::SourceReviewTest#test_manual_link_preserves_bank_ledger_and_user_category
+- [PASS] Abroa::SourceReviewTest#test_foreign_user_cannot_open_or_resolve_a_review
+- [PASS] Abroa::SourceReviewTest#test_classified_source_cannot_be_relabeled_and_transfers_cannot_post_as_regular_movements
+
+## Abroa::StatementIntakeTest (20)
+
+- [PASS] Abroa::StatementIntakeTest#test_confirmed_bank-funded_statement_links_unique_explicit_reference_without_creating_a_ledger_entry
+- [PASS] Abroa::StatementIntakeTest#test_manual_automation_preference_stages_high_confidence_match_without_writing_metadata
+- [PASS] Abroa::StatementIntakeTest#test_changed_preview_mapping_and_incorrect_digest_cannot_publish
+- [PASS] Abroa::StatementIntakeTest#test_automatic_category_never_replaces_locked_uncategorized_entry_or_manually_selected_category
+- [PASS] Abroa::StatementIntakeTest#test_unknown_payment_funding_needs_explicit_account_assignment_before_posting
+- [PASS] Abroa::StatementIntakeTest#test_manual_resolution_cannot_attach_distinct_payment_orders_to_the_same_bank_entry
+- [PASS] Abroa::StatementIntakeTest#test_batch_rollback_is_atomic_if_an_entry_was_later_modified
+- [PASS] Abroa::StatementIntakeTest#test_reconciliation_undo_protects_later_manual_edits_and_requires_authorized_statement_access
+- [PASS] Abroa::StatementIntakeTest#test_ambiguous_bank_entries_remain_in_review_with_no_automatic_mutation
+- [PASS] Abroa::StatementIntakeTest#test_batch_rollback_of_automatic_link_preserves_existing_bank_transaction
+- [PASS] Abroa::StatementIntakeTest#test_undo_reconciliation_then_roll_back_unchanged_imported_entries
+- [PASS] Abroa::StatementIntakeTest#test_batch_rollback_removes_only_its_unchanged_created_entries_and_closes_pending_reviews
+- [PASS] Abroa::StatementIntakeTest#test_explicit_matching_category_rule_classifies_newly_confirmed_movement_without_changing_amount
+- [PASS] Abroa::StatementIntakeTest#test_different_orders_sharing_the_same_reference_in_one_file_do_not_auto-link
+- [PASS] Abroa::StatementIntakeTest#test_preview_is_read_only_and_publishing_stages_distinct_rows_exactly_once
+- [PASS] Abroa::StatementIntakeTest#test_known_wallet_funding_cannot_be_reassigned_as_a_bank_payment_or_to_another_tenant
+- [PASS] Abroa::StatementIntakeTest#test_foreign_tenant_cannot_preview_or_publish_a_private_statement
+- [PASS] Abroa::StatementIntakeTest#test_bank_statement_reconciliation_requires_exact_balances_and_complete_ledger_evidence
+- [PASS] Abroa::StatementIntakeTest#test_later_statement_evidence_blocks_rollback_of_the_original_batch
+- [PASS] Abroa::StatementIntakeTest#test_reconciliation_refuses_missing_movements,_stale_previews,_and_changed_balance
+
+## Abroa::StatementParserTest (6)
+
+- [PASS] Abroa::StatementParserTest#test_invalid_rows_and_formula-like_fields_are_reported_without_ledger_writes
+- [PASS] Abroa::StatementParserTest#test_WeChat_payment_channel_is_not_an_inferred_bank_account
+- [PASS] Abroa::StatementParserTest#test_unsupported_header_cannot_become_a_silently_successful_empty_import
+- [PASS] Abroa::StatementParserTest#test_generic_CSV_requires_explicit_mapping_and_preserves_distinct_identical_rows
+- [PASS] Abroa::StatementParserTest#test_Alipay_personal_CSV_recognizes_header_after_preamble_and_handles_UTF8_BOM_and_GB18030
+- [PASS] Abroa::StatementParserTest#test_oversized_statement_files_and_row_sets_are_rejected_before_posting
+
+## Abroa::StudyAllocationConcurrencyTest (1)
+
+- [PASS] Abroa::StudyAllocationConcurrencyTest#test_two_independent_database_connections_cannot_overallocate_a_shared_entry
+
+## Abroa::StudyProjectTest (4)
+
+- [PASS] Abroa::StudyProjectTest#test_invalid_country_currency_and_dates_are_rejected
+- [PASS] Abroa::StudyProjectTest#test_nested_periods_must_remain_in_their_parent_and_project_and_cannot_cycle
+- [PASS] Abroa::StudyProjectTest#test_project_belongs_to_a_single_user_and_accepts_global_regional_preferences
+- [PASS] Abroa::StudyProjectTest#test_archive_and_restore_preserve_the_prior_lifecycle_state_and_use_optimistic_versions
+
+## Abroa::XlsxRowsTest (3)
+
+- [PASS] Abroa::XlsxRowsTest#test_XLSX_formulas_are_flagged_rather_than_executed_or_accepted_from_cached_values
+- [PASS] Abroa::XlsxRowsTest#test_reads_shared_and_inline_strings_and_preserves_actual_spreadsheet_row_positions
+- [PASS] Abroa::XlsxRowsTest#test_XLSX_external_worksheet_relationship_is_rejected
+
+## AbroaCoreCompatibilityTest (4)
+
+- [PASS] AbroaCoreCompatibilityTest#test_goal_consumption_releases_its_earmark_without_creating_another_bank_transaction
+- [PASS] AbroaCoreCompatibilityTest#test_refund_preserves_both_signed_entries_and_the_net_cost_is_reproducible
+- [PASS] AbroaCoreCompatibilityTest#test_credit_card_payment_is_an_internal_transfer_and_does_not_double_count_spending
+- [PASS] AbroaCoreCompatibilityTest#test_split_payment_is_reported_once_and_its_children_cannot_settle_another_bill
+
+## AbroaGoogleLoginTest (3)
+
+- [PASS] AbroaGoogleLoginTest#test_unverified_email_and_invalid_issuer_do_not_initiate_linking
+- [PASS] AbroaGoogleLoginTest#test_verified_identity_with_existing_email_is_not_silently_linked
+- [PASS] AbroaGoogleLoginTest#test_existing_verified_identity_with_matching_issuer_signs_in
+
+## ActiveStorageAuthorizationTest (33)
+
+- [PASS] ActiveStorageAuthorizationTest#test_user_cannot_access_family_document_from_a_different_family
+- [PASS] ActiveStorageAuthorizationTest#test_user_can_access_pdf_import_file_within_their_own_family
+- [PASS] ActiveStorageAuthorizationTest#test_user_cannot_access_family_export_from_a_different_family
+- [PASS] ActiveStorageAuthorizationTest#test_blob_authorization_checks_protected_attachments_even_when_blob_is_also_attached_elsewhere
+- [PASS] ActiveStorageAuthorizationTest#test_disk_service_urls_require_authentication
+- [PASS] ActiveStorageAuthorizationTest#test_user_can_access_pdf_import_file_linked_to_a_statement_they_can_view
+- [PASS] ActiveStorageAuthorizationTest#test_authenticated_direct_uploads_can_create_unattached_blobs
+- [PASS] ActiveStorageAuthorizationTest#test_user_cannot_access_pdf_import_file_from_a_different_family
+- [PASS] ActiveStorageAuthorizationTest#test_a_disk_service_url_for_a_protected_file_still_has_the_browser_ask_every_time
+- [PASS] ActiveStorageAuthorizationTest#test_user_can_access_linked_statement_blob_for_a_shared_account
+- [PASS] ActiveStorageAuthorizationTest#test_user_can_access_attachments_within_their_own_family
+- [PASS] ActiveStorageAuthorizationTest#test_user_cannot_access_statement_blob_from_a_different_family
+- [PASS] ActiveStorageAuthorizationTest#test_Abroa_report_export_signed_blob_remains_inaccessible_even_to_its_owner
+- [PASS] ActiveStorageAuthorizationTest#test_orphaned_statement_attachment_fails_closed
+- [PASS] ActiveStorageAuthorizationTest#test_user_cannot_access_variants_from_a_different_family
+- [PASS] ActiveStorageAuthorizationTest#test_unauthenticated_user_is_redirected_before_statement_blob_access
+- [PASS] ActiveStorageAuthorizationTest#test_disk_service_urls_enforce_statement_blob_authorization
+- [PASS] ActiveStorageAuthorizationTest#test_direct_uploads_require_authentication
+- [PASS] ActiveStorageAuthorizationTest#test_unknown_protected_attachment_types_fail_closed
+- [PASS] ActiveStorageAuthorizationTest#test_user_cannot_access_sure_import_file_from_a_different_family
+- [PASS] ActiveStorageAuthorizationTest#test_user_cannot_access_pdf_import_file_linked_to_a_statement_they_cannot_view
+- [PASS] ActiveStorageAuthorizationTest#test_blob_authorization_denies_when_any_protected_attachment_is_unauthorized
+- [PASS] ActiveStorageAuthorizationTest#test_orphaned_transaction_attachment_fails_closed
+- [PASS] ActiveStorageAuthorizationTest#test_non-admin_family_member_cannot_access_family_export
+- [PASS] ActiveStorageAuthorizationTest#test_user_cannot_access_attachments_from_a_different_family
+- [PASS] ActiveStorageAuthorizationTest#test_user_cannot_access_linked_statement_blob_for_an_inaccessible_account
+- [PASS] ActiveStorageAuthorizationTest#test_a_disk_service_url_lets_the_browser_keep_an_account_logo_for_as_long_as_the_url_is_valid
+- [PASS] ActiveStorageAuthorizationTest#test_guest_cannot_access_unmatched_statement_blob
+- [PASS] ActiveStorageAuthorizationTest#test_user_can_access_family_document_within_their_own_family
+- [PASS] ActiveStorageAuthorizationTest#test_family_admin_can_access_their_own_family_export
+- [PASS] ActiveStorageAuthorizationTest#test_unattached_blobs_fail_closed
+- [PASS] ActiveStorageAuthorizationTest#test_every_attachment_is_either_access-checked_or_intentionally_public
+- [PASS] ActiveStorageAuthorizationTest#test_member_can_access_pdf_import_file_linked_to_a_statement_on_an_account_shared_with_them
+
+## ActiveStorageDerivedBlobAuthorizationTest (10)
+
+- [PASS] ActiveStorageDerivedBlobAuthorizationTest#test_tracked_variant_disk_urls_follow_the_source_receipt
+- [PASS] ActiveStorageDerivedBlobAuthorizationTest#test_preview_images_follow_the_source_receipt
+- [PASS] ActiveStorageDerivedBlobAuthorizationTest#test_tracked_variant_blobs_follow_the_source_receipt
+- [PASS] ActiveStorageDerivedBlobAuthorizationTest#test_member_can_access_a_receipt_on_an_account_shared_with_them
+- [PASS] ActiveStorageDerivedBlobAuthorizationTest#test_variants_of_preview_images_follow_the_source_receipt
+- [PASS] ActiveStorageDerivedBlobAuthorizationTest#test_preview_images_of_unattached_blobs_fail_closed
+- [PASS] ActiveStorageDerivedBlobAuthorizationTest#test_member_can_access_previews_of_a_receipt_on_an_account_shared_with_them
+- [PASS] ActiveStorageDerivedBlobAuthorizationTest#test_member_cannot_access_a_receipt_on_an_account_that_is_not_shared_with_them
+- [PASS] ActiveStorageDerivedBlobAuthorizationTest#test_member_cannot_access_previews_of_a_receipt_on_an_account_that_is_not_shared_with_them
+- [PASS] ActiveStorageDerivedBlobAuthorizationTest#test_disk_urls_fail_closed_once_the_blob_row_is_gone
+
+## ActiveStorageFamilyExportAuthorizationTest (3)
+
+- [PASS] ActiveStorageFamilyExportAuthorizationTest#test_non-admin_family_member_cannot_download_the_family_export
+- [PASS] ActiveStorageFamilyExportAuthorizationTest#test_family_admin_can_download_their_family_export
+- [PASS] ActiveStorageFamilyExportAuthorizationTest#test_user_from_another_family_cannot_download_the_family_export
+
+## Api::V1::Abroa::AiControllerTest (4)
+
+- [PASS] Api::V1::Abroa::AiControllerTest#test_custom_model_API_accepts_the_model_native_384K_output_ceiling
+- [PASS] Api::V1::Abroa::AiControllerTest#test_read-only_AI_chat_cannot_write_ledger,_usage_counts_expose_unknown_price_as_null
+- [PASS] Api::V1::Abroa::AiControllerTest#test_write_proposal_uses_server-generated_confirmation_token,_stale_budgets_and_outsiders_denied
+- [PASS] Api::V1::Abroa::AiControllerTest#test_AI_model_configuration_requires_write_scope,_masks_secret_and_rejects_SSRF
+
+## Api::V1::Abroa::BudgetNodesControllerTest (3)
+
+- [PASS] Api::V1::Abroa::BudgetNodesControllerTest#test_create_requires_authenticated_write_scope_and_replays_idempotency_key
+- [PASS] Api::V1::Abroa::BudgetNodesControllerTest#test_closed_source_rolls_once_and_invalid_scope_is_rejected
+- [PASS] Api::V1::Abroa::BudgetNodesControllerTest#test_execution_and_adjustments_are_versioned_and_leave_ledger_unchanged
+
+## Api::V1::Abroa::ConsumptionControllerTest (2)
+
+- [PASS] Api::V1::Abroa::ConsumptionControllerTest#test_read_key_returns_scoped_report_without_ledger_writes
+- [PASS] Api::V1::Abroa::ConsumptionControllerTest#test_invalid_query_and_foreign_account_are_rejected
+
+## Api::V1::Abroa::CurrencyControllerTest (6)
+
+- [PASS] Api::V1::Abroa::CurrencyControllerTest#test_invalid_or_other-tenant_exchange_id_is_not_found
+- [PASS] Api::V1::Abroa::CurrencyControllerTest#test_exchange_API_requires_write_permission_and_replays_a_single_transaction
+- [PASS] Api::V1::Abroa::CurrencyControllerTest#test_unrelated_accounts_cannot_be_accessed_by_profile_endpoint
+- [PASS] Api::V1::Abroa::CurrencyControllerTest#test_historical_rates_require_authentication_and_distinguish_missing_rates
+- [PASS] Api::V1::Abroa::CurrencyControllerTest#test_account_profile_updates_require_write_scope_and_preserve_balances
+- [PASS] Api::V1::Abroa::CurrencyControllerTest#test_region_information_does_not_claim_bank_connectivity
+
+## Api::V1::Abroa::EntryAllocationsControllerTest (1)
+
+- [PASS] Api::V1::Abroa::EntryAllocationsControllerTest#test_allocation_is_private,_scoped,_versioned_and_never_mutates_the_original_entry
+
+## Api::V1::Abroa::FeeAdjustmentsControllerTest (1)
+
+- [PASS] Api::V1::Abroa::FeeAdjustmentsControllerTest#test_scope_check,_idempotent_scholarship,_list_and_reversible_adjustment
+
+## Api::V1::Abroa::FeesControllerTest (5)
+
+- [PASS] Api::V1::Abroa::FeesControllerTest#test_installment_create_and_confirmed_transaction_settlement_work_through_scoped_APIs
+- [PASS] Api::V1::Abroa::FeesControllerTest#test_revoked_account_sharing_hides_fee_settlement_detail_and_aggregate_paid_amounts
+- [PASS] Api::V1::Abroa::FeesControllerTest#test_only_owners_with_write_scope_create_fees_and_idempotency_replay_is_stable
+- [PASS] Api::V1::Abroa::FeesControllerTest#test_Sure_recurring_occurrence_imports_are_idempotent,_permission_scoped_and_ledger-free
+- [PASS] Api::V1::Abroa::FeesControllerTest#test_stale_writes_and_cancelled_fees_cannot_be_charged
+
+## Api::V1::Abroa::ForecastsControllerTest (4)
+
+- [PASS] Api::V1::Abroa::ForecastsControllerTest#test_student_API_checks_authentication_and_exposes_reproducible_30_90_180_day_forecast
+- [PASS] Api::V1::Abroa::ForecastsControllerTest#test_unsupported_scenario_or_other_user's_project_is_rejected
+- [PASS] Api::V1::Abroa::ForecastsControllerTest#test_unrelated_student_accounts_are_not_enumerated_by_guessed_IDs
+- [PASS] Api::V1::Abroa::ForecastsControllerTest#test_a_parent_receives_only_grant-filtered_aggregate_projection_and_revocation_immediately_blocks
+
+## Api::V1::Abroa::FundPoolsControllerTest (3)
+
+- [PASS] Api::V1::Abroa::FundPoolsControllerTest#test_project_fund_pool_creation_is_authorized_and_idempotent
+- [PASS] Api::V1::Abroa::FundPoolsControllerTest#test_pool_archive_and_restore_retain_reserved_money_and_lock_versions
+- [PASS] Api::V1::Abroa::FundPoolsControllerTest#test_virtual_pool_movements_do_not_change_actual_balance_and_expose_shortfall
+
+## Api::V1::Abroa::FundingPlansControllerTest (7)
+
+- [PASS] Api::V1::Abroa::FundingPlansControllerTest#test_funding_update,_reject,_and_cancel_require_role_and_exact_version
+- [PASS] Api::V1::Abroa::FundingPlansControllerTest#test_parent_sends_a_notice_but_matching_requires_a_real_posted_bank_transaction
+- [PASS] Api::V1::Abroa::FundingPlansControllerTest#test_student_may_cancel_a_suggestion_and_parent_alone_may_reject_it
+- [PASS] Api::V1::Abroa::FundingPlansControllerTest#test_student_funding_suggestion_requires_parent_approval_and_hides_after_link_revoke
+- [PASS] Api::V1::Abroa::FundingPlansControllerTest#test_notice_revocation_and_receipt/reversal_lists_respect_grants_and_real_ledger
+- [PASS] Api::V1::Abroa::FundingPlansControllerTest#test_create,_confirm_and_partial_receipt_enforce_scopes_and_private_source_account
+- [PASS] Api::V1::Abroa::FundingPlansControllerTest#test_real_refund_reversal_preserves_original_entry_and_adjusts_planned_reporting
+
+## Api::V1::Abroa::NotificationsControllerTest (3)
+
+- [PASS] Api::V1::Abroa::NotificationsControllerTest#test_only_owner_with_write_scope_can_mark_a_notification_read
+- [PASS] Api::V1::Abroa::NotificationsControllerTest#test_inbox_lists_only_user's_items,_authenticated_and_tenant_scoped
+- [PASS] Api::V1::Abroa::NotificationsControllerTest#test_preference_version_conflict_and_unknown_options_do_not_mutate
+
+## Api::V1::Abroa::OnboardingsControllerTest (3)
+
+- [PASS] Api::V1::Abroa::OnboardingsControllerTest#test_read_onboarding_requires_authentication_and_returns_current_step
+- [PASS] Api::V1::Abroa::OnboardingsControllerTest#test_steps_require_write_scope_and_valid_step
+- [PASS] Api::V1::Abroa::OnboardingsControllerTest#test_completion_requires_idempotency_key_and_write_scope_and_replays_the_result
+
+## Api::V1::Abroa::ParentOverviewControllerTest (4)
+
+- [PASS] Api::V1::Abroa::ParentOverviewControllerTest#test_fee_pool_expense_and_funding_endpoints_expose_only_separately_authorized_resources
+- [PASS] Api::V1::Abroa::ParentOverviewControllerTest#test_parent_project_listing_and_summary_are_limited_to_summary_grant
+- [PASS] Api::V1::Abroa::ParentOverviewControllerTest#test_revoked_project_summary_immediately_disables_parent_API_access
+- [PASS] Api::V1::Abroa::ParentOverviewControllerTest#test_budget_listing_only_with_budget_read_and_summary_grant
+
+## Api::V1::Abroa::ParentPlanningControllerTest (6)
+
+- [PASS] Api::V1::Abroa::ParentPlanningControllerTest#test_parent_draft_delete_and_stale_version_conflict_preserve_student_data
+- [PASS] Api::V1::Abroa::ParentPlanningControllerTest#test_linked_planning_draft_becomes_effective_only_after_student_API_approval
+- [PASS] Api::V1::Abroa::ParentPlanningControllerTest#test_proposals_require_authorized_grant_and_confirmation_updates_budget_exactly_once
+- [PASS] Api::V1::Abroa::ParentPlanningControllerTest#test_parent_direct_edit_obeys_explicit_budget_resource_and_immediate_revoke
+- [PASS] Api::V1::Abroa::ParentPlanningControllerTest#test_drafts_are_independent_with_API-key_scopes_and_IDOR_denial
+- [PASS] Api::V1::Abroa::ParentPlanningControllerTest#test_proposal_cancellation_and_student_rejection_are_separately_authorized
+
+## Api::V1::Abroa::PersonalDebtsControllerTest (2)
+
+- [PASS] Api::V1::Abroa::PersonalDebtsControllerTest#test_invalid_parameters,_unknown_ownership_and_stale_key_cannot_mutate
+- [PASS] Api::V1::Abroa::PersonalDebtsControllerTest#test_create,_index,_show_and_settle_a_debt_with_real_entry
+
+## Api::V1::Abroa::ProfilesControllerTest (5)
+
+- [PASS] Api::V1::Abroa::ProfilesControllerTest#test_read_returns_defaults_without_writing_a_profile
+- [PASS] Api::V1::Abroa::ProfilesControllerTest#test_unauthenticated_profile_is_rejected
+- [PASS] Api::V1::Abroa::ProfilesControllerTest#test_invalid_preferences_and_invalid_versions_are_rejected
+- [PASS] Api::V1::Abroa::ProfilesControllerTest#test_write_scope_is_required
+- [PASS] Api::V1::Abroa::ProfilesControllerTest#test_updates_only_the_authenticated_user's_profile
+
+## Api::V1::Abroa::ProjectAccountsControllerTest (2)
+
+- [PASS] Api::V1::Abroa::ProjectAccountsControllerTest#test_linking_is_explicit_and_visible_to_read_scope_without_changing_balances
+- [PASS] Api::V1::Abroa::ProjectAccountsControllerTest#test_detaching_does_not_remove_account_or_original_entry
+
+## Api::V1::Abroa::ProjectsControllerTest (6)
+
+- [PASS] Api::V1::Abroa::ProjectsControllerTest#test_project_create_requires_write_scope_and_replays_idempotency_key
+- [PASS] Api::V1::Abroa::ProjectsControllerTest#test_period_creation_replay_and_currency_conversion_gaps_preserve_historical_data
+- [PASS] Api::V1::Abroa::ProjectsControllerTest#test_project_scoped_listing,_change_and_archive_restoration
+- [PASS] Api::V1::Abroa::ProjectsControllerTest#test_periods,_shared_accounts,_ledger_allocations_and_summary_do_not_mutate_transactions
+- [PASS] Api::V1::Abroa::ProjectsControllerTest#test_allocation_create_replay_is_atomic_and_audited_once
+- [PASS] Api::V1::Abroa::ProjectsControllerTest#test_project_list_pagination_is_stable_and_rejects_malformed_cursors
+
+## Api::V1::Abroa::ProviderCapturesControllerTest (2)
+
+- [PASS] Api::V1::Abroa::ProviderCapturesControllerTest#test_other_tenant_cannot_access_diagnostics_or_capture
+- [PASS] Api::V1::Abroa::ProviderCapturesControllerTest#test_capture_requires_write_scope_and_diagnoses_without_exposing_secrets
+
+## Api::V1::Abroa::RelationshipsControllerTest (4)
+
+- [PASS] Api::V1::Abroa::RelationshipsControllerTest#test_invitation_rejection_and_inviter_revocation_are_explicit_and_cannot_be_replayed
+- [PASS] Api::V1::Abroa::RelationshipsControllerTest#test_relationship_revocation_locks_grants_and_blocks_parent_reads
+- [PASS] Api::V1::Abroa::RelationshipsControllerTest#test_only_student_grants_scoped_capability_and_revocation_takes_effect_immediately
+- [PASS] Api::V1::Abroa::RelationshipsControllerTest#test_authorization,_invitation_replay,_one-time_acceptance_and_visibility
+
+## Api::V1::Abroa::ReportsControllerTest (3)
+
+- [PASS] Api::V1::Abroa::ReportsControllerTest#test_GET_report_reuses_Sure_facts,_never_mutates_Entry,_and_rejects_arbitrary_filters
+- [PASS] Api::V1::Abroa::ReportsControllerTest#test_parent_cannot_choose_short_windows;_revocation_stops_old_exports
+- [PASS] Api::V1::Abroa::ReportsControllerTest#test_CSV_export_requires_write_permission_and_audit,_download_never_returns_direct_blob_links
+
+## Api::V1::Abroa::SourceReviewsControllerTest (4)
+
+- [PASS] Api::V1::Abroa::SourceReviewsControllerTest#test_refund_allocation_and_revocation_leave_ledger_unchanged
+- [PASS] Api::V1::Abroa::SourceReviewsControllerTest#test_resolution_and_reversal_require_write_scope_and_are_idempotent
+- [PASS] Api::V1::Abroa::SourceReviewsControllerTest#test_review_listing_requires_authentication_and_creation_requires_write_scope
+- [PASS] Api::V1::Abroa::SourceReviewsControllerTest#test_other_tenant_reviews_are_not_returned_or_resolved
+
+## Api::V1::Abroa::StatementIntakesControllerTest (3)
+
+- [PASS] Api::V1::Abroa::StatementIntakesControllerTest#test_other_tenant_cannot_read_or_stage_private_statement
+- [PASS] Api::V1::Abroa::StatementIntakesControllerTest#test_preview_and_publish_require_write_access_and_never_directly_create_ledger_entries
+- [PASS] Api::V1::Abroa::StatementIntakesControllerTest#test_batch_rollback_is_write_scoped,_audited_and_idempotent
+
+## Api::V1::Abroa::StatementReconciliationsControllerTest (3)
+
+- [PASS] Api::V1::Abroa::StatementReconciliationsControllerTest#test_reconciliation_requires_authentication_and_write_scope_and_rejects_stale_digest
+- [PASS] Api::V1::Abroa::StatementReconciliationsControllerTest#test_preview_confirm_and_undo_change_only_reconciliation_markers
+- [PASS] Api::V1::Abroa::StatementReconciliationsControllerTest#test_another_family_cannot_preview_confirm_or_undo
+
+## Api::V1::Abroa::StudyPeriodsControllerTest (2)
+
+- [PASS] Api::V1::Abroa::StudyPeriodsControllerTest#test_readers_cannot_create_periods_and_repeated_write_keys_do_not_duplicate
+- [PASS] Api::V1::Abroa::StudyPeriodsControllerTest#test_period_update_refuses_stale_versions_and_archive_prevents_writes
+
+## CorsTest (7)
+
+- [PASS] CorsTest#test_cors_headers_are_returned_for_oauth_endpoints
+- [PASS] CorsTest#test_cors_preflight_request_is_handled_for_api_endpoints
+- [PASS] CorsTest#test_rack_cors_is_configured_in_middleware_stack
+- [PASS] CorsTest#test_cors_preflight_request_is_handled_for_session_endpoints
+- [PASS] CorsTest#test_cors_headers_are_returned_for_session_endpoints
+- [PASS] CorsTest#test_cors_headers_are_returned_for_api_endpoints
+- [PASS] CorsTest#test_cors_preflight_request_is_handled_for_oauth_endpoints
+
+## GuestReadOnlyConfigTest (16)
+
+- [PASS] GuestReadOnlyConfigTest#test_guest_cannot_revert_or_delete_an_import_whose_created_accounts_they_cannot_write
+- [PASS] GuestReadOnlyConfigTest#test_guest_cannot_change_a_family_configuration_import_in_the_import_steps
+- [PASS] GuestReadOnlyConfigTest#test_guest_cannot_publish_an_import_that_would_create_categories_or_tags
+- [PASS] GuestReadOnlyConfigTest#test_members_can_still_manage_family_configuration
+- [PASS] GuestReadOnlyConfigTest#test_guest_cannot_import_family_configuration
+- [PASS] GuestReadOnlyConfigTest#test_guest_cannot_create_categories,_tags_or_merchants
+- [PASS] GuestReadOnlyConfigTest#test_members_still_see_controls_to_change_family_configuration
+- [PASS] GuestReadOnlyConfigTest#test_guest_can_view_family_configuration
+- [PASS] GuestReadOnlyConfigTest#test_guest_cannot_revert,_cancel_or_delete_a_family_configuration_import
+- [PASS] GuestReadOnlyConfigTest#test_guest_gets_403_instead_of_a_redirect_when_a_non-HTML_revert_is_not_allowed
+- [PASS] GuestReadOnlyConfigTest#test_guest_cannot_apply_rules_to_family_transactions
+- [PASS] GuestReadOnlyConfigTest#test_guest_cannot_change_an_import's_mappings_once_it_is_publishing
+- [PASS] GuestReadOnlyConfigTest#test_guest_cannot_update_or_delete_existing_configuration
+- [PASS] GuestReadOnlyConfigTest#test_guest_does_not_see_controls_to_change_family_configuration
+- [PASS] GuestReadOnlyConfigTest#test_guest_can_still_map_a_pending_transaction_import_to_existing_categories
+- [PASS] GuestReadOnlyConfigTest#test_guest_does_not_see_revert_or_delete_for_family_configuration_imports
+
+## LayoutAccessibilityTest (2)
+
+- [PASS] LayoutAccessibilityTest#test_settings_layout_renders_skip-link_pointing_at_#main_and_a_<main>_with_id="main"
+- [PASS] LayoutAccessibilityTest#test_application_layout_renders_skip-link_pointing_at_#main_and_a_<main>_with_id="main"
+
+## MixedCurrencyTest (5)
+
+- [PASS] MixedCurrencyTest#test_syncs,_transfer_matching_and_insights_convert_before_combining_amounts
+- [PASS] MixedCurrencyTest#test_assistant_read_functions_convert_before_combining_amounts
+- [PASS] MixedCurrencyTest#test_API_reads_convert_before_combining_amounts
+- [PASS] MixedCurrencyTest#test_the_probe_sees_a_mismatch_in_report_mode
+- [PASS] MixedCurrencyTest#test_pages_convert_before_combining_amounts
+
+## OauthBasicTest (6)
+
+- [PASS] OauthBasicTest#test_oauth_authorization_endpoint_requires_authentication
+- [PASS] OauthBasicTest#test_oauth_applications_can_be_created
+- [PASS] OauthBasicTest#test_oauth_token_endpoint_refuses_a_refresh_token_exchange_after_the_user_is_deactivated
+- [PASS] OauthBasicTest#test_doorkeeper_configuration_is_properly_set_up
+- [PASS] OauthBasicTest#test_oauth_authorization_endpoint_rejects_a_deactivated_user's_existing_session
+- [PASS] OauthBasicTest#test_oauth_token_endpoint_exists_and_handles_requests
+
+## OauthMobileTest (4)
+
+- [PASS] OauthMobileTest#test_mobile_oauth_authorization_with_custom_scheme_redirect
+- [PASS] OauthMobileTest#test_mobile_oauth_detects_custom_scheme_in_redirect_uri
+- [PASS] OauthMobileTest#test_mobile_oauth_preserves_display_parameter_through_forms
+- [PASS] OauthMobileTest#test_mobile_oauth_authorization_flow_completes_successfully
+
+## OauthTokenRefreshConcurrencyTest (2)
+
+- [PASS] OauthTokenRefreshConcurrencyTest#test_a_refresh_that_validated_its_token_before_a_password_change_leaves_no_usable_successor
+- [PASS] OauthTokenRefreshConcurrencyTest#test_a_refresh_that_arrives_during_a_password_change_waits_for_it_and_is_refused
+
+## PlaidItemBroadcastRenderTest (1)
+
+- [PASS] PlaidItemBroadcastRenderTest#test_the_connection_card_still_renders_its_accounts_with_no_current_user
+
+## PushDeliveryConcurrencyTest (2)
+
+- [PASS] PushDeliveryConcurrencyTest#test_re-registration_completes_during_provider_IO_and_a_late_gone_response_preserves_the_replacement
+- [PASS] PushDeliveryConcurrencyTest#test_simultaneous_registrations_cannot_exceed_the_per-user_device_limit
+
+## RackAttackTest (17)
+
+- [PASS] RackAttackTest#test_password_change_throttles_ignore_a_session_whose_user_was_deactivated
+- [PASS] RackAttackTest#test_json_email_extraction_tolerates_non-object_JSON_payloads_without_raising
+- [PASS] RackAttackTest#test_login_throttles_discriminate_by_ip_and_normalized_email,_and_ignore_unrelated_requests
+- [PASS] RackAttackTest#test_api_login_and_sso-link_throttles_match_their_own_paths_only
+- [PASS] RackAttackTest#test_credential-guessing_surfaces_have_rate_limiting_configured
+- [PASS] RackAttackTest#test_rack_attack_is_configured
+- [PASS] RackAttackTest#test_oauth_token_endpoint_has_rate_limiting_configured
+- [PASS] RackAttackTest#test_json_email_extraction_skips_a_non-rewindable_rack.input_instead_of_raising_or_consuming_the_body
+- [PASS] RackAttackTest#test_mfa_verify_throttle_discriminates_by_the_pending_session_user_id,_not_email
+- [PASS] RackAttackTest#test_rack_attack_is_only_inserted_into_the_middleware_stack_once
+- [PASS] RackAttackTest#test_api_requests_have_rate_limiting_configured
+- [PASS] RackAttackTest#test_password_change_throttles_discriminate_by_ip_and_signed-in_user,_and_ignore_unrelated_requests
+- [PASS] RackAttackTest#test_credential-guessing_throttles_still_match_when_the_path_carries_a_format_extension
+- [PASS] RackAttackTest#test_password_change_throttle_keys_an_impersonation_by_the_impersonated_user
+- [PASS] RackAttackTest#test_api_login_and_sso-link_email_throttles_discriminate_JSON_bodies,_the_documented_mobile_format
+- [PASS] RackAttackTest#test_password_change_throttle_blocks_a_signed-in_session_that_rotates_ips
+- [PASS] RackAttackTest#test_password_change_throttle_shares_one_budget_across_a_user's_sessions
+
+## ResponseCompressionTest (4)
+
+- [PASS] ResponseCompressionTest#test_compression_sits_after_Rack::Sendfile,_which_is_in_every_stack
+- [PASS] ResponseCompressionTest#test_pages_are_compressed_for_a_client_that_accepts_it
+- [PASS] ResponseCompressionTest#test_binary_content_and_byte_ranges_are_sent_as-is
+- [PASS] ResponseCompressionTest#test_pages_are_sent_as-is_to_a_client_that_does_not
+
+## SidebarScrollPreserveKeysTest (2)
+
+- [PASS] SidebarScrollPreserveKeysTest#test_the_three_previously-omitted_group_keys_are_accepted
+- [PASS] SidebarScrollPreserveKeysTest#test_accepted_group_keys_are_derived_from_Accountable::TYPES_(all_nine)
+
+## SidekiqWebAccessTest (6)
+
+- [PASS] SidekiqWebAccessTest#test_logged-out_visitor_gets_404
+- [PASS] SidekiqWebAccessTest#test_family_admin_gets_404
+- [PASS] SidekiqWebAccessTest#test_super_admin_can_access_the_dashboard
+- [PASS] SidekiqWebAccessTest#test_garbage_session_cookie_fails_closed
+- [PASS] SidekiqWebAccessTest#test_deactivated_super_admin_gets_404_and_the_stale_session_is_destroyed
+- [PASS] SidekiqWebAccessTest#test_member_gets_404
+
+## Trading212ItemBroadcastRenderTest (1)
+
+- [PASS] Trading212ItemBroadcastRenderTest#test_the_connection_card_renders_with_no_current_user
+
+## UsageRedisTest (1)
+
+- [SKIP] UsageRedisTest#test_independent_worker_processes_share_atomic_claims_for_installation_events
+
+## WiseItemRenderTest (1)
+
+- [PASS] WiseItemRenderTest#test_the_connection_card_shows_the_latest_sync's_errors
