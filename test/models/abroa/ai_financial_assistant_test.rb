@@ -28,6 +28,43 @@ class Abroa::AiFinancialAssistantTest < ActiveSupport::TestCase
     end
   end
 
+  test "user-declared monthly model quota is reported without inventing provider limits" do
+    attributes = {
+      base_url: "https://api.example.com/v1",
+      api_key: "sk-quota-secret-1234",
+      model_name: "custom-finance",
+      capabilities: { monthly_call_quota: 2, monthly_token_quota: 300 }
+    }
+    provider = Abroa::AiModelProvider.configure_for!(@student,
+      attributes: attributes, key: "monthly-quota")
+
+    travel_to 2.months.ago do
+      Abroa::AiModelUsage.record!(@student, provider: provider,
+        status: "success", input_tokens: 70, output_tokens: 30)
+    end
+    Abroa::AiModelUsage.record!(@student, provider: provider,
+      status: "success", input_tokens: 100, output_tokens: 50)
+    Abroa::AiModelUsage.record!(@student, provider: provider, status: "failed")
+
+    summary = Abroa::AiModelUsage.summary_for(@student)
+    assert_equal 3, summary[:calls]
+    assert_equal 2, summary[:success_count]
+    assert_equal "66.67", summary[:success_rate]
+    assert_nil summary[:cost_usd]
+    assert_equal({
+      source: "user_configured",
+      month_calls: 2, calls_limit: 2, calls_remaining: 0,
+      month_tokens: 150, tokens_limit: 300, tokens_remaining: 150
+    }, summary[:quota])
+    assert_nil Abroa::AiModelUsage.summary_for(@outsider)[:quota]
+    assert_raises(ArgumentError) do
+      Abroa::AiModelProvider.capabilities!(monthly_call_quota: 0)
+    end
+    assert_raises(ArgumentError) do
+      Abroa::AiModelProvider.capabilities!(monthly_token_quota: "300")
+    end
+  end
+
   test "private, loopback, redirected and credential URL forms cannot be saved" do
     %w[
       http://api.example.com/v1 https://127.0.0.1/v1

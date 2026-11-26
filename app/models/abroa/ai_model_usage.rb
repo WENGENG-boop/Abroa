@@ -35,13 +35,29 @@ module Abroa
       scope = for_user(user)
       total = scope.count
       succeeded = scope.where(status: "success").count
+      provider = AiModelProvider.for_user(user).first
+      limits = provider&.capabilities || {}
+      call_limit = limits["monthly_call_quota"]
+      token_limit = limits["monthly_token_quota"]
+      quota = if call_limit || token_limit
+        current_month = scope.where(created_at: Time.current.beginning_of_month..)
+        used_calls = current_month.count
+        used_tokens = current_month.sum(:input_tokens) + current_month.sum(:output_tokens)
+        {
+          source: "user_configured", month_calls: used_calls,
+          calls_limit: call_limit, calls_remaining: call_limit ? [ call_limit - used_calls, 0 ].max : nil,
+          month_tokens: used_tokens, tokens_limit: token_limit,
+          tokens_remaining: token_limit ? [ token_limit - used_tokens, 0 ].max : nil
+        }
+      end
       {
         calls: total, success_count: succeeded,
         success_rate: total.positive? ? (BigDecimal(succeeded.to_s) / total * 100).round(2).to_s("F") : nil,
         input_tokens: scope.sum(:input_tokens),
         output_tokens: scope.sum(:output_tokens),
         cost_usd: scope.where.not(cost_usd: nil).exists? ? scope.sum(:cost_usd).to_s("F") : nil,
-        unknown_cost_count: scope.where(cost_usd: nil).count
+        unknown_cost_count: scope.where(cost_usd: nil).count,
+        quota: quota
       }
     end
 

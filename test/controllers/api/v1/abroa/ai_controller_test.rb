@@ -53,13 +53,20 @@ class Api::V1::Abroa::AiControllerTest < ActionDispatch::IntegrationTest
   test "custom model API accepts the model native 384K output ceiling" do
     post "/api/v1/abroa/ai/provider", as: :json,
       params: @config.merge(capabilities: {
-        max_output_tokens: 393_216, timeout_seconds: 600
+        max_output_tokens: 393_216, timeout_seconds: 600,
+        monthly_call_quota: 25, monthly_token_quota: 500_000
       }),
       headers: api_headers(@write_key).merge("Idempotency-Key" => "a14-high-output")
     assert_response :created
     assert_equal 393_216, response.parsed_body.dig("data", "capabilities", "max_output_tokens")
     assert_equal 600, response.parsed_body.dig("data", "capabilities", "timeout_seconds")
+    assert_equal 25, response.parsed_body.dig("data", "capabilities", "monthly_call_quota")
     assert_not_includes response.body, @config.fetch(:api_key)
+    get "/api/v1/abroa/ai/usage", headers: api_headers(@read_key)
+    assert_response :ok
+    assert_equal "user_configured", response.parsed_body.dig("data", "quota", "source")
+    assert_equal 25, response.parsed_body.dig("data", "quota", "calls_remaining")
+    assert_equal 500_000, response.parsed_body.dig("data", "quota", "tokens_remaining")
 
     patch "/api/v1/abroa/ai/provider", as: :json,
       params: { capabilities: { max_output_tokens: 393_217 }, lock_version: 0 },

@@ -7,7 +7,10 @@ module Abroa
   class AiModelProvider < ApplicationRecord
     self.table_name = "abroa_ai_model_providers"
     Conflict = Class.new(StandardError)
-    CAPABILITY_FIELDS = %w[chat_completions tool_calls responses_api timeout_seconds max_output_tokens].freeze
+    CAPABILITY_FIELDS = %w[
+      chat_completions tool_calls responses_api timeout_seconds max_output_tokens
+      monthly_call_quota monthly_token_quota
+    ].freeze
     DEFAULT_MAX_OUTPUT_TOKENS = 16_384
     MAX_OUTPUT_TOKENS = 393_216
     DEFAULT_TIMEOUT_SECONDS = 120
@@ -181,6 +184,11 @@ module Abroa
       if data.key?("max_output_tokens")
         raise ArgumentError, "Invalid output limit" unless data["max_output_tokens"].is_a?(Integer) &&
           data["max_output_tokens"].between?(32, MAX_OUTPUT_TOKENS)
+      end
+      %w[monthly_call_quota monthly_token_quota].each do |field|
+        next unless data.key?(field)
+        raise ArgumentError, "Invalid monthly quota" unless
+          data[field].is_a?(Integer) && data[field].between?(1, 100_000_000)
       end
       { "chat_completions" => true, "timeout_seconds" => DEFAULT_TIMEOUT_SECONDS,
         "max_output_tokens" => DEFAULT_MAX_OUTPUT_TOKENS }.merge(data)
