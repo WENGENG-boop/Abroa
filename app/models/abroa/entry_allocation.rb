@@ -93,9 +93,12 @@ module Abroa
       entry
     end
 
-    def self.validate_entry!(entry)
+    def self.validate_entry!(entry, split_parent: nil)
+      # A batched report can provide this authoritative child-existence fact
+      # without repeating an EXISTS query for every source Entry.
+      split = split_parent.nil? ? entry&.split_parent? : split_parent
       unless entry && entry.transaction? && entry.transaction.kind == "standard" && !entry.transaction.pending? &&
-          !entry.excluded? && !entry.split_parent? && !entry.scheduled? && !entry.amount.zero?
+          !entry.excluded? && !split && !entry.scheduled? && !entry.amount.zero?
         raise ArgumentError, "Expected an eligible confirmed ledger entry"
       end
     end
@@ -107,12 +110,12 @@ module Abroa
       entry.amount.abs - allocations.sum(:amount)
     end
 
-    def consistent?
-      self.class.validate_entry!(entry)
+    def consistent?(allocated_total: nil, split_parent: nil)
+      self.class.validate_entry!(entry, split_parent: split_parent)
       entry.id == entry_key && entry.account.family_id == family_id && project.family_id == family_id &&
         entry.currency == currency && entry.date == entry_date &&
         (entry.amount.positive? ? "expense" : "income") == direction &&
-        self.class.where(entry_id: entry_id).sum(:amount) <= entry.amount.abs
+        (allocated_total || self.class.where(entry_id: entry_id).sum(:amount)) <= entry.amount.abs
     rescue ArgumentError
       false
     end
