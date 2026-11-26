@@ -25,7 +25,7 @@
 |ADMIN 订阅/权益/用量|P5.2|A15-2,3|复用+扩展|VERIFIED|独立套餐/订阅/用量/模拟支付，核心业务免费，自托管无官方订阅；Git ba220b8e9，专项15/82与并发8/35均绿；最终全量19328测试/118189断言/0失败/0错误。|
 |ADMIN 运营/渠道/地区|P5.3|A15|扩展|VERIFIED|真实用户/银行/AI/导入/运维汇总、允许配置的地区渠道参数/治理申请；Git 0716d1b6f，专项14/114、Brakeman、API rswag通过；最终全量19328测试/118189断言/0失败/0错误。|
 |Docker/自托管/云端|P5.4|A16|复用+扩展|VERIFIED|生产候选 Web/Worker/PostgreSQL/Redis 四容器健康、HTTP200和401、Worker实际执行、原Sure/P4历史升级+金额指纹一致、备份恢复、新库Schema与加密密钥重启验收；隔离Redis与PostgreSQL故障恢复、最终全量19328/118189/0/0、P5.4镜像SHA6f8fc5f19重建并复验通过。|
-|全后端验收/原版回归|P6|A00–A17|回归|PLANNED|待填|
+|全后端验收/原版回归|P6|A00–A17|回归|VERIFIED|独立 P6.1 Git 421c68e13、P6.2 Git e559aeb9a；PG17/Redis7 最终 Rails 19332 runs/118269 assertions/0失败/0错误/9项逐一解释旧跳过，退出0；真实 Selenium 原 Sure System 511 runs/2817 assertions/0失败/0错误/0跳过、退出0；Brakeman 0未忽略警告、RuboCop3884/0、ERB857/0、Biome JS Lint158/0、API和rswag通过；20,000条账本PG性能、Sure/P4升级/恢复、Redis/PG故障注入、真实Sidekiq重试、云端/自托管HTTP均通过。额外 Biome 全仓格式/导入排序问题属P7且未通过；真实银行/Google/SMTP/AI/付款供应商为P8外部未联调项；详见 P6_FINAL_SIGNOFF.md、P6_SECURITY_AUDIT.md 和 D盘P6证据日志。|
 |前端三端/PWA|P7|A18|后端后实施|PLANNED|待填|
 |上线|P8|A19|端到端|PLANNED|待填|
 |全球公开留学成本库|后续|未定|新增|DEFERRED|不实现|
